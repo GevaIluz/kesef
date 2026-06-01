@@ -6,12 +6,27 @@ export interface EncryptedBlob {
   ciphertext: string;  // base64
 }
 
-/** Derive a 32-byte key from a passphrase + salt using scrypt. */
+// Hardened scrypt parameters (OWASP baseline). N=2^17 makes brute-forcing a
+// human passphrase costly; raising N also raises memory (~128*N*r bytes ≈ 128 MiB),
+// so maxmem must be lifted above scrypt's ~32 MiB default or scryptSync throws.
+const SCRYPT_PARAMS = { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 } as const;
+const KEY_BYTES = 32;       // AES-256
+const MIN_SALT_BYTES = 16;
+
+function assertKey(key: Buffer): void {
+  if (key.length !== KEY_BYTES) throw new Error(`key must be ${KEY_BYTES} bytes (AES-256)`);
+}
+
+/** Derive a 32-byte key from a passphrase + per-credential salt (>=16 bytes) using scrypt. */
 export function deriveKey(passphrase: string, salt: Buffer): Buffer {
-  return scryptSync(passphrase, salt, 32);
+  if (salt.length < MIN_SALT_BYTES) {
+    throw new Error(`deriveKey: salt must be at least ${MIN_SALT_BYTES} bytes`);
+  }
+  return scryptSync(passphrase, salt, KEY_BYTES, SCRYPT_PARAMS);
 }
 
 export function encrypt(plaintext: string, key: Buffer): EncryptedBlob {
+  assertKey(key);
   const iv = randomBytes(12); // 96-bit nonce, recommended for GCM
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
@@ -23,6 +38,7 @@ export function encrypt(plaintext: string, key: Buffer): EncryptedBlob {
 }
 
 export function decrypt(blob: EncryptedBlob, key: Buffer): string {
+  assertKey(key);
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(blob.iv, 'base64'));
   decipher.setAuthTag(Buffer.from(blob.tag, 'base64'));
   const pt = Buffer.concat([

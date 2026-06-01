@@ -23,3 +23,20 @@ describe('crypto', () => {
     expect(key).toHaveLength(32);
   });
 });
+
+describe('crypto input validation', () => {
+  const key = deriveKey('pw', Buffer.alloc(16, 1));
+
+  it('rejects a salt shorter than 16 bytes', () => {
+    expect(() => deriveKey('pw', Buffer.alloc(15, 1))).toThrow(/salt/i);
+  });
+
+  it('rejects a non-32-byte key on encrypt', () => {
+    expect(() => encrypt('x', Buffer.alloc(16, 1))).toThrow(/32 bytes/);
+  });
+
+  it('rejects a non-32-byte key on decrypt', () => {
+    const blob = encrypt('x', key);
+    expect(() => decrypt(blob, Buffer.alloc(16, 1))).toThrow(/32 bytes/);
+  });
+});
