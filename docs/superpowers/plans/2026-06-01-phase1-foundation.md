@@ -381,6 +381,19 @@ git commit -m "feat(core): add AES-256-GCM encryption helpers"
 - Modify: `packages/core/src/index.ts`, `packages/core/package.json`
 - Test: `packages/core/test/vault.test.ts`
 
+> **Note:** this `KeyringVault` stores bank credentials in the **OS keychain**, which the OS already
+> encrypts at rest — so our `crypto` blob format is *not* used here. Credentials do not go through
+> `deriveKey`/`encrypt`.
+>
+> **Security follow-ups carried from the Task 3 crypto review** — these apply to the *first place our own
+> `crypto` primitive persists or transmits data*, i.e. the **Phase 4 couple-sync** payloads (track there,
+> not in this task):
+> - **Per-payload salt:** generate a fresh `randomBytes(16)` salt (never shared/hardcoded); `deriveKey`
+>   now enforces ≥16-byte salts.
+> - **Versioned, self-describing format:** wrap as `{ v: 1, kdf: { salt, N, r, p }, blob: EncryptedBlob }`
+>   so scrypt cost / algorithm can change later without orphaning existing data — cheapest now, most
+>   expensive after data exists.
+
 - [ ] **Step 1: Write the failing tests** (against the in-memory implementation)
 
 `packages/core/test/vault.test.ts`:
