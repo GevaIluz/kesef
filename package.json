@@ -13,7 +13,8 @@
     "sync": "tsx packages/ingestion/src/cli.ts sync",
     "status": "tsx packages/ingestion/src/cli.ts status",
     "categorize": "tsx packages/ingestion/src/cli.ts categorize",
-    "add-balance": "tsx packages/ingestion/src/cli.ts add-balance"
+    "add-balance": "tsx packages/ingestion/src/cli.ts add-balance",
+    "list": "tsx packages/ingestion/src/cli.ts list"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

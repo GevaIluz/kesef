@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { dbPath, kesefDir } from './paths.js';
 import { ask, askHidden } from './prompt.js';
 import { scrapeBeinleumi } from './beinleumi.js';
-import { categorize } from './categorize.js';
+import { scrapeCal } from './cal.js';
+import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
 
 const vault = new KeyringVault('kesef');
@@ -18,48 +19,50 @@ async function getDbKey(create: boolean): Promise<string> {
 }
 
 async function connect(): Promise<void> {
-  const username = await ask('Beinleumi username: ');
-  const password = await askHidden('Beinleumi password (hidden): ');
-  await vault.set('beinleumi', JSON.stringify({ username, password }));
+  const inst = (await ask('Connect which? (beinleumi / cal): ')).trim().toLowerCase() === 'cal' ? 'cal' : 'beinleumi';
+  const username = await ask(`${inst} username: `);
+  const password = await askHidden(`${inst} password (hidden): `);
+  await vault.set(`creds:${inst}`, JSON.stringify({ username, password }));
   const key = await getDbKey(true);
-  Store.open({ path: dbPath(), key }).close(); // initialize the encrypted DB
-  console.log('✓ Connected. Credentials stored in your OS keychain; encrypted DB at ~/.kesef/kesef.db');
-  console.log('  Next: `npm run sync`');
+  Store.open({ path: dbPath(), key }).close();
+  console.log(`✓ Connected ${inst}. Credentials stored in your OS keychain.`);
+  console.log('  Run `npm run sync` (or run connect again to add the other institution).');
 }
 
 async function sync(): Promise<void> {
-  const raw = await vault.get('beinleumi');
-  if (!raw) { console.error('Not connected — run `npm run connect`.'); process.exit(1); }
-  let creds: { username: string; password: string };
-  try { creds = JSON.parse(raw); }
-  catch { console.error('Stored credentials are corrupt — run `npm run connect` to re-enter.'); process.exit(1); }
-  const { username, password } = creds;
-  const debug = !!process.env.KESEF_DEBUG;
-  const headless = !!process.env.KESEF_HEADLESS; // opt in to headless; Beinleumi login is unreliable headless
-  if (!headless) console.log('(a browser window will open to complete the login, then close — this is expected)');
-  if (debug) console.log('(debug: verbose logs; a failure screenshot is saved to ~/.kesef/last-failure.png)');
-  console.log('Logging in to Beinleumi…');
-  const res = await scrapeBeinleumi({ username, password }, {
-    now: todayISO(),
-    showBrowser: !headless,
-    verbose: debug,
+  const headless = !!process.env.KESEF_HEADLESS, debug = !!process.env.KESEF_DEBUG;
+  const overrides = loadOverrides();
+  const common = {
+    now: todayISO(), showBrowser: !headless, verbose: debug,
     failureScreenshotPath: debug ? join(kesefDir(), 'last-failure.png') : undefined,
-  });
-  if (!res.ok) {
-    console.error(`✗ Login failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim());
-    if (debug) console.error(`  A screenshot of the stuck page was saved to ${join(kesefDir(), 'last-failure.png')}`);
-    process.exit(1);
+  };
+
+  // Which institutions are connected? (support legacy `beinleumi` key for back-compat)
+  const insts: Array<'beinleumi' | 'cal'> = [];
+  for (const inst of ['beinleumi', 'cal'] as const) {
+    if ((await vault.get(`creds:${inst}`)) || (inst === 'beinleumi' && (await vault.get('beinleumi')))) insts.push(inst);
   }
+  if (insts.length === 0) { console.error('Nothing connected — run `npm run connect`.'); process.exit(1); }
+  if (!headless) console.log('(a browser window will open for each login, then close)');
+
   const key = await getDbKey(false);
   const store = Store.open({ path: dbPath(), key });
-  const { accounts, transactions, snapshots } = res.data!;
-  const overrides = loadOverrides();
-  for (const t of transactions) t.category = categorize(t.description, overrides);
-  for (const a of accounts) store.upsertAccount(a);
-  for (const t of transactions) store.upsertTransaction(t);
-  for (const s of snapshots) store.upsertBalanceSnapshot(s);
-  console.log(`✓ Synced ${accounts.length} account(s), ${transactions.length} transaction(s).`);
-  console.log(`  Stored total: ${store.countTransactions()} transactions across ${store.countAccounts()} accounts.`);
+  for (const inst of insts) {
+    const raw = (await vault.get(`creds:${inst}`)) ?? (await vault.get('beinleumi'));
+    if (!raw) continue;
+    let creds: { username: string; password: string };
+    try { creds = JSON.parse(raw); } catch { console.error(`${inst}: stored credentials corrupt — re-run connect.`); continue; }
+    console.log(`Logging in to ${inst}…`);
+    const res = inst === 'cal' ? await scrapeCal(creds, common) : await scrapeBeinleumi(creds, common);
+    if (!res.ok) { console.error(`✗ ${inst} failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim()); continue; }
+    const { accounts, transactions, snapshots } = res.data!;
+    for (const t of transactions) t.category = assignCategory(t, overrides);
+    for (const a of accounts) store.upsertAccount(a);
+    for (const t of transactions) store.upsertTransaction(t);
+    for (const s of snapshots) store.upsertBalanceSnapshot(s);
+    console.log(`  ✓ ${inst}: ${accounts.length} account(s), ${transactions.length} transaction(s).`);
+  }
+  console.log(`Stored total: ${store.countTransactions()} transactions across ${store.countAccounts()} accounts.`);
   store.close();
 }
 
@@ -67,6 +70,20 @@ async function status(): Promise<void> {
   const key = await getDbKey(false);
   const store = Store.open({ path: dbPath(), key });
   console.log(`${store.countAccounts()} account(s), ${store.countTransactions()} transaction(s) in ~/.kesef/kesef.db`);
+  store.close();
+}
+
+async function list(): Promise<void> {
+  const key = await getDbKey(false);
+  const store = Store.open({ path: dbPath(), key });
+  const txns = store.allTransactions().slice(-50);
+  for (const t of txns) {
+    const amt = `${t.amount < 0 ? '−' : '+'}₪${Math.abs(t.amount).toLocaleString('en-US')}`.padStart(12);
+    const cat = (t.category ?? '?').padEnd(13);
+    const raw = t.rawCategory ? `[${t.rawCategory}] ` : '';
+    console.log(`${t.date}  ${amt}  ${cat} ${raw}${t.description}`);
+  }
+  console.log(`(${store.countTransactions()} total; showing last ${txns.length})`);
   store.close();
 }
 
@@ -107,6 +124,6 @@ async function addBalance(): Promise<void> {
 }
 
 const cmd = process.argv[2];
-const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance };
-(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | status | categorize | add-balance'); process.exit(1); }))()
+const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance, list };
+(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | status | categorize | add-balance | list'); process.exit(1); }))()
   .catch(e => { console.error(e instanceof Error ? e.message : e); process.exit(1); });
