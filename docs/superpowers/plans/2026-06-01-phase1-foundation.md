@@ -742,3 +742,13 @@ git commit -m "feat(core): add encrypted-at-rest SQLite store"
 - Dashboard, charts, i18n/RTL toggle → **Phase 3**.
 - Sharing flags wiring + couple sync → **Phase 4**.
 - The `shareable` flags exist in the model now but are not yet acted upon.
+
+**Store hardening carried to Phase 2** (from the Task 5 review — address before the schema evolves or
+the scraper bulk-inserts):
+- **`PRAGMA user_version` + a migration runner** — `CREATE TABLE IF NOT EXISTS` won't alter existing
+  columns on reopen; needed before Phase 2 adds/changes columns. *Most important.*
+- **Pin `cipher_compatibility`** (SQLCipher profile) explicitly so a future `better-sqlite3-multiple-ciphers`
+  bump that changes defaults can't render existing encrypted DBs unreadable.
+- **Batch/transaction insert API** (`db.transaction(...)` + one reused prepared statement) for the
+  scraper — atomicity + a large perf win on bulk import.
+- Consider WAL mode and an index on `transactions(category)` once the categorization engine queries it.
