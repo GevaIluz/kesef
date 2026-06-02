@@ -527,4 +527,9 @@ Hand these to Guy to run himself; the agent must NOT ask for or handle the crede
 - **Categorization** engine (merchant → CategoryCode) → Phase 2b.
 - Scheduling/auto-sync, multiple credit-card issuers, partner-vs-me profile separation in the CLI → later.
 - The Phase-1 store-hardening follow-ups (user_version migrations, cipher_compatibility pin) still tracked.
+
+**Carried from the Task 5 security review (track-for-later, not blocking):**
+- `askHidden` is single-byte ASCII only — fine for Beinleumi creds; revisit if non-ASCII passwords needed.
+- Wrap the `sync` upsert loops in one `better-sqlite3` transaction once row counts grow (atomicity + speed).
+- Make `ScrapeOutcome` a discriminated union (`{ok:true;data} | {ok:false;errorType;errorMessage}`) to drop the `!`.
 ```
