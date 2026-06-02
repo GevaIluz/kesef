@@ -10,6 +10,7 @@ describe('categorize', () => {
     expect(categorize('חברת חשמל לישראל')).toBe('utilities');
     expect(categorize('סופר פארם')).toBe('health');
     expect(categorize('משכורת')).toBe('income');
+    expect(categorize('מ.תחבורה - רב-פס')).toBe('transport');
   });
   it('is case-insensitive and substring-based', () => {
     expect(categorize('payment to NeTfLiX')).toBe('entertainment');
