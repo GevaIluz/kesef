@@ -8,7 +8,10 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.json --pretty"
+    "typecheck": "tsc --noEmit -p tsconfig.json --pretty",
+    "connect": "tsx packages/ingestion/src/cli.ts connect",
+    "sync": "tsx packages/ingestion/src/cli.ts sync",
+    "status": "tsx packages/ingestion/src/cli.ts status"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
