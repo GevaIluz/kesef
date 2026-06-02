@@ -1,10 +1,14 @@
 import type { Account, Transaction, BalanceSnapshot, CategoryCode } from './types';
 
+export interface PeriodSummary {
+  income: number; spent: number; saved: number;
+  byCategory: { category: CategoryCode | 'other'; amount: number }[];
+}
+
 export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
-  thisMonth: { income: number; spent: number; saved: number };
-  byCategory: { category: CategoryCode | 'other'; amount: number }[];
+  spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
   accounts: { id: string; name: string; institution: string; type: string; balance: number | null }[];
   recent: { date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string }[];
   netWorthSeries: { date: string; balance: number }[];
@@ -22,25 +26,32 @@ function latestBalanceByAccount(snaps: BalanceSnapshot[]): Map<string, number> {
   return bal;
 }
 
+function summarize(txns: Transaction[]): PeriodSummary {
+  let income = 0, spent = 0;
+  const cat = new Map<string, number>();
+  for (const t of txns) {
+    if (t.amount > 0) income += t.amount;
+    else if (t.amount < 0) { spent += -t.amount; const c = t.category ?? 'other'; cat.set(c, (cat.get(c) ?? 0) + -t.amount); }
+  }
+  const byCategory = [...cat.entries()].map(([category, amount]) => ({ category: category as CategoryCode, amount })).sort((a, b) => b.amount - a.amount);
+  return { income, spent, saved: income - spent, byCategory };
+}
+
+function shiftDays(iso: string, days: number): string {
+  const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
+}
+
 export function buildDashboard(
   accounts: Account[], transactions: Transaction[], snapshots: BalanceSnapshot[], now: string,
 ): DashboardModel {
   const month = now.slice(0, 7);
-  const inMonth = transactions.filter(t => t.date.slice(0, 7) === month);
-
-  let income = 0, spent = 0;
-  const catTotals = new Map<string, number>();
-  for (const t of inMonth) {
-    if (t.amount > 0) income += t.amount;
-    else if (t.amount < 0) {
-      spent += -t.amount;
-      const c = t.category ?? 'other';
-      catTotals.set(c, (catTotals.get(c) ?? 0) + -t.amount);
-    }
-  }
-  const byCategory = [...catTotals.entries()]
-    .map(([category, amount]) => ({ category: category as CategoryCode, amount }))
-    .sort((a, b) => b.amount - a.amount);
+  const inRange = (from: string) => transactions.filter(t => t.date >= from && t.date <= now);
+  const spending = {
+    thisMonth: summarize(transactions.filter(t => t.date.slice(0, 7) === month)),
+    last30: summarize(inRange(shiftDays(now, -30))),
+    last90: summarize(inRange(shiftDays(now, -90))),
+    year: summarize(inRange(shiftDays(now, -365))),
+  };
 
   const latest = latestBalanceByAccount(snapshots);
   const netWorth = [...latest.values()].reduce((a, b) => a + b, 0);
@@ -55,8 +66,7 @@ export function buildDashboard(
 
   return {
     generatedAt: now, netWorth,
-    thisMonth: { income, spent, saved: income - spent },
-    byCategory,
+    spending,
     accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null })),
     recent, netWorthSeries, goals: [],
   };

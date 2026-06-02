@@ -181,9 +181,18 @@
     </div>
   </section>
 
+  <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="seg" role="group" aria-label="period" id="period-seg">
+      <button data-period-btn="thisMonth" aria-pressed="false" data-t="period_thisMonth">This month</button>
+      <button data-period-btn="last30"    aria-pressed="true"  data-t="period_last30">Last 30 days</button>
+      <button data-period-btn="last90"    aria-pressed="false" data-t="period_last90">Last 3 months</button>
+      <button data-period-btn="year"      aria-pressed="false" data-t="period_year">This year</button>
+    </div>
+  </div>
+
   <section class="stats">
-    <div class="stat" style="animation-delay:.05s"><div class="k">💸 <span data-t="income">Income</span></div><div class="v pos" id="s-in">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)" data-t="this_month">this month</span></div>
-    <div class="stat" style="animation-delay:.1s"><div class="k">🧾 <span data-t="spent">Spent</span></div><div class="v" id="s-out">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--neg)" id="s-out-pill" data-t="this_month">this month</span></div>
+    <div class="stat" style="animation-delay:.05s"><div class="k">💸 <span data-t="income">Income</span></div><div class="v pos" id="s-in">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)" id="s-in-pill"></span></div>
+    <div class="stat" style="animation-delay:.1s"><div class="k">🧾 <span data-t="spent">Spent</span></div><div class="v" id="s-out">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--neg)" id="s-out-pill"></span></div>
     <div class="stat" style="animation-delay:.15s"><div class="k">🐷 <span data-t="saved">Saved</span></div><div class="v" id="s-save" style="color:var(--teal-ink)">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal-ink)" id="s-rate"></span></div>
   </section>
 
@@ -276,8 +285,12 @@ const T = {
   footer:    { en: 'kesef · local-first · ', he: 'כסף · מקומי · ' },
   no_data:   { en: "Run <code>npm run sync</code> to load your data",
                he: "הריצו <code>npm run sync</code> כדי לטעון את הנתונים" },
-  no_spend:  { en: 'No spending recorded this month yet.',
-               he: 'לא נרשמו הוצאות החודש.' },
+  period_thisMonth: { en: 'This month', he: 'החודש' },
+  period_last30:    { en: 'Last 30 days', he: '30 ימים' },
+  period_last90:    { en: 'Last 3 months', he: '3 חודשים' },
+  period_year:      { en: 'This year', he: 'השנה' },
+  no_spend:  { en: 'No spending recorded yet.',
+               he: 'לא נרשמו הוצאות.' },
   no_goals:  { en: 'No goals yet — goal tracking is coming soon.',
                he: 'אין יעדים עדיין — מעקב יעדים בקרוב.' },
   no_spark:  { en: 'Your trend builds as you sync.',
@@ -306,6 +319,7 @@ const T = {
 };
 
 let lang = 'en';
+let selectedPeriod = 'last30';
 const cl = key => (T.cat[key] || { en: key, he: key })[lang];
 const t = key => (T[key] || { en: key, he: key })[lang];
 
@@ -415,9 +429,10 @@ function renderDonut(byCategory) {
   // insight: highlight top category
   const top1 = sorted[0];
   const pct1 = tot > 0 ? Math.round(top1.amount / tot * 100) : 0;
+  const periodLabel = t('period_' + selectedPeriod).toLowerCase();
   $('#insight-text').textContent = lang === 'en'
-    ? `${cl(top1.category)} is your biggest spend this month — ${pct1}% of total.`
-    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר החודש — ${pct1}% מהסכום.`;
+    ? `${cl(top1.category)} is your biggest spend (${periodLabel}) — ${pct1}% of total.`
+    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר (${periodLabel}) — ${pct1}% מהסכום.`;
 }
 
 // ─── goals ────────────────────────────────────────────────────────────────────
@@ -542,6 +557,22 @@ function setupDisabledButtons() {
   });
 }
 
+// ─── period spending (stat strip + donut) ────────────────────────────────────
+function renderPeriodSpending(M) {
+  const p = (M.spending || {})[selectedPeriod] || { income: 0, spent: 0, saved: 0, byCategory: [] };
+  const periodLabel = t('period_' + selectedPeriod);
+  up($('#s-in'),   p.income, '₪');
+  up($('#s-out'),  p.spent,  '₪');
+  up($('#s-save'), p.saved,  '₪');
+  $('#s-in-pill').textContent  = periodLabel;
+  $('#s-out-pill').textContent = periodLabel;
+  renderSavingsRate(p.income, p.saved);
+  $('#spend-sub').textContent = periodLabel;
+  renderDonut(p.byCategory);
+  // sync period button states
+  $$('[data-period-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.periodBtn === selectedPeriod ? 'true' : 'false'));
+}
+
 // ─── main render ─────────────────────────────────────────────────────────────
 function render() {
   const M = window.__KESEF__;
@@ -568,18 +599,8 @@ function render() {
   spark(balances);
   renderSparkLabels(M.netWorthSeries);
 
-  // stat strip
-  const income = M.thisMonth.income;
-  const spent  = M.thisMonth.spent;
-  const saved  = M.thisMonth.saved;
-  up($('#s-in'),   income, '₪');
-  up($('#s-out'),  spent,  '₪');
-  up($('#s-save'), saved,  '₪');
-  renderSavingsRate(income, saved);
-  $('#spend-sub').textContent = t('this_month');
-
-  // donut + legend
-  renderDonut(M.byCategory);
+  // stat strip + donut — driven by selectedPeriod
+  renderPeriodSpending(M);
 
   // goals
   renderGoals(M.goals);
@@ -591,6 +612,13 @@ function render() {
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === 'me' ? 'true' : 'false'));
 }
+
+// ─── period toggle ────────────────────────────────────────────────────────────
+$$('[data-period-btn]').forEach(b => b.onclick = () => {
+  selectedPeriod = b.dataset.periodBtn;
+  const M = window.__KESEF__;
+  if (M) renderPeriodSpending(M);
+});
 
 // ─── language toggle ──────────────────────────────────────────────────────────
 $$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; render(); });

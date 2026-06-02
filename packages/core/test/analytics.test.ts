@@ -21,15 +21,20 @@ const txns: Transaction[] = [
 describe('buildDashboard', () => {
   const d = buildDashboard(accounts, txns, snaps, '2026-06-15');
   it('net worth = sum of latest balance per account', () => { expect(d.netWorth).toBe(1200); });
-  it('this-month income/spent/saved (June)', () => {
-    expect(d.thisMonth.income).toBe(9000);
-    expect(d.thisMonth.spent).toBe(200);
-    expect(d.thisMonth.saved).toBe(8800);
+  it('this-month spending (June)', () => {
+    expect(d.spending.thisMonth.income).toBe(9000);
+    expect(d.spending.thisMonth.spent).toBe(200);     // 100+40+60; excludes May
+    expect(d.spending.thisMonth.saved).toBe(8800);
+    expect(d.spending.thisMonth.byCategory[0]).toEqual({ category: 'dining', amount: 160 });
+    expect(d.spending.thisMonth.byCategory.some(c => c.category === 'shopping')).toBe(false);
   });
-  it('spending by category this month, sorted desc, magnitudes', () => {
-    expect(d.byCategory[0]).toEqual({ category: 'dining', amount: 160 });
-    expect(d.byCategory.find(c => c.category === 'groceries')!.amount).toBe(40);
-    expect(d.byCategory.some(c => c.category === 'shopping')).toBe(false);
+  it('last-30-days spending includes the late-May shopping txn', () => {
+    expect(d.spending.last30.spent).toBe(700);         // 200 + the May-20 ₪500 shopping (within 30d of Jun-15)
+    expect(d.spending.last30.byCategory.find(c => c.category === 'shopping')!.amount).toBe(500);
+  });
+  it('last-90-days and year include everything here', () => {
+    expect(d.spending.last90.spent).toBe(700);
+    expect(d.spending.year.spent).toBe(700);
   });
   it('recent is newest-first and capped at 12', () => {
     expect(d.recent[0]!.description).toBe('תן ביס');
