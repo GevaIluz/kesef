@@ -72,6 +72,11 @@ export class Store {
     return (this.db.prepare('SELECT * FROM transactions ORDER BY date, id').all() as Record<string, unknown>[]).map(rowToTransaction);
   }
 
+  allBalanceSnapshots(): BalanceSnapshot[] {
+    return (this.db.prepare('SELECT * FROM balance_snapshots ORDER BY date, id').all() as Record<string, unknown>[])
+      .map(r => ({ id: r['id'] as string, accountId: r['account_id'] as string, date: r['date'] as string, balance: r['balance'] as number }));
+  }
+
   upsertTransaction(t: Transaction): void {
     this.db.prepare(
       `INSERT INTO transactions (id, account_id, date, amount, description, raw_category, category, shareable)
