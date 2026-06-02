@@ -43,7 +43,7 @@ describe('buildDashboard', () => {
   it('net-worth series is one total per date, ascending', () => {
     expect(d.netWorthSeries).toEqual([{ date: '2026-05-01', balance: 1000 }, { date: '2026-06-01', balance: 1200 }]);
   });
-  it('no goals yet', () => { expect(d.goals).toEqual([]); });
+  it('no goals when none passed', () => { expect(d.goals).toEqual([]); });
   it('includes the full transaction list with normalized merchant', () => {
     expect(d.transactions.length).toBe(5);
     // every txn has a non-empty merchant string
@@ -57,5 +57,25 @@ describe('buildDashboard', () => {
     // newest first: t3 (2026-06-05) should be first
     expect(d.transactions[0]!.date >= d.transactions[d.transactions.length - 1]!.date).toBe(true);
     expect(d.transactions[0]!.date).toBe('2026-06-05');
+  });
+  it('savings/investment outflows are NOT counted as spent', () => {
+    const txns2 = [
+      { id: 'x1', accountId: 'a', date: '2026-06-10', amount: -15000, description: 'העברה מהחשבון', category: 'investment', shareable: false },
+      { id: 'x2', accountId: 'a', date: '2026-06-11', amount: -50, description: 'cafe', category: 'dining', shareable: false },
+    ] as any;
+    const d2 = buildDashboard([], txns2, [], '2026-06-15');
+    expect(d2.spending.thisMonth.spent).toBe(50);             // investment excluded
+    expect(d2.spending.thisMonth.savedInvested).toBe(15000);  // counted here instead
+    expect(d2.spending.thisMonth.byCategory.some(c => c.category === 'investment')).toBe(false);
+  });
+  it('per-transaction override changes effective category', () => {
+    const txns3 = [{ id: 'z1', accountId: 'a', date: '2026-06-10', amount: -15000, description: 'העברה מהחשבון', category: 'transfer', shareable: false }] as any;
+    const d3 = buildDashboard([], txns3, [], '2026-06-15', { overrides: new Map([['z1', 'investment']]) });
+    expect(d3.spending.thisMonth.savedInvested).toBe(15000);  // override made it investment
+    expect(d3.transactions[0]!.category).toBe('investment');
+  });
+  it('returns goals passed in opts', () => {
+    const g = { id: 'g', name: 'x', targetAmount: 1, targetDate: '2027-01-01', currentAmount: 0, shareable: false };
+    expect(buildDashboard([], [], [], '2026-06-15', { goals: [g] }).goals).toEqual([g]);
   });
 });

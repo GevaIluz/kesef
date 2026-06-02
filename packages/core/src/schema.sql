@@ -34,3 +34,8 @@ CREATE TABLE IF NOT EXISTS goals (
   current_amount REAL NOT NULL,
   shareable INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS tx_overrides (
+  transaction_id TEXT PRIMARY KEY,
+  category TEXT NOT NULL
+);

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, Transaction, BalanceSnapshot } from './types';
+import type { Account, Transaction, BalanceSnapshot, Goal } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -106,6 +106,32 @@ export class Store {
   countAccounts(): number {
     return (this.db.prepare('SELECT count(*) c FROM accounts').get() as { c: number }).c;
   }
+
+  setCategoryOverride(transactionId: string, category: string): void {
+    this.db.prepare('INSERT INTO tx_overrides (transaction_id, category) VALUES (?, ?) ON CONFLICT(transaction_id) DO UPDATE SET category = excluded.category')
+      .run(transactionId, category);
+  }
+
+  categoryOverrides(): Map<string, string> {
+    const rows = this.db.prepare('SELECT transaction_id, category FROM tx_overrides').all() as Record<string, unknown>[];
+    return new Map(rows.map(r => [r['transaction_id'] as string, r['category'] as string]));
+  }
+
+  upsertGoal(g: Goal): void {
+    this.db.prepare(`INSERT INTO goals (id, name, target_amount, target_date, current_amount, shareable)
+      VALUES (@id, @name, @targetAmount, @targetDate, @currentAmount, @shareable)
+      ON CONFLICT(id) DO UPDATE SET name=@name, target_amount=@targetAmount, target_date=@targetDate, current_amount=@currentAmount, shareable=@shareable`)
+      .run({ id: g.id, name: g.name, targetAmount: g.targetAmount, targetDate: g.targetDate, currentAmount: g.currentAmount, shareable: g.shareable ? 1 : 0 });
+  }
+
+  listGoals(): Goal[] {
+    return (this.db.prepare('SELECT * FROM goals ORDER BY target_date').all() as Record<string, unknown>[]).map(r => ({
+      id: r['id'] as string, name: r['name'] as string, targetAmount: r['target_amount'] as number,
+      targetDate: r['target_date'] as string, currentAmount: r['current_amount'] as number, shareable: !!(r['shareable'] as number),
+    }));
+  }
+
+  deleteGoal(id: string): void { this.db.prepare('DELETE FROM goals WHERE id = ?').run(id); }
 
   close(): void { this.db.close(); }
 }

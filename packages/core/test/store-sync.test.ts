@@ -41,4 +41,25 @@ describe('Store sync helpers', () => {
     expect(s.countAccounts()).toBe(1);
     s.close();
   });
+  it('stores and reads per-transaction category overrides', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.setCategoryOverride('t1', 'investment');
+    s.setCategoryOverride('t1', 'savings'); // overwrite
+    s.setCategoryOverride('t2', 'housing');
+    const m = s.categoryOverrides();
+    expect(m.get('t1')).toBe('savings');
+    expect(m.get('t2')).toBe('housing');
+    s.close();
+  });
+  it('goals CRUD', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    const g = { id: 'g1', name: 'Japan', targetAmount: 40000, targetDate: '2027-01-01', currentAmount: 1000, shareable: false };
+    s.upsertGoal(g);
+    s.upsertGoal({ ...g, currentAmount: 5000 });
+    expect(s.listGoals()).toHaveLength(1);
+    expect(s.listGoals()[0]!.currentAmount).toBe(5000);
+    s.deleteGoal('g1');
+    expect(s.listGoals()).toHaveLength(0);
+    s.close();
+  });
 });
