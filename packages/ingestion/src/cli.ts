@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { dbPath, kesefDir } from './paths.js';
 import { ask, askHidden } from './prompt.js';
 import { scrapeBeinleumi } from './beinleumi.js';
+import { categorize } from './categorize.js';
+import { loadOverrides } from './overrides.js';
 
 const vault = new KeyringVault('kesef');
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -51,6 +53,8 @@ async function sync(): Promise<void> {
   const key = await getDbKey(false);
   const store = Store.open({ path: dbPath(), key });
   const { accounts, transactions, snapshots } = res.data!;
+  const overrides = loadOverrides();
+  for (const t of transactions) t.category = categorize(t.description, overrides);
   for (const a of accounts) store.upsertAccount(a);
   for (const t of transactions) store.upsertTransaction(t);
   for (const s of snapshots) store.upsertBalanceSnapshot(s);
@@ -66,7 +70,43 @@ async function status(): Promise<void> {
   store.close();
 }
 
+async function recategorize(): Promise<void> {
+  const key = await getDbKey(false);
+  const store = Store.open({ path: dbPath(), key });
+  const overrides = loadOverrides();
+  const txns = store.allTransactions();
+  const counts: Record<string, number> = {};
+  for (const t of txns) {
+    t.category = categorize(t.description, overrides);
+    store.upsertTransaction(t);
+    counts[t.category] = (counts[t.category] ?? 0) + 1;
+  }
+  console.log(`✓ Categorised ${txns.length} transaction(s):`);
+  for (const [c, n] of Object.entries(counts).sort((x, y) => y[1] - x[1])) console.log(`   ${c}: ${n}`);
+  store.close();
+}
+
+async function addBalance(): Promise<void> {
+  const kind = (await ask('Account (ibi / pension / other): ')).toLowerCase();
+  let id: string, institution: 'ibi' | 'manual', type: 'investment' | 'pension' | 'bank', name: string;
+  if (kind === 'ibi') { id = 'ibi:portfolio'; institution = 'ibi'; type = 'investment'; name = 'IBI portfolio'; }
+  else if (kind === 'pension') { id = 'manual:pension'; institution = 'manual'; type = 'pension'; name = 'Pension'; }
+  else {
+    const slug = (await ask('Short name (e.g. gemel): ')).trim() || 'account';
+    id = `manual:${slug}`; institution = 'manual'; type = 'bank'; name = (await ask('Display name: ')).trim() || slug;
+  }
+  const value = Number((await ask('Current value in ₪: ')).replace(/[, ]/g, ''));
+  if (!Number.isFinite(value)) { console.error('Not a number.'); process.exit(1); }
+  const date = (await ask('Date (YYYY-MM-DD, blank = today): ')).trim() || todayISO();
+  const key = await getDbKey(true);
+  const store = Store.open({ path: dbPath(), key });
+  store.upsertAccount({ id, institution, type, displayName: name, currency: 'ILS', shareable: false });
+  store.upsertBalanceSnapshot({ id: `${id}@${date}`, accountId: id, date, balance: value });
+  console.log(`✓ Recorded ${name}: ₪${value.toLocaleString('en-US')} on ${date}`);
+  store.close();
+}
+
 const cmd = process.argv[2];
-const cmds: Record<string, () => Promise<void>> = { connect, sync, status };
-(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | status'); process.exit(1); }))()
+const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance };
+(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | status | categorize | add-balance'); process.exit(1); }))()
   .catch(e => { console.error(e instanceof Error ? e.message : e); process.exit(1); });
