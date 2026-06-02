@@ -142,6 +142,71 @@
   @keyframes pop{to{opacity:1}}
   @keyframes donut{to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.card,.stat,.donut,.recent,#area,#dotlast{opacity:1!important;transform:none!important}}
+
+  /* ── interactive additions ───────────────────────────────────────────────── */
+
+  /* legend rows become clickable */
+  .legend .row{cursor:pointer;border-radius:10px;padding:4px 6px;margin:-4px -6px;transition:background .18s}
+  .legend .row:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+  .legend .row.active{background:color-mix(in srgb,var(--teal) 14%,transparent)}
+
+  /* transfers toggle + transfers-as-spending toggle */
+  .toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .toggle-pill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:6px 13px;user-select:none;transition:.18s}
+  .toggle-pill input[type=checkbox]{width:14px;height:14px;accent-color:var(--teal);cursor:pointer;flex:0 0 auto}
+  .toggle-pill:hover{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+
+  /* view-all + transfers tab row */
+  .panel-tabs{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .panel-tab{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.2s;background:color-mix(in srgb,var(--ink) 6%,transparent)}
+  .panel-tab[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:var(--shadow-sm)}
+
+  /* drawer — appears below the triggering card */
+  .drawer{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 24px;margin-top:14px;
+    opacity:0;transform:translateY(10px);animation:rise .35s forwards;overflow:hidden}
+  .drawer.hidden{display:none}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .drawer-head h4{font-family:var(--round);font-size:17px;margin:0}
+  .drawer-close{font-size:20px;line-height:1;background:none;border:0;cursor:pointer;color:var(--ink-soft);padding:4px 8px;border-radius:8px;transition:.18s}
+  .drawer-close:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
+
+  /* sub-breakdown inside drawer */
+  .sub-section{margin-bottom:18px}
+  .sub-section h5{font-family:var(--round);font-size:13.5px;color:var(--ink-soft);margin:0 0 10px;letter-spacing:.02em;text-transform:uppercase}
+  .sub-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+  .sub-row:first-of-type{border-top:0;padding-top:0}
+  .sub-row .sub-bar-wrap{flex:1;min-width:40px;height:5px;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:3px;overflow:hidden}
+  .sub-row .sub-bar{height:100%;border-radius:3px;background:var(--teal);transition:width .6s cubic-bezier(.2,.85,.25,1)}
+  .sub-row .sub-label{flex:0 0 130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+  .sub-row .sub-amt{margin-inline-start:auto;font-family:var(--round);font-size:13px;color:var(--ink-soft);white-space:nowrap;flex:0 0 auto}
+  .sub-row .sub-cnt{font-size:11px;color:var(--ink-soft);opacity:.75;white-space:nowrap;flex:0 0 auto;margin-inline-start:6px}
+
+  /* merchant row — clickable */
+  .merch-row{cursor:pointer;border-radius:10px;padding:4px 6px;margin:-4px -6px;transition:background .18s}
+  .merch-row:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+  .merch-row.active{background:color-mix(in srgb,var(--teal) 14%,transparent)}
+
+  /* tx list inside drawer */
+  .drawer-tx{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+  .drawer-tx:first-of-type{border-top:0;padding-top:0}
+  .drawer-tx .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:13px;background:color-mix(in srgb,var(--coral) 16%,transparent);flex:0 0 auto}
+  .drawer-tx .dtx-main{flex:1;min-width:0}
+  .drawer-tx .dtx-n{font-family:var(--round);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .drawer-tx .dtx-c{font-size:11.5px;color:var(--ink-soft)}
+  .drawer-tx .dtx-rc{font-size:11px;color:var(--teal-ink);opacity:.85}
+  .drawer-tx .dtx-a{flex:0 0 auto;font-family:var(--round);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:13px}
+  .drawer-tx .dtx-a.pos{color:var(--pos)}
+
+  /* "Top merchants" section card */
+  .card.merchants-card{grid-column:1/-1}
+
+  /* view-all search input */
+  .search-input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:9px 14px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;transition:.2s;margin-bottom:14px}
+  .search-input:focus{border-color:var(--teal)}
+  .search-input::placeholder{color:var(--ink-soft)}
+
+  /* transfers summary */
+  .transfers-total{font-family:var(--round);font-size:15px;color:var(--ink-soft);margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -181,13 +246,18 @@
     </div>
   </section>
 
-  <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+  <div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div class="seg" role="group" aria-label="period" id="period-seg">
       <button data-period-btn="thisMonth" aria-pressed="false" data-t="period_thisMonth">This month</button>
       <button data-period-btn="last30"    aria-pressed="true"  data-t="period_last30">Last 30 days</button>
       <button data-period-btn="last90"    aria-pressed="false" data-t="period_last90">Last 3 months</button>
       <button data-period-btn="year"      aria-pressed="false" data-t="period_year">This year</button>
     </div>
+  </div>
+  <div class="toggle-row">
+    <label class="toggle-pill" id="transfers-toggle-label">
+      <input type="checkbox" id="count-transfers-cb"> <span data-t="count_transfers">Count transfers as spending</span>
+    </label>
   </div>
 
   <section class="stats">
@@ -212,13 +282,52 @@
       <p class="sub" data-t="goals_sub">the fun part 🎉</p>
       <div id="goals"></div>
     </section>
+
+    <!-- Top Merchants full-width card -->
+    <section class="card merchants-card" style="animation-delay:.3s" id="merchants-card">
+      <h3 data-t="top_merchants">Top merchants</h3>
+      <p class="sub" id="merchants-sub">this period</p>
+      <div id="merchants-list"></div>
+    </section>
   </div>
 
+  <!-- Category drill-down drawer (outside cards grid, full width) -->
+  <div id="cat-drawer" class="drawer hidden"></div>
+
+  <!-- Merchant drill-down drawer -->
+  <div id="merch-drawer" class="drawer hidden"></div>
+
   <section class="recent">
-    <div class="top"><h3 data-t="recent">Recent</h3><span class="all" data-t="view_all">view all →</span></div>
+    <div class="top">
+      <h3 data-t="recent">Recent</h3>
+      <div class="panel-tabs" style="margin-bottom:0">
+        <button class="panel-tab" id="tab-all"    aria-pressed="false" data-t="view_all_btn">View all</button>
+        <button class="panel-tab" id="tab-transfers" aria-pressed="false" data-t="transfers">Transfers</button>
+      </div>
+    </div>
     <p class="sub" data-t="recent_sub" style="margin:-2px 0 4px">auto-sorted</p>
     <div id="txs"></div>
   </section>
+
+  <!-- View-all panel -->
+  <div id="viewall-panel" class="drawer hidden">
+    <div class="drawer-head">
+      <h4 data-t="view_all_btn">View all</h4>
+      <button class="drawer-close" id="viewall-close" aria-label="close">✕</button>
+    </div>
+    <input class="search-input" id="viewall-search" data-t-placeholder="filter_placeholder" placeholder="Filter by merchant, description, category…">
+    <div id="viewall-txs"></div>
+  </div>
+
+  <!-- Transfers panel -->
+  <div id="transfers-panel" class="drawer hidden">
+    <div class="drawer-head">
+      <h4 data-t="transfers">Transfers</h4>
+      <button class="drawer-close" id="transfers-close" aria-label="close">✕</button>
+    </div>
+    <div class="transfers-total" id="transfers-total"></div>
+    <div id="transfers-txs"></div>
+  </div>
 
   <footer><span data-t="footer">kesef · local-first · </span><b>kesef</b> · He/En</footer>
 </div>
@@ -300,6 +409,19 @@ const T = {
   of_income: { en: '% of income',    he: '% מההכנסה' },
   partner_disabled: { en: 'Arrives with couple-sync', he: 'יגיע עם סנכרון זוגי' },
   more_cats: { en: 'more categories', he: 'קטגוריות נוספות' },
+  top_merchants:      { en: 'Top merchants',               he: 'בתי עסק מובילים' },
+  transfers:          { en: 'Transfers',                   he: 'העברות' },
+  view_all_btn:       { en: 'View all',                    he: 'הצג הכל' },
+  count_transfers:    { en: 'Count transfers as spending', he: 'כלול העברות בהוצאות' },
+  close:              { en: 'Close',                       he: 'סגור' },
+  by_raw_cat:         { en: 'By sub-category',             he: 'לפי תת-קטגוריה' },
+  by_merchant:        { en: 'By merchant',                 he: 'לפי בית עסק' },
+  transactions:       { en: 'Transactions',                he: 'עסקאות' },
+  filter_placeholder: { en: 'Filter by merchant, description, category…', he: 'חיפוש לפי שם, תיאור, קטגוריה…' },
+  no_transactions:    { en: 'No transactions in this period.', he: 'אין עסקאות בתקופה זו.' },
+  no_transfers:       { en: 'No transfers in this period.', he: 'אין העברות בתקופה זו.' },
+  transfers_total:    { en: 'Total transferred',           he: 'סה״כ העברות' },
+  n_transactions:     { en: 'transactions',                he: 'עסקאות' },
   cat: {
     housing:       { en: 'Housing',       he: 'דיור' },
     groceries:     { en: 'Groceries',     he: 'מזון' },
@@ -381,60 +503,6 @@ function up(el, to, pre = '', post = '') {
   })(performance.now());
 }
 
-// ─── donut chart ──────────────────────────────────────────────────────────────
-function renderDonut(byCategory) {
-  if (!byCategory || byCategory.length === 0) {
-    $('#donut').style.display = 'none';
-    $('#d-total').textContent = '';
-    $('#legend').innerHTML = `<div class="more">${t('no_spend')}</div>`;
-    $('#insight-box').hidden = true;
-    return;
-  }
-  $('#donut').style.display = '';
-  $('#insight-box').hidden = false;
-
-  // sorted descending (server sends descending but re-sort to be safe)
-  const sorted = [...byCategory].sort((a, b) => b.amount - a.amount);
-  const tot = sorted.reduce((s, c) => s + c.amount, 0);
-
-  // fill up to 6 slots (donut uses --s1..--s6 / --p1..--p6)
-  const slots = sorted.slice(0, 6);
-  while (slots.length < 6) slots.push({ category: '__empty', amount: 0 });
-
-  const d = $('#donut');
-  let acc = 0;
-  slots.forEach((item, i) => {
-    const pct = tot > 0 ? (acc + item.amount / tot * 100) : 0;
-    d.style.setProperty('--s' + (i + 1), catColor(item.category));
-    d.style.setProperty('--p' + (i + 1), pct.toFixed(2) + '%');
-    acc = pct;
-  });
-
-  $('#d-total').textContent = kfmt(tot);
-
-  // legend: top 3 visible + "+N more" if needed
-  const top = sorted.slice(0, 3);
-  const extra = sorted.length - 3;
-  $('#legend').innerHTML = top.map(item =>
-    `<div class="row"><span class="sw" style="background:${catColor(item.category)}"></span>${cl(item.category)}<span class="lv">₪${NF(item.amount)}</span></div>`
-  ).join('') + (extra > 0
-    ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`
-    : '');
-
-  // reset donut animation
-  d.style.animation = 'none';
-  void d.offsetWidth;
-  d.style.animation = '';
-
-  // insight: highlight top category
-  const top1 = sorted[0];
-  const pct1 = tot > 0 ? Math.round(top1.amount / tot * 100) : 0;
-  const periodLabel = t('period_' + selectedPeriod).toLowerCase();
-  $('#insight-text').textContent = lang === 'en'
-    ? `${cl(top1.category)} is your biggest spend (${periodLabel}) — ${pct1}% of total.`
-    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר (${periodLabel}) — ${pct1}% מהסכום.`;
-}
-
 // ─── goals ────────────────────────────────────────────────────────────────────
 function renderGoals(goals) {
   if (!goals || goals.length === 0) {
@@ -500,6 +568,13 @@ function applyText() {
       el.textContent = T[key][lang];
     }
   });
+  // also update placeholder attributes
+  $$('[data-t-placeholder]').forEach(el => {
+    const key = el.dataset.tPlaceholder;
+    if (T[key] && typeof T[key] === 'object' && 'en' in T[key]) {
+      el.placeholder = T[key][lang];
+    }
+  });
 }
 
 // ─── delta chip ───────────────────────────────────────────────────────────────
@@ -557,9 +632,67 @@ function setupDisabledButtons() {
   });
 }
 
-// ─── period spending (stat strip + donut) ────────────────────────────────────
+// ─── transfers-as-spending toggle state ──────────────────────────────────────
+let countTransfers = false;
+
+// ─── filter transactions to a period ─────────────────────────────────────────
+function txnsInPeriod(txns, period, generatedAt) {
+  if (!txns || txns.length === 0) return [];
+  const now = generatedAt ? new Date(generatedAt) : new Date();
+  // Use UTC noon to avoid DST edge cases
+  const nowMs = now.getTime();
+  const todayYYYYMM = now.toISOString().slice(0, 7); // e.g. "2026-06"
+
+  return txns.filter(tx => {
+    if (!tx.date) return false;
+    const d = tx.date.slice(0, 10); // "YYYY-MM-DD"
+    if (period === 'thisMonth') {
+      return d.slice(0, 7) === todayYYYYMM;
+    }
+    const txMs = new Date(d + 'T12:00:00Z').getTime();
+    const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
+    return txMs >= nowMs - days * 86400000;
+  });
+}
+
+// ─── compute spending stats from transaction list ─────────────────────────────
+function computeSpending(txns) {
+  // Exclude transfers unless countTransfers is true
+  const spending = txns.filter(tx =>
+    tx.amount < 0 && (countTransfers || tx.category !== 'transfer')
+  );
+  const incomeList = txns.filter(tx => tx.amount > 0 && tx.category !== 'transfer');
+  const income = incomeList.reduce((s, tx) => s + tx.amount, 0);
+  const spent  = spending.reduce((s, tx) => s + Math.abs(tx.amount), 0);
+  const saved  = income - spent;
+
+  // group by category
+  const byCat = {};
+  for (const tx of spending) {
+    const cat = tx.category || 'other';
+    byCat[cat] = (byCat[cat] || 0) + Math.abs(tx.amount);
+  }
+  const byCategory = Object.entries(byCat)
+    .map(([category, amount]) => ({ category, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  return { income, spent, saved, byCategory };
+}
+
+// ─── period spending (stat strip + donut) — now computed client-side ─────────
 function renderPeriodSpending(M) {
-  const p = (M.spending || {})[selectedPeriod] || { income: 0, spent: 0, saved: 0, byCategory: [] };
+  const txns = (M.transactions && M.transactions.length)
+    ? txnsInPeriod(M.transactions, selectedPeriod, M.generatedAt)
+    : null;
+
+  let p;
+  if (txns && txns.length > 0) {
+    p = computeSpending(txns);
+  } else {
+    // fall back to server-computed spending if no M.transactions
+    p = (M.spending || {})[selectedPeriod] || { income: 0, spent: 0, saved: 0, byCategory: [] };
+  }
+
   const periodLabel = t('period_' + selectedPeriod);
   up($('#s-in'),   p.income, '₪');
   up($('#s-out'),  p.spent,  '₪');
@@ -568,9 +701,321 @@ function renderPeriodSpending(M) {
   $('#s-out-pill').textContent = periodLabel;
   renderSavingsRate(p.income, p.saved);
   $('#spend-sub').textContent = periodLabel;
-  renderDonut(p.byCategory);
+  renderDonut(p.byCategory, txns);
+  // Top merchants
+  renderMerchants(txns);
   // sync period button states
   $$('[data-period-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.periodBtn === selectedPeriod ? 'true' : 'false'));
+  // re-render open panels
+  if (!$('#viewall-panel').classList.contains('hidden'))  renderViewAll(M, txns);
+  if (!$('#transfers-panel').classList.contains('hidden')) renderTransfersPanel(txnsInPeriod(M.transactions || [], selectedPeriod, M.generatedAt));
+  // close any category/merchant drawers since period changed
+  closeDrawer('cat');
+  closeDrawer('merch');
+}
+
+// ─── helpers for drawers ──────────────────────────────────────────────────────
+let openCatKey   = null;
+let openMerchKey = null;
+
+function closeDrawer(which) {
+  if (which === 'cat') {
+    openCatKey = null;
+    const d = $('#cat-drawer');
+    if (d) { d.classList.add('hidden'); d.innerHTML = ''; }
+    $$('#legend .row').forEach(r => r.classList.remove('active'));
+  }
+  if (which === 'merch') {
+    openMerchKey = null;
+    const d = $('#merch-drawer');
+    if (d) { d.classList.add('hidden'); d.innerHTML = ''; }
+    $$('#merchants-list .sub-row').forEach(r => r.classList.remove('active'));
+  }
+}
+
+function openDrawer(id, html) {
+  const d = $('#' + id);
+  if (!d) return;
+  d.innerHTML = html;
+  d.classList.remove('hidden');
+  // re-trigger animation
+  d.style.animation = 'none';
+  void d.offsetWidth;
+  d.style.animation = '';
+  // scroll into view
+  d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ─── transaction row HTML (shared helper) ────────────────────────────────────
+function txRowHtml(tx) {
+  const cat = tx.category || 'other';
+  const icon = catIcon(cat);
+  const sign = tx.amount >= 0 ? 1 : -1;
+  const abs = Math.abs(tx.amount);
+  const dateStr = tx.date ? tx.date.slice(0, 10) : '';
+  const rc = tx.rawCategory && tx.rawCategory !== cat ? tx.rawCategory : '';
+  return `<div class="drawer-tx">
+    <span class="ic" style="background:color-mix(in srgb,${catColor(cat)} 18%,transparent)">${icon}</span>
+    <div class="dtx-main">
+      <div class="dtx-n">${esc(tx.merchant || tx.description || '')}</div>
+      <div class="dtx-c">${dateStr}${dateStr ? ' · ' : ''}${cl(cat)}</div>
+      ${rc ? `<div class="dtx-rc">[${esc(rc)}]</div>` : ''}
+    </div>
+    <span class="dtx-a ${sign > 0 ? 'pos' : ''}">${sign > 0 ? '+' : '−'}₪${NF(abs)}</span>
+  </div>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── category drill-down drawer ───────────────────────────────────────────────
+function openCatDrawer(catKey, txns) {
+  if (!txns) return;
+  const catTxns = txns.filter(tx => tx.amount < 0 && (tx.category || 'other') === catKey);
+  if (catTxns.length === 0) return;
+
+  // sub-breakdown by rawCategory
+  const byRaw = {};
+  for (const tx of catTxns) {
+    const rc = tx.rawCategory || catKey;
+    byRaw[rc] = (byRaw[rc] || 0) + Math.abs(tx.amount);
+  }
+  const rawEntries = Object.entries(byRaw).sort((a, b) => b[1] - a[1]);
+  const rawMax = rawEntries[0]?.[1] || 1;
+
+  // sub-breakdown by merchant
+  const byMerch = {};
+  for (const tx of catTxns) {
+    const m = tx.merchant || tx.description || '?';
+    byMerch[m] = (byMerch[m] || 0) + Math.abs(tx.amount);
+  }
+  const merchEntries = Object.entries(byMerch).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const merchMax = merchEntries[0]?.[1] || 1;
+
+  const color = catColor(catKey);
+  const icon  = catIcon(catKey);
+
+  const rawSection = rawEntries.length > 1 ? `
+    <div class="sub-section">
+      <h5>${t('by_raw_cat')}</h5>
+      ${rawEntries.map(([rc, amt]) => `
+        <div class="sub-row">
+          <span class="sub-label">${esc(rc)}</span>
+          <div class="sub-bar-wrap"><div class="sub-bar" style="width:${(amt/rawMax*100).toFixed(1)}%;background:${color}"></div></div>
+          <span class="sub-amt">₪${NF(amt)}</span>
+        </div>`).join('')}
+    </div>` : '';
+
+  const merchSection = `
+    <div class="sub-section">
+      <h5>${t('by_merchant')}</h5>
+      ${merchEntries.map(([m, amt]) => `
+        <div class="sub-row">
+          <span class="sub-label">${esc(m)}</span>
+          <div class="sub-bar-wrap"><div class="sub-bar" style="width:${(amt/merchMax*100).toFixed(1)}%;background:${color}"></div></div>
+          <span class="sub-amt">₪${NF(amt)}</span>
+        </div>`).join('')}
+    </div>`;
+
+  const txSection = `
+    <div class="sub-section">
+      <h5>${t('transactions')}</h5>
+      ${catTxns.map(txRowHtml).join('')}
+    </div>`;
+
+  const html = `
+    <div class="drawer-head">
+      <h4>${icon} ${cl(catKey)}</h4>
+      <button class="drawer-close" id="cat-close">${t('close')} ✕</button>
+    </div>
+    ${rawSection}${merchSection}${txSection}`;
+
+  openDrawer('cat-drawer', html);
+  $('#cat-close').onclick = () => closeDrawer('cat');
+}
+
+// ─── donut with clickable legend ──────────────────────────────────────────────
+function renderDonut(byCategory, txns) {
+  if (!byCategory || byCategory.length === 0) {
+    $('#donut').style.display = 'none';
+    $('#d-total').textContent = '';
+    $('#legend').innerHTML = `<div class="more">${t('no_spend')}</div>`;
+    $('#insight-box').hidden = true;
+    return;
+  }
+  $('#donut').style.display = '';
+  $('#insight-box').hidden = false;
+
+  const sorted = [...byCategory].sort((a, b) => b.amount - a.amount);
+  const tot = sorted.reduce((s, c) => s + c.amount, 0);
+
+  const slots = sorted.slice(0, 6);
+  while (slots.length < 6) slots.push({ category: '__empty', amount: 0 });
+
+  const d = $('#donut');
+  let acc = 0;
+  slots.forEach((item, i) => {
+    const pct = tot > 0 ? (acc + item.amount / tot * 100) : 0;
+    d.style.setProperty('--s' + (i + 1), catColor(item.category));
+    d.style.setProperty('--p' + (i + 1), pct.toFixed(2) + '%');
+    acc = pct;
+  });
+
+  $('#d-total').textContent = kfmt(tot);
+
+  // legend: top items + "+N more" if needed — ALL rows clickable
+  const top = sorted.slice(0, 5);
+  const extra = sorted.length - 5;
+  $('#legend').innerHTML = top.map(item =>
+    `<div class="row" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
+      <span class="sw" style="background:${catColor(item.category)}"></span>
+      ${cl(item.category)}
+      <span class="lv">₪${NF(item.amount)}</span>
+    </div>`
+  ).join('') + (extra > 0
+    ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`
+    : '');
+
+  // attach click handlers
+  $$('#legend .row').forEach(row => {
+    row.onclick = () => {
+      const catKey = row.dataset.cat;
+      if (openCatKey === catKey) {
+        closeDrawer('cat');
+      } else {
+        closeDrawer('cat');
+        openCatKey = catKey;
+        row.classList.add('active');
+        openCatDrawer(catKey, txns);
+      }
+    };
+  });
+
+  // reset donut animation
+  d.style.animation = 'none';
+  void d.offsetWidth;
+  d.style.animation = '';
+
+  const top1 = sorted[0];
+  const pct1 = tot > 0 ? Math.round(top1.amount / tot * 100) : 0;
+  const periodLabel = t('period_' + selectedPeriod).toLowerCase();
+  $('#insight-text').textContent = lang === 'en'
+    ? `${cl(top1.category)} is your biggest spend (${periodLabel}) — ${pct1}% of total.`
+    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר (${periodLabel}) — ${pct1}% מהסכום.`;
+}
+
+// ─── top merchants section ─────────────────────────────────────────────────────
+function renderMerchants(txns) {
+  const mc = $('#merchants-card');
+  const ml = $('#merchants-list');
+  const ms = $('#merchants-sub');
+  if (!mc || !ml) return;
+
+  if (!txns || txns.length === 0) {
+    ml.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_transactions')}</div>`;
+    if (ms) ms.textContent = t('period_' + selectedPeriod);
+    return;
+  }
+
+  if (ms) ms.textContent = t('period_' + selectedPeriod);
+
+  // group spending by merchant (exclude transfers unless toggled)
+  const byMerch = {};
+  for (const tx of txns) {
+    if (tx.amount >= 0) continue;
+    if (!countTransfers && tx.category === 'transfer') continue;
+    const key = tx.merchant || tx.description || '?';
+    if (!byMerch[key]) byMerch[key] = { total: 0, count: 0, txns: [] };
+    byMerch[key].total += Math.abs(tx.amount);
+    byMerch[key].count += 1;
+    byMerch[key].txns.push(tx);
+  }
+
+  const entries = Object.entries(byMerch).sort((a, b) => b[1].total - a[1].total).slice(0, 12);
+  if (entries.length === 0) {
+    ml.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_transactions')}</div>`;
+    return;
+  }
+
+  const maxAmt = entries[0][1].total || 1;
+
+  ml.innerHTML = entries.map(([merch, info]) => {
+    const cat = info.txns[0]?.category || 'other';
+    return `<div class="sub-row merch-row" data-merch="${esc(merch)}">
+      <span class="sub-label">${esc(merch)}</span>
+      <div class="sub-bar-wrap"><div class="sub-bar" style="width:${(info.total/maxAmt*100).toFixed(1)}%;background:${catColor(cat)}"></div></div>
+      <span class="sub-amt">₪${NF(info.total)}</span>
+      <span class="sub-cnt">${info.count} ${t('n_transactions')}</span>
+    </div>`;
+  }).join('');
+
+  // attach click handlers
+  $$('#merchants-list .merch-row').forEach(row => {
+    row.onclick = () => {
+      const key = row.dataset.merch;
+      if (openMerchKey === key) {
+        closeDrawer('merch');
+      } else {
+        closeDrawer('merch');
+        openMerchKey = key;
+        row.classList.add('active');
+        const info = byMerch[key];
+        if (!info) return;
+        const html = `
+          <div class="drawer-head">
+            <h4>${esc(key)} · ₪${NF(info.total)}</h4>
+            <button class="drawer-close" id="merch-close">${t('close')} ✕</button>
+          </div>
+          <div class="sub-section">
+            <h5>${t('transactions')}</h5>
+            ${info.txns.map(txRowHtml).join('')}
+          </div>`;
+        openDrawer('merch-drawer', html);
+        $('#merch-close').onclick = () => closeDrawer('merch');
+      }
+    };
+  });
+}
+
+// ─── view-all panel ───────────────────────────────────────────────────────────
+function renderViewAll(M, txns) {
+  const all = txns || (M && M.transactions ? txnsInPeriod(M.transactions, selectedPeriod, M.generatedAt) : []);
+  const q = ($('#viewall-search')?.value || '').toLowerCase().trim();
+  const filtered = q ? all.filter(tx =>
+    (tx.merchant  || '').toLowerCase().includes(q) ||
+    (tx.description|| '').toLowerCase().includes(q) ||
+    (tx.category   || '').toLowerCase().includes(q) ||
+    (tx.rawCategory|| '').toLowerCase().includes(q)
+  ) : all;
+
+  const container = $('#viewall-txs');
+  if (!container) return;
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:20px 0;text-align:center">${t('no_transactions')}</div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(txRowHtml).join('');
+}
+
+// ─── transfers panel ──────────────────────────────────────────────────────────
+function renderTransfersPanel(txns) {
+  const all = txns || [];
+  const transfers = all.filter(tx => tx.category === 'transfer');
+  const container = $('#transfers-txs');
+  const totalEl   = $('#transfers-total');
+  if (!container) return;
+
+  if (transfers.length === 0) {
+    if (totalEl) totalEl.textContent = '';
+    container.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:20px 0;text-align:center">${t('no_transfers')}</div>`;
+    return;
+  }
+
+  const outgoing = transfers.filter(tx => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
+  if (totalEl) totalEl.textContent = `${t('transfers_total')}: ₪${NF(outgoing)}`;
+  container.innerHTML = transfers.map(txRowHtml).join('');
 }
 
 // ─── main render ─────────────────────────────────────────────────────────────
@@ -605,7 +1050,7 @@ function render() {
   // goals
   renderGoals(M.goals);
 
-  // recent transactions
+  // recent transactions (last ~10 from M.recent as before)
   renderTxs(M.recent);
 
   // lang/view button states
@@ -619,6 +1064,71 @@ $$('[data-period-btn]').forEach(b => b.onclick = () => {
   const M = window.__KESEF__;
   if (M) renderPeriodSpending(M);
 });
+
+// ─── transfers-as-spending checkbox ──────────────────────────────────────────
+const transfersCb = $('#count-transfers-cb');
+if (transfersCb) {
+  transfersCb.onchange = () => {
+    countTransfers = transfersCb.checked;
+    const M = window.__KESEF__;
+    if (M) renderPeriodSpending(M);
+  };
+}
+
+// ─── "View all" tab ───────────────────────────────────────────────────────────
+const tabAll       = $('#tab-all');
+const tabTransfers = $('#tab-transfers');
+const viewallPanel   = $('#viewall-panel');
+const transfersPanel = $('#transfers-panel');
+const viewallSearch  = $('#viewall-search');
+
+function setTab(which) {
+  const M = window.__KESEF__;
+  const isAll       = which === 'all';
+  const isTransfers = which === 'transfers';
+
+  if (tabAll)       tabAll.setAttribute('aria-pressed',       isAll       ? 'true' : 'false');
+  if (tabTransfers) tabTransfers.setAttribute('aria-pressed', isTransfers ? 'true' : 'false');
+
+  if (viewallPanel) {
+    if (isAll) {
+      viewallPanel.classList.remove('hidden');
+      viewallPanel.style.animation = 'none';
+      void viewallPanel.offsetWidth;
+      viewallPanel.style.animation = '';
+      if (M) renderViewAll(M, null);
+      viewallPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      viewallPanel.classList.add('hidden');
+    }
+  }
+
+  if (transfersPanel) {
+    if (isTransfers) {
+      transfersPanel.classList.remove('hidden');
+      transfersPanel.style.animation = 'none';
+      void transfersPanel.offsetWidth;
+      transfersPanel.style.animation = '';
+      if (M) renderTransfersPanel(txnsInPeriod(M.transactions || [], selectedPeriod, M.generatedAt));
+      transfersPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      transfersPanel.classList.add('hidden');
+    }
+  }
+}
+
+if (tabAll)       tabAll.onclick       = () => setTab(tabAll.getAttribute('aria-pressed') === 'true' ? 'none' : 'all');
+if (tabTransfers) tabTransfers.onclick = () => setTab(tabTransfers.getAttribute('aria-pressed') === 'true' ? 'none' : 'transfers');
+
+$('#viewall-close').onclick   = () => setTab('none');
+$('#transfers-close').onclick = () => setTab('none');
+
+if (viewallSearch) {
+  viewallSearch.oninput = () => {
+    const M = window.__KESEF__;
+    if (M) renderViewAll(M, null);
+  };
+}
 
 // ─── language toggle ──────────────────────────────────────────────────────────
 $$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; render(); });
