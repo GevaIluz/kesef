@@ -1,8 +1,15 @@
 import type { Account, Transaction, BalanceSnapshot, CategoryCode } from './types';
+import { normalizeMerchant } from './merchant';
 
 export interface PeriodSummary {
   income: number; spent: number; saved: number;
   byCategory: { category: CategoryCode | 'other'; amount: number }[];
+}
+
+export interface ClientTxn {
+  id: string; accountId: string; date: string; amount: number;
+  description: string; merchant: string;
+  category: CategoryCode | null; rawCategory: string | null;
 }
 
 export interface DashboardModel {
@@ -13,6 +20,7 @@ export interface DashboardModel {
   recent: { date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: { name: string; current: number; target: number; targetDate: string }[];
+  transactions: ClientTxn[];
 }
 
 const RECENT_LIMIT = 12;
@@ -64,10 +72,19 @@ export function buildDashboard(
   const recent = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, RECENT_LIMIT)
     .map(t => ({ date: t.date, amount: t.amount, category: t.category ?? null, rawCategory: t.rawCategory ?? null, description: t.description }));
 
+  const txList: ClientTxn[] = [...transactions]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(t => ({
+      id: t.id, accountId: t.accountId, date: t.date, amount: t.amount,
+      description: t.description, merchant: normalizeMerchant(t.description),
+      category: t.category ?? null, rawCategory: t.rawCategory ?? null,
+    }));
+
   return {
     generatedAt: now, netWorth,
     spending,
     accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null })),
     recent, netWorthSeries, goals: [],
+    transactions: txList,
   };
 }

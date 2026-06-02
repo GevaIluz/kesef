@@ -44,4 +44,18 @@ describe('buildDashboard', () => {
     expect(d.netWorthSeries).toEqual([{ date: '2026-05-01', balance: 1000 }, { date: '2026-06-01', balance: 1200 }]);
   });
   it('no goals yet', () => { expect(d.goals).toEqual([]); });
+  it('includes the full transaction list with normalized merchant', () => {
+    expect(d.transactions.length).toBe(5);
+    // every txn has a non-empty merchant string
+    expect(d.transactions.every(t => typeof t.merchant === 'string' && t.merchant.length > 0)).toBe(true);
+    // WOLT normalizes to 'Wolt'
+    const wolt = d.transactions.find(t => t.description === 'WOLT');
+    expect(wolt?.merchant).toBe('Wolt');
+    // שופרסל normalizes to 'שופרסל'
+    const shufersal = d.transactions.find(t => t.description === 'שופרסל');
+    expect(shufersal?.merchant).toBe('שופרסל');
+    // newest first: t3 (2026-06-05) should be first
+    expect(d.transactions[0]!.date >= d.transactions[d.transactions.length - 1]!.date).toBe(true);
+    expect(d.transactions[0]!.date).toBe('2026-06-05');
+  });
 });
