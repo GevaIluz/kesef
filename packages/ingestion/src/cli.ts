@@ -1,10 +1,10 @@
 import { randomBytes } from 'node:crypto';
+import { CompanyTypes } from 'israeli-bank-scrapers';
 import { KeyringVault, Store } from '@kesef/core';
 import { join } from 'node:path';
 import { dbPath, kesefDir } from './paths.js';
-import { ask, askHidden } from './prompt.js';
-import { scrapeBeinleumi } from './beinleumi.js';
-import { scrapeCal } from './cal.js';
+import { ask } from './prompt.js';
+import { scrapeInteractive } from './interactive.js';
 import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
 
@@ -14,56 +14,49 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 async function getDbKey(create: boolean): Promise<string> {
   let k = await vault.get('db-key');
   if (!k && create) { k = randomBytes(32).toString('hex'); await vault.set('db-key', k); }
-  if (!k) throw new Error('No DB key — run `npm run connect` first.');
+  if (!k) throw new Error('No data yet — run `npm run sync` first.');
   return k;
 }
 
 async function connect(): Promise<void> {
-  const inst = (await ask('Connect which? (beinleumi / cal): ')).trim().toLowerCase() === 'cal' ? 'cal' : 'beinleumi';
-  const username = await ask(`${inst} username: `);
-  const password = await askHidden(`${inst} password (hidden): `);
-  await vault.set(`creds:${inst}`, JSON.stringify({ username, password }));
-  if (inst === 'beinleumi') await vault.delete('beinleumi'); // drop any legacy pre-2c credential entry
-  const key = await getDbKey(true);
-  Store.open({ path: dbPath(), key }).close();
-  console.log(`✓ Connected ${inst}. Credentials stored in your OS keychain.`);
-  console.log('  Run `npm run sync` (or run connect again to add the other institution).');
+  // kesef no longer stores bank passwords — you log in through the browser on `sync`.
+  // Clear any credentials saved by older versions, for hygiene.
+  for (const k of ['creds:beinleumi', 'creds:cal', 'beinleumi']) await vault.delete(k);
+  console.log('kesef now logs you in through the browser — there are no passwords to keep here.');
+  console.log('Just run `npm run sync`: a browser opens for each account and you log in yourself.');
 }
 
 async function sync(): Promise<void> {
-  const headless = !!process.env.KESEF_HEADLESS, debug = !!process.env.KESEF_DEBUG;
+  const debug = !!process.env.KESEF_DEBUG;
   const overrides = loadOverrides();
-  const common = {
-    now: todayISO(), showBrowser: !headless, verbose: debug,
-    failureScreenshotPath: debug ? join(kesefDir(), 'last-failure.png') : undefined,
-  };
+  const now = todayISO();
+  const targets = [
+    { companyId: CompanyTypes.beinleumi, institution: 'beinleumi' as const, accountType: 'bank' as const, label: 'Beinleumi' },
+    { companyId: CompanyTypes.visaCal, institution: 'cal' as const, accountType: 'credit_card' as const, label: 'Cal' },
+  ];
 
-  // Which institutions are connected? (support legacy `beinleumi` key for back-compat)
-  const insts: Array<'beinleumi' | 'cal'> = [];
-  for (const inst of ['beinleumi', 'cal'] as const) {
-    if ((await vault.get(`creds:${inst}`)) || (inst === 'beinleumi' && (await vault.get('beinleumi')))) insts.push(inst);
-  }
-  if (insts.length === 0) { console.error('Nothing connected — run `npm run connect`.'); process.exit(1); }
-  if (!headless) console.log('(a browser window will open for each login, then close)');
-
-  const key = await getDbKey(false);
+  // db-key is a LOCAL encryption key (not a bank credential); created on first run.
+  const key = await getDbKey(true);
   const store = Store.open({ path: dbPath(), key });
-  for (const inst of insts) {
-    const raw = (await vault.get(`creds:${inst}`)) ?? (await vault.get('beinleumi'));
-    if (!raw) continue;
-    let creds: { username: string; password: string };
-    try { creds = JSON.parse(raw); } catch { console.error(`${inst}: stored credentials corrupt — re-run connect.`); continue; }
-    console.log(`Logging in to ${inst}…`);
-    const res = inst === 'cal' ? await scrapeCal(creds, common) : await scrapeBeinleumi(creds, common);
-    if (!res.ok) { console.error(`✗ ${inst} failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim()); continue; }
+  // Drop any bank passwords saved by older versions — interactive login never stores them.
+  for (const k of ['creds:beinleumi', 'creds:cal', 'beinleumi']) await vault.delete(k);
+
+  console.log('A browser window opens for each account — log in there yourself (nothing to type in this terminal).');
+  for (const t of targets) {
+    console.log(`\nOpening ${t.label} — log in in the browser window…`);
+    const res = await scrapeInteractive(
+      { companyId: t.companyId, institution: t.institution, accountType: t.accountType },
+      { now, verbose: debug, failureScreenshotPath: debug ? join(kesefDir(), `last-failure-${t.institution}.png`) : undefined },
+    );
+    if (!res.ok) { console.error(`✗ ${t.label} failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim()); continue; }
     const { accounts, transactions, snapshots } = res.data!;
-    for (const t of transactions) t.category = assignCategory(t, overrides);
+    for (const tx of transactions) tx.category = assignCategory(tx, overrides);
     for (const a of accounts) store.upsertAccount(a);
-    for (const t of transactions) store.upsertTransaction(t);
+    for (const tx of transactions) store.upsertTransaction(tx);
     for (const s of snapshots) store.upsertBalanceSnapshot(s);
-    console.log(`  ✓ ${inst}: ${accounts.length} account(s), ${transactions.length} transaction(s).`);
+    console.log(`  ✓ ${t.label}: ${accounts.length} account(s), ${transactions.length} transaction(s).`);
   }
-  console.log(`Stored total: ${store.countTransactions()} transactions across ${store.countAccounts()} accounts.`);
+  console.log(`\nStored total: ${store.countTransactions()} transactions across ${store.countAccounts()} accounts.`);
   store.close();
 }
 
