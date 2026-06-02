@@ -11,6 +11,7 @@ export interface ScrapeDeps {
   showBrowser?: boolean;
   verbose?: boolean;
   failureScreenshotPath?: string;
+  timeoutMs?: number; // nav + selector budget; Beinleumi's multi-redirect login is slow (default 90s)
 }
 export interface ScrapeOutcome {
   ok: boolean; errorType?: string; errorMessage?: string;
@@ -20,8 +21,10 @@ export interface ScrapeOutcome {
 export async function scrapeBeinleumi(creds: BeinleumiCreds, deps: ScrapeDeps): Promise<ScrapeOutcome> {
   const factory = deps.scraperFactory ?? createScraper;
   const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 90); // ~90 days
+  const timeout = deps.timeoutMs ?? 90000; // 30s default flakes on Beinleumi's slow multi-redirect login
   const scraper = factory({
     companyId: CompanyTypes.beinleumi, startDate, combineInstallments: false,
+    timeout, defaultTimeout: timeout,
     showBrowser: deps.showBrowser ?? false,
     verbose: deps.verbose ?? false,
     storeFailureScreenShotPath: deps.failureScreenshotPath,
