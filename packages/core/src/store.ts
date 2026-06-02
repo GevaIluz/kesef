@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, Transaction } from './types';
+import type { Account, Transaction, BalanceSnapshot } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -66,6 +66,36 @@ export class Store {
   listTransactions(accountId: string): Transaction[] {
     return (this.db.prepare('SELECT * FROM transactions WHERE account_id = ? ORDER BY date, id')
       .all(accountId) as Record<string, unknown>[]).map(rowToTransaction);
+  }
+
+  upsertTransaction(t: Transaction): void {
+    this.db.prepare(
+      `INSERT INTO transactions (id, account_id, date, amount, description, raw_category, category, shareable)
+       VALUES (@id, @accountId, @date, @amount, @description, @rawCategory, @category, @shareable)
+       ON CONFLICT(id) DO UPDATE SET
+         account_id=@accountId, date=@date, amount=@amount, description=@description,
+         raw_category=@rawCategory, category=@category, shareable=@shareable`
+    ).run({
+      id: t.id, accountId: t.accountId, date: t.date, amount: t.amount,
+      description: t.description, rawCategory: t.rawCategory ?? null,
+      category: t.category ?? null, shareable: t.shareable == null ? null : t.shareable ? 1 : 0,
+    });
+  }
+
+  upsertBalanceSnapshot(s: BalanceSnapshot): void {
+    this.db.prepare(
+      `INSERT INTO balance_snapshots (id, account_id, date, balance)
+       VALUES (@id, @accountId, @date, @balance)
+       ON CONFLICT(id) DO UPDATE SET account_id=@accountId, date=@date, balance=@balance`
+    ).run({ id: s.id, accountId: s.accountId, date: s.date, balance: s.balance });
+  }
+
+  countTransactions(): number {
+    return (this.db.prepare('SELECT count(*) c FROM transactions').get() as { c: number }).c;
+  }
+
+  countAccounts(): number {
+    return (this.db.prepare('SELECT count(*) c FROM accounts').get() as { c: number }).c;
   }
 
   close(): void { this.db.close(); }
