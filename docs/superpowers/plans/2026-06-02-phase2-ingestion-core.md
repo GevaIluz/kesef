@@ -335,29 +335,26 @@ export function mapScrapeResult(r: ScrapeResult, opts: MapOptions): {
 import { createScraper, CompanyTypes } from 'israeli-bank-scrapers';
 import { mapScrapeResult, type ScrapeResult } from './map';
 
-export interface BeinleumiCreds { username: string; password: string; otpLongTermToken?: string; }
+// Beinleumi (v6.7.5) authenticates with username + password only — NO OTP (verified in Task 1 recon).
+export interface BeinleumiCreds { username: string; password: string; }
 export interface ScrapeDeps {
-  // injectable for tests; defaults to the real library
-  scraperFactory?: typeof createScraper;
-  onOtpNeeded?: () => Promise<string>;  // interactive SMS-code prompt
+  scraperFactory?: typeof createScraper; // injectable for tests; defaults to the real library
   startDate?: Date;
   now: string;
 }
 
 export interface ScrapeOutcome {
   ok: boolean; errorType?: string; errorMessage?: string;
-  persistentOtpToken?: string;
   data?: ReturnType<typeof mapScrapeResult>;
 }
 
 export async function scrapeBeinleumi(creds: BeinleumiCreds, deps: ScrapeDeps): Promise<ScrapeOutcome> {
   const factory = deps.scraperFactory ?? createScraper;
   const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 90); // ~90 days
-  // NOTE: wire otp option name per installed types (otpCodeRetriever vs getOtpCode). Verify in Task 1 Step 4.
   const scraper = factory({ companyId: CompanyTypes.beinleumi, startDate, combineInstallments: false, showBrowser: false });
-  const result = await scraper.scrape({ ...creds }) as ScrapeResult & { errorType?: string; errorMessage?: string; persistentOtpToken?: string };
+  const result = await scraper.scrape(creds) as ScrapeResult & { errorType?: string; errorMessage?: string };
   if (!result.success) return { ok: false, errorType: result.errorType, errorMessage: result.errorMessage };
-  return { ok: true, persistentOtpToken: result.persistentOtpToken, data: mapScrapeResult(result, { now: deps.now }) };
+  return { ok: true, data: mapScrapeResult(result, { now: deps.now }) };
 }
 ```
 `src/index.ts`: `export * from './map'; export * from './txid'; export * from './beinleumi';`
@@ -436,7 +433,7 @@ export function askHidden(question: string): Promise<string> {
 > ```
 
 - [ ] **Step 2: CLI** — `src/cli.ts`. Keychain accounts under service `kesef`:
-`beinleumi` (JSON `{username,password}`), `beinleumi:otp` (long-term token), `db-key` (hex).
+`beinleumi` (JSON `{username,password}`), `db-key` (hex).
 ```ts
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -469,14 +466,9 @@ async function sync(): Promise<void> {
   const raw = await vault.get('beinleumi');
   if (!raw) { console.error('Not connected — run `npm run connect`.'); process.exit(1); }
   const { username, password } = JSON.parse(raw);
-  const otpLongTermToken = (await vault.get('beinleumi:otp')) ?? undefined;
-  console.log('Logging in to Beinleumi… (a one-time SMS code may be requested)');
-  const res = await scrapeBeinleumi({ username, password, otpLongTermToken }, {
-    now: todayISO(),
-    onOtpNeeded: () => ask('Enter the SMS code Beinleumi just sent you: '),
-  });
+  console.log('Logging in to Beinleumi…');
+  const res = await scrapeBeinleumi({ username, password }, { now: todayISO() });
   if (!res.ok) { console.error(`✗ Login failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`); process.exit(1); }
-  if (res.persistentOtpToken) await vault.set('beinleumi:otp', res.persistentOtpToken);
   const key = await getDbKey(false);
   const store = Store.open({ path: dbPath(), key });
   const { accounts, transactions, snapshots } = res.data!;
@@ -500,7 +492,7 @@ const cmd = process.argv[2];
   console.error('usage: connect | sync | status'); process.exit(1);
 }))().catch(e => { console.error(e instanceof Error ? e.message : e); process.exit(1); });
 ```
-> Wire `onOtpNeeded` into `scrapeBeinleumi`/the scraper's OTP option per the real type found in Task 1 Step 4.
+> Beinleumi needs no OTP (verified v6.7.5). If a real sync ever returns `TWO_FACTOR_RETRIEVER_MISSING`, revisit.
 
 - [ ] **Step 3: Root scripts** — add to root `package.json` `"scripts"`:
 ```json
