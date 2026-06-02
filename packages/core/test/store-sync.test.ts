@@ -24,6 +24,14 @@ describe('Store sync helpers', () => {
     expect(s.countTransactions()).toBe(1);
     s.close();
   });
+  it('allTransactions returns every transaction across accounts', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount(a);
+    s.upsertTransaction(t);
+    s.upsertTransaction({ ...t, id: 't2', date: '2026-05-02' });
+    expect(s.allTransactions()).toHaveLength(2);
+    s.close();
+  });
   it('upsertBalanceSnapshot records balances and countAccounts works', () => {
     const s = Store.open({ path: newDb(), key: 'pw' });
     s.upsertAccount(a);

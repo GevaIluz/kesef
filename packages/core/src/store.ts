@@ -68,6 +68,10 @@ export class Store {
       .all(accountId) as Record<string, unknown>[]).map(rowToTransaction);
   }
 
+  allTransactions(): Transaction[] {
+    return (this.db.prepare('SELECT * FROM transactions ORDER BY date, id').all() as Record<string, unknown>[]).map(rowToTransaction);
+  }
+
   upsertTransaction(t: Transaction): void {
     this.db.prepare(
       `INSERT INTO transactions (id, account_id, date, amount, description, raw_category, category, shareable)
