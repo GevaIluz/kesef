@@ -33,11 +33,13 @@ async function sync(): Promise<void> {
   catch { console.error('Stored credentials are corrupt — run `npm run connect` to re-enter.'); process.exit(1); }
   const { username, password } = creds;
   const debug = !!process.env.KESEF_DEBUG;
-  if (debug) console.log('(debug mode: visible browser + verbose logs; a screenshot is saved if login fails)');
+  const headless = !!process.env.KESEF_HEADLESS; // opt in to headless; Beinleumi login is unreliable headless
+  if (!headless) console.log('(a browser window will open to complete the login, then close — this is expected)');
+  if (debug) console.log('(debug: verbose logs; a failure screenshot is saved to ~/.kesef/last-failure.png)');
   console.log('Logging in to Beinleumi…');
   const res = await scrapeBeinleumi({ username, password }, {
     now: todayISO(),
-    showBrowser: debug,
+    showBrowser: !headless,
     verbose: debug,
     failureScreenshotPath: debug ? join(kesefDir(), 'last-failure.png') : undefined,
   });
