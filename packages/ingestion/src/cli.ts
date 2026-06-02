@@ -23,6 +23,7 @@ async function connect(): Promise<void> {
   const username = await ask(`${inst} username: `);
   const password = await askHidden(`${inst} password (hidden): `);
   await vault.set(`creds:${inst}`, JSON.stringify({ username, password }));
+  if (inst === 'beinleumi') await vault.delete('beinleumi'); // drop any legacy pre-2c credential entry
   const key = await getDbKey(true);
   Store.open({ path: dbPath(), key }).close();
   console.log(`✓ Connected ${inst}. Credentials stored in your OS keychain.`);
