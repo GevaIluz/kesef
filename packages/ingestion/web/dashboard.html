@@ -18,13 +18,47 @@
     --line:#EEE3D2; --teal:#16A78C; --teal-ink:#0C7A66; --coral:#F2795B; --gold:#F4B43C; --berry:#C76699;
     --pos:#1B9E76; --neg:#E0673F;
     --shadow:0 26px 50px -32px rgba(70,50,20,.45); --shadow-sm:0 12px 26px -18px rgba(70,50,20,.4);
+    --shadow-lift:0 20px 40px -16px rgba(70,50,20,.38), 0 4px 12px -4px rgba(70,50,20,.18);
     --r:26px; --maxw:1080px; --body:"Assistant",system-ui,sans-serif; --round:"Varela Round","Assistant",sans-serif;
+
+    /* ── per-category palette ─────────────────────────────────────────── */
+    --cat-dining:        #F06048;
+    --cat-groceries:     #E8A820;
+    --cat-transport:     #2AA8C4;
+    --cat-housing:       #C05840;
+    --cat-utilities:     #5578C0;
+    --cat-health:        #D44878;
+    --cat-shopping:      #8848C8;
+    --cat-entertainment: #7038B8;
+    --cat-income:        #1B9E76;
+    --cat-transfer:      #8A9E78;
+    --cat-savings:       #0F8870;
+    --cat-investment:    #1870B8;
+    --cat-fees:          #8870A0;
+    --cat-other:         #9E8A70;
   }
   html[data-theme="dark"]{
     --paper:#17130E; --paper-2:#1E1810; --card:#221B13; --ink:#F4ECDD; --ink-soft:#AD9F8B;
     --line:#332A1E; --teal:#3FD3B4; --teal-ink:#6FE0C7; --coral:#FF9075; --gold:#FFC861; --berry:#E58CBE;
     --pos:#54D6A4; --neg:#FF9173;
     --shadow:0 30px 60px -34px rgba(0,0,0,.8); --shadow-sm:0 14px 30px -20px rgba(0,0,0,.7);
+    --shadow-lift:0 22px 44px -18px rgba(0,0,0,.72), 0 4px 14px -4px rgba(0,0,0,.5);
+
+    /* saturated dark-mode category variants */
+    --cat-dining:        #FF7060;
+    --cat-groceries:     #FFC840;
+    --cat-transport:     #40C8E8;
+    --cat-housing:       #E87060;
+    --cat-utilities:     #7898E8;
+    --cat-health:        #F068A0;
+    --cat-shopping:      #B068F0;
+    --cat-entertainment: #9858E0;
+    --cat-income:        #54D6A4;
+    --cat-transfer:      #A8C090;
+    --cat-savings:       #3FF0C8;
+    --cat-investment:    #4898F0;
+    --cat-fees:          #B090D0;
+    --cat-other:         #C8AE90;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -33,13 +67,24 @@
     line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh; overflow-x:hidden;
     transition:background .5s,color .5s;
   }
-  /* soft friendly blobs */
-  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+
+  /* ── warm layered atmosphere: radial blobs + faint grain ─────────────── */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     background:
-      radial-gradient(40% 38% at 88% -6%, color-mix(in srgb,var(--gold) 40%,transparent), transparent 70%),
-      radial-gradient(46% 42% at -8% 8%, color-mix(in srgb,var(--coral) 30%,transparent), transparent 70%),
-      radial-gradient(50% 50% at 50% 116%, color-mix(in srgb,var(--teal) 26%,transparent), transparent 70%);
-    opacity:.5; transition:opacity .5s;}
+      radial-gradient(50% 44% at 92% -8%, color-mix(in srgb,var(--gold) 52%,transparent), transparent 68%),
+      radial-gradient(52% 46% at -10% 6%, color-mix(in srgb,var(--coral) 38%,transparent), transparent 68%),
+      radial-gradient(48% 44% at 50% 108%, color-mix(in srgb,var(--teal) 32%,transparent), transparent 68%),
+      radial-gradient(30% 28% at 70% 68%, color-mix(in srgb,var(--berry) 14%,transparent), transparent 70%);
+    opacity:.6; transition:opacity .5s;
+  }
+  /* SVG grain overlay */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:160px 160px; opacity:.028; mix-blend-mode:overlay;
+  }
+
   .wrap{position:relative;z-index:1;max-width:var(--maxw);margin-inline:auto;padding:26px clamp(16px,4vw,34px) 80px}
 
   header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px}
@@ -51,12 +96,12 @@
   .seg button{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:8px 15px;border-radius:999px;cursor:pointer;transition:.25s;white-space:nowrap}
   .seg button[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:var(--shadow-sm)}
   .icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-size:17px;box-shadow:var(--shadow-sm);transition:.25s}
-  .icon-btn:hover{transform:translateY(-2px) rotate(-8deg)}
+  .icon-btn:hover{transform:translateY(-2px) rotate(-8deg);box-shadow:var(--shadow-lift)}
 
   /* HERO */
   .hero{position:relative;background:linear-gradient(135deg,var(--teal),var(--teal-ink) 86%);color:#fff;
     border-radius:34px;padding:clamp(24px,3.4vw,40px);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
-  .hero .coin{position:absolute;border-radius:50%;filter:blur(.5px);opacity:.5}
+  .hero .coin{position:absolute;border-radius:50%;filter:blur(.5px);opacity:.55}
   .hero-grid{position:relative;display:grid;grid-template-columns:1fr 1.25fr;gap:28px;align-items:center}
   @media(max-width:720px){.hero-grid{grid-template-columns:1fr}}
   .eyebrow{font-family:var(--round);font-size:13px;letter-spacing:.04em;opacity:.85;margin:0 0 10px;display:flex;align-items:center;gap:8px}
@@ -71,28 +116,33 @@
   #area{opacity:0;animation:fade 1s .3s forwards}
 
   /* STAT STRIP */
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
-  @media(max-width:560px){.stats{grid-template-columns:1fr}}
-  .stat{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(12px);animation:rise .6s forwards}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  @media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:380px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(12px);animation:rise .6s forwards;transition:box-shadow .2s,transform .2s}
+  .stat:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
   .stat .k{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:7px}
   .stat .v{font-family:var(--round);font-size:30px;margin-top:6px;font-variant-numeric:tabular-nums}
   .stat .v.pos{color:var(--pos)} .stat .v.neg{color:var(--neg)}
+  .stat .v.teal{color:var(--teal-ink)}
   .pill{font-size:11px;font-family:var(--round);padding:2px 9px;border-radius:999px}
 
   /* CARDS */
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:820px){.cards{grid-template-columns:1fr}}
-  .card{background:var(--card);border-radius:var(--r);padding:24px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(14px);animation:rise .6s forwards}
+  .card{background:var(--card);border-radius:var(--r);padding:24px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(14px);animation:rise .6s forwards;transition:box-shadow .2s,transform .2s}
+  .card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
   .card h3{font-family:var(--round);font-size:19px;margin:0 0 3px}
   .card .sub{font-size:13px;color:var(--ink-soft);margin:0 0 18px}
 
+  /* ── SVG DONUT ─────────────────────────────────────────────────────────── */
   .donut-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
-  .donut{width:150px;height:150px;border-radius:50%;flex:0 0 auto;position:relative;
-    background:conic-gradient(var(--s1) 0 var(--p1),var(--s2) var(--p1) var(--p2),var(--s3) var(--p2) var(--p3),var(--s4) var(--p3) var(--p4),var(--s5) var(--p4) var(--p5),var(--s6) var(--p5) 100%);
-    -webkit-mask:radial-gradient(circle 46px at 50% 50%,transparent 98%,#000 100%);mask:radial-gradient(circle 46px at 50% 50%,transparent 98%,#000 100%);
-    transform:scale(.6) rotate(-14deg);opacity:0;animation:donut .8s .2s forwards cubic-bezier(.2,.85,.25,1)}
-  .donut .ctr{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
-  .donut .ctr .t{font-size:11px;color:var(--ink-soft)} .donut .ctr .v{font-family:var(--round);font-size:21px;font-variant-numeric:tabular-nums}
+  .donut-wrap{width:160px;height:160px;flex:0 0 auto;position:relative;opacity:0;transform:scale(.6) rotate(-14deg);animation:donut .8s .2s forwards cubic-bezier(.2,.85,.25,1)}
+  .donut-wrap svg{width:160px;height:160px;overflow:visible;display:block}
+  .donut-seg{cursor:pointer;transition:transform .18s,opacity .18s;transform-origin:50% 50%;transform-box:fill-box}
+  .donut-seg:hover,.donut-seg.seg-hover{transform:scale(1.04);opacity:1 !important}
+  .donut-seg.seg-dim{opacity:.35}
+  .donut-center-label{pointer-events:none;font-family:var(--round);font-variant-numeric:tabular-nums}
   .legend{display:grid;gap:11px;flex:1 1 150px;min-width:150px}
   .legend .row{display:flex;align-items:center;gap:10px;font-size:14px}
   .legend .sw{width:13px;height:13px;border-radius:5px;flex:0 0 auto}
@@ -100,6 +150,13 @@
   .legend .more{font-size:12.5px;color:var(--ink-soft)}
   .insight{margin-top:16px;font-size:13px;color:var(--ink-soft);background:color-mix(in srgb,var(--gold) 16%,transparent);border-radius:16px;padding:12px 14px;display:flex;gap:9px}
 
+  /* ── DONUT TOOLTIP ─────────────────────────────────────────────────────── */
+  #donut-tip{position:fixed;z-index:9999;background:var(--card);color:var(--ink);border-radius:12px;
+    padding:9px 13px;font-family:var(--round);font-size:13px;box-shadow:0 8px 28px -6px rgba(0,0,0,.28);
+    pointer-events:none;display:none;white-space:nowrap;border:1.5px solid var(--line)}
+  #donut-tip .tip-cat{font-size:11px;color:var(--ink-soft);margin-top:2px}
+
+  /* ── GOALS ──────────────────────────────────────────────────────────────── */
   .goal{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
   .goal:first-of-type{border-top:0}
   .ring{width:58px;height:58px;flex:0 0 auto;transform:rotate(-90deg)}
@@ -109,16 +166,65 @@
   .goal .gn{font-family:var(--round);font-size:15px} .goal .gp{font-size:12.5px;color:var(--ink-soft)}
   .goal .ga{margin-inline-start:auto;text-align:end;font-family:var(--round)}
   .goal .ga small{display:block;color:var(--ink-soft);font-size:11.5px;font-family:var(--body)}
+  .goal-del{background:none;border:0;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:8px;color:var(--ink-soft);opacity:.55;transition:.18s;flex:0 0 auto}
+  .goal-del:hover{opacity:1;background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg)}
 
+  /* monthly savings advice */
+  .goal-hint{font-size:11px;color:var(--teal-ink);font-family:var(--round);margin-top:2px}
+
+  /* ── ADD GOAL FORM ──────────────────────────────────────────────────────── */
+  .add-goal-btn{display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-family:var(--round);font-size:13px;
+    background:color-mix(in srgb,var(--teal) 14%,transparent);color:var(--teal-ink);border:1.5px solid color-mix(in srgb,var(--teal) 30%,transparent);
+    border-radius:999px;padding:7px 15px;cursor:pointer;transition:.18s}
+  .add-goal-btn:hover{background:color-mix(in srgb,var(--teal) 24%,transparent)}
+  .goal-form{margin-top:14px;background:color-mix(in srgb,var(--teal) 6%,transparent);
+    border:1.5px solid color-mix(in srgb,var(--teal) 20%,transparent);border-radius:18px;padding:16px;display:none}
+  .goal-form.open{display:block}
+  .goal-form .gf-title{font-family:var(--round);font-size:14px;margin:0 0 12px}
+  .goal-form label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;margin-top:10px}
+  .goal-form label:first-of-type{margin-top:0}
+  .goal-form input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;transition:.2s}
+  .goal-form input:focus{border-color:var(--teal)}
+  .goal-form .gf-row{display:flex;gap:9px;margin-top:12px}
+  .goal-form .gf-ok{flex:1;font-family:var(--round);font-size:13px;background:var(--teal-ink);color:#fff;border:0;border-radius:999px;padding:9px 18px;cursor:pointer;transition:.18s}
+  .goal-form .gf-ok:hover{background:var(--teal)}
+  .goal-form .gf-ok:disabled{opacity:.5;cursor:not-allowed}
+  .goal-form .gf-cancel{font-family:var(--round);font-size:13px;background:none;border:1.5px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer;color:var(--ink-soft);transition:.18s}
+  .goal-form .gf-cancel:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+  .goal-form .gf-err{font-size:12px;color:var(--neg);margin-top:8px;display:none}
+
+  /* ── RECENT TRANSACTIONS ─────────────────────────────────────────────── */
   .recent{margin-top:18px;background:var(--card);border-radius:var(--r);padding:22px 24px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(14px);animation:rise .6s .3s forwards}
   .recent .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .recent h3{font-family:var(--round);font-size:19px;margin:0}
   .recent .all{font-size:12.5px;color:var(--teal-ink);font-family:var(--round)}
-  .tx{display:flex;align-items:center;gap:13px;padding:11px 0;border-top:1px solid var(--line)}
+  .tx{display:flex;align-items:center;gap:13px;padding:11px 0;border-top:1px solid var(--line);transition:background .15s;border-radius:12px;margin:-2px -6px;padding-inline:8px;cursor:default}
   .tx .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:16px;background:color-mix(in srgb,var(--coral) 16%,transparent);flex:0 0 auto}
   .tx .n{font-family:var(--round);font-size:14.5px} .tx .c{font-size:11.5px;color:var(--ink-soft)}
   .tx .a{margin-inline-start:auto;font-family:var(--round);font-variant-numeric:tabular-nums;white-space:nowrap}
   .tx .a.pos{color:var(--pos)}
+
+  /* ── CATEGORY CHIP (re-tag button) ──────────────────────────────────── */
+  .cat-chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-family:var(--round);
+    padding:2px 9px 2px 7px;border-radius:999px;border:1.5px solid transparent;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .12s;white-space:nowrap;vertical-align:middle;
+    background:color-mix(in srgb,var(--chip-color,#888) 14%,transparent);
+    color:var(--chip-color,#888);border-color:color-mix(in srgb,var(--chip-color,#888) 28%,transparent)}
+  .cat-chip:hover{background:color-mix(in srgb,var(--chip-color,#888) 24%,transparent);transform:scale(1.04)}
+  .cat-chip .cc-icon{font-size:12px}
+  /* picker overlay */
+  .cat-picker-wrap{position:relative;display:inline-block}
+  .cat-picker{position:absolute;z-index:500;top:calc(100% + 6px);inset-inline-start:0;min-width:180px;
+    background:var(--card);border-radius:16px;box-shadow:0 14px 40px -10px rgba(0,0,0,.28);
+    border:1.5px solid var(--line);padding:8px;display:none;animation:rise .18s}
+  html[dir=rtl] .cat-picker{inset-inline-start:auto;inset-inline-end:0}
+  .cat-picker.open{display:block}
+  .cat-picker .cp-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:10px;
+    font-size:13.5px;cursor:pointer;transition:background .13s;font-family:var(--round);color:var(--ink)}
+  .cat-picker .cp-item:hover,.cat-picker .cp-item.cp-active{background:color-mix(in srgb,var(--teal) 12%,transparent);color:var(--teal-ink)}
+  .cat-picker .cp-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+  .cat-picker .cp-saving{font-size:12px;color:var(--ink-soft);padding:6px 10px;text-align:center}
+  .cat-picker .cp-err{font-size:11.5px;color:var(--neg);padding:4px 10px}
 
   /* disabled partner/couple buttons */
   .seg button[data-disabled="true"]{opacity:.38;cursor:not-allowed;}
@@ -141,7 +247,7 @@
   @keyframes fade{to{opacity:1}}
   @keyframes pop{to{opacity:1}}
   @keyframes donut{to{opacity:1;transform:none}}
-  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.card,.stat,.donut,.recent,#area,#dotlast{opacity:1!important;transform:none!important}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.card,.stat,.donut-wrap,.recent,#area,#dotlast{opacity:1!important;transform:none!important}}
 
   /* ── interactive additions ───────────────────────────────────────────────── */
 
@@ -210,6 +316,9 @@
 </style>
 </head>
 <body>
+<!-- Donut tooltip -->
+<div id="donut-tip"><div class="tip-amt"></div><div class="tip-cat"></div></div>
+
 <div class="wrap">
   <header>
     <div class="brand"><span class="mark">ke<b>$</b>ef</span><span class="tag" data-t="tagline">your money</span></div>
@@ -260,10 +369,12 @@
     </label>
   </div>
 
+  <!-- 4-column stat strip: Income · Spent · Saved · Saved & Invested -->
   <section class="stats">
     <div class="stat" style="animation-delay:.05s"><div class="k">💸 <span data-t="income">Income</span></div><div class="v pos" id="s-in">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)" id="s-in-pill"></span></div>
     <div class="stat" style="animation-delay:.1s"><div class="k">🧾 <span data-t="spent">Spent</span></div><div class="v" id="s-out">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--neg)" id="s-out-pill"></span></div>
-    <div class="stat" style="animation-delay:.15s"><div class="k">🐷 <span data-t="saved">Saved</span></div><div class="v" id="s-save" style="color:var(--teal-ink)">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal-ink)" id="s-rate"></span></div>
+    <div class="stat" style="animation-delay:.15s"><div class="k">🐷 <span data-t="saved">Saved</span></div><div class="v teal" id="s-save">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal-ink)" id="s-rate"></span></div>
+    <div class="stat" style="animation-delay:.2s" id="si-stat"><div class="k">💎 <span data-t="saved_invested">Saved &amp; invested</span></div><div class="v teal" id="s-invested">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--cat-investment) 16%,transparent);color:var(--cat-investment)" id="si-pill"></span></div>
   </section>
 
   <div class="cards">
@@ -271,7 +382,10 @@
       <h3 data-t="spend">Where it goes</h3>
       <p class="sub" id="spend-sub">this month</p>
       <div class="donut-row">
-        <div class="donut" id="donut"><div class="ctr"><span class="t" data-t="total">total</span><span class="v" id="d-total">₪0</span></div></div>
+        <!-- SVG donut replaces conic-gradient div -->
+        <div class="donut-wrap" id="donut-wrap">
+          <svg id="donut-svg" viewBox="0 0 160 160" aria-label="spending by category"></svg>
+        </div>
         <div class="legend" id="legend"></div>
       </div>
       <div class="insight" id="insight-box">💡 <span id="insight-text"></span></div>
@@ -281,6 +395,23 @@
       <h3 data-t="goals">Your goals</h3>
       <p class="sub" data-t="goals_sub">the fun part 🎉</p>
       <div id="goals"></div>
+      <button class="add-goal-btn" id="add-goal-btn">＋ <span data-t="add_goal">Add goal</span></button>
+      <div class="goal-form" id="goal-form">
+        <p class="gf-title" data-t="new_goal">New goal</p>
+        <label data-t="goal_name_lbl">Name</label>
+        <input type="text" id="gf-name" data-t-placeholder="goal_name_ph">
+        <label data-t="goal_target_lbl">Target amount (₪)</label>
+        <input type="number" id="gf-target" min="1" step="1" placeholder="10000">
+        <label data-t="goal_date_lbl">Target date</label>
+        <input type="date" id="gf-date">
+        <label data-t="goal_current_lbl">Current amount (₪, optional)</label>
+        <input type="number" id="gf-current" min="0" step="1" placeholder="0">
+        <div class="gf-row">
+          <button class="gf-ok" id="gf-submit" data-t="goal_save">Save</button>
+          <button class="gf-cancel" id="gf-cancel" data-t="goal_cancel">Cancel</button>
+        </div>
+        <div class="gf-err" id="gf-err"></div>
+      </div>
     </section>
 
     <!-- Top Merchants full-width card -->
@@ -342,24 +473,19 @@ const kfmt = n => '₪' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
-// ─── category palette (all known codes) ──────────────────────────────────────
-const CAT_COLORS = {
-  housing:       '#16A78C',
-  groceries:     '#F4B43C',
-  dining:        '#F2795B',
-  transport:     '#5BA8D6',
-  health:        '#C76699',
-  entertainment: '#A87AD6',
-  shopping:      '#D67A9A',
-  utilities:     '#76B8D6',
-  income:        '#1B9E76',
-  transfer:      '#8DB87A',
-  savings:       '#4CAF8A',
-  investment:    '#3A9ED6',
-  fees:          '#B8956A',
-  other:         '#B6A88E',
+// ─── category CSS-variable palette (mirrors :root vars) ──────────────────────
+const CAT_CSS_VARS = {
+  dining:'--cat-dining', groceries:'--cat-groceries', transport:'--cat-transport',
+  housing:'--cat-housing', utilities:'--cat-utilities', health:'--cat-health',
+  shopping:'--cat-shopping', entertainment:'--cat-entertainment', income:'--cat-income',
+  transfer:'--cat-transfer', savings:'--cat-savings', investment:'--cat-investment',
+  fees:'--cat-fees', other:'--cat-other',
 };
-const CAT_NEUTRAL = '#B6A88E';
+function catColor(key) {
+  const v = CAT_CSS_VARS[key];
+  if (!v) return '#9E8A70';
+  return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#9E8A70';
+}
 
 // category → emoji icon
 const CAT_ICONS = {
@@ -368,7 +494,6 @@ const CAT_ICONS = {
   transfer:'🔄', savings:'🐷', investment:'📈', fees:'🏦', other:'💳',
 };
 const catIcon = key => CAT_ICONS[key] || '💳';
-const catColor = key => CAT_COLORS[key] || CAT_NEUTRAL;
 
 // ─── translations ─────────────────────────────────────────────────────────────
 const T = {
@@ -380,6 +505,7 @@ const T = {
   income:    { en: 'Income',         he: 'הכנסה' },
   spent:     { en: 'Spent',          he: 'הוצאה' },
   saved:     { en: 'Saved',          he: 'חיסכון' },
+  saved_invested: { en: 'Saved & invested', he: 'נחסך והושקע' },
   this_month:{ en: 'this month',     he: 'החודש' },
   spend:     { en: 'Where it goes',  he: 'לאן זה הולך' },
   total:     { en: 'total',          he: 'סה״כ' },
@@ -398,12 +524,9 @@ const T = {
   period_last30:    { en: 'Last 30 days', he: '30 ימים' },
   period_last90:    { en: 'Last 3 months', he: '3 חודשים' },
   period_year:      { en: 'This year', he: 'השנה' },
-  no_spend:  { en: 'No spending recorded yet.',
-               he: 'לא נרשמו הוצאות.' },
-  no_goals:  { en: 'No goals yet — goal tracking is coming soon.',
-               he: 'אין יעדים עדיין — מעקב יעדים בקרוב.' },
-  no_spark:  { en: 'Your trend builds as you sync.',
-               he: 'המגמה תיבנה עם כל סנכרון.' },
+  no_spend:  { en: 'No spending recorded yet.', he: 'לא נרשמו הוצאות.' },
+  no_goals:  { en: 'No goals yet.', he: 'אין יעדים עדיין.' },
+  no_spark:  { en: 'Your trend builds as you sync.', he: 'המגמה תיבנה עם כל סנכרון.' },
   no_forecast:{ en: 'Forecast needs a little more history — keep syncing.',
                 he: 'התחזית זקוקה לעוד נתונים — המשיכו לסנכרן.' },
   of_income: { en: '% of income',    he: '% מההכנסה' },
@@ -422,6 +545,26 @@ const T = {
   no_transfers:       { en: 'No transfers in this period.', he: 'אין העברות בתקופה זו.' },
   transfers_total:    { en: 'Total transferred',           he: 'סה״כ העברות' },
   n_transactions:     { en: 'transactions',                he: 'עסקאות' },
+  change_category:    { en: 'Change category',             he: 'שנה קטגוריה' },
+  saving_cat:         { en: 'Saving…',                     he: 'שומר…' },
+  cat_err:            { en: 'Failed to save — try again',  he: 'שגיאה — נסה שוב' },
+  /* goals form */
+  add_goal:       { en: 'Add goal',           he: 'הוסף יעד' },
+  new_goal:       { en: 'New goal',           he: 'יעד חדש' },
+  goal_name_lbl:  { en: 'Name',               he: 'שם' },
+  goal_name_ph:   { en: 'e.g. New laptop',    he: 'למשל: לפטופ חדש' },
+  goal_target_lbl:{ en: 'Target amount (₪)',  he: 'סכום יעד (₪)' },
+  goal_date_lbl:  { en: 'Target date',        he: 'תאריך יעד' },
+  goal_current_lbl:{ en: 'Current amount (₪, optional)', he: 'סכום נוכחי (₪, אופציונלי)' },
+  goal_save:      { en: 'Save',               he: 'שמור' },
+  goal_cancel:    { en: 'Cancel',             he: 'ביטול' },
+  goal_per_month: { en: '/month to hit it',   he: '/חודש להשגתו' },
+  goal_err_name:  { en: 'Please enter a name.',            he: 'נא להזין שם.' },
+  goal_err_amt:   { en: 'Please enter a positive amount.', he: 'נא להזין סכום חיובי.' },
+  goal_err_date:  { en: 'Please pick a future date.',      he: 'נא לבחור תאריך עתידי.' },
+  goal_err_save:  { en: 'Failed to save goal — try again.',he: 'שגיאה בשמירת היעד.' },
+  by_date:        { en: 'by',                 he: 'עד' },
+  goal_done:      { en: 'done!',              he: 'הושג!' },
   cat: {
     housing:       { en: 'Housing',       he: 'דיור' },
     groceries:     { en: 'Groceries',     he: 'מזון' },
@@ -440,6 +583,8 @@ const T = {
   }
 };
 
+const ALL_CATS = ['groceries','dining','transport','housing','utilities','health','shopping','entertainment','income','transfer','savings','investment','fees','other'];
+
 let lang = 'en';
 let selectedPeriod = 'last30';
 const cl = key => (T.cat[key] || { en: key, he: key })[lang];
@@ -454,8 +599,6 @@ function renderNoData() {
         <div class="msg">${T.no_data[lang]}</div>
       </div>
     </div>`;
-  // keep theme/lang toggles accessible via keyboard shortcut is not needed;
-  // we at minimum re-apply theme so the no-data screen respects dark mode
 }
 
 // ─── sparkline ────────────────────────────────────────────────────────────────
@@ -503,36 +646,259 @@ function up(el, to, pre = '', post = '') {
   })(performance.now());
 }
 
+// ─── months until a date ─────────────────────────────────────────────────────
+function monthsUntil(targetDate, referenceDate) {
+  try {
+    const ref = new Date(referenceDate || new Date());
+    const tgt = new Date(targetDate);
+    const months = (tgt.getFullYear() - ref.getFullYear()) * 12 + (tgt.getMonth() - ref.getMonth());
+    return Math.max(1, months);
+  } catch(e) {
+    return 1;
+  }
+}
+
 // ─── goals ────────────────────────────────────────────────────────────────────
-function renderGoals(goals) {
+function renderGoals(goals, generatedAt) {
+  const container = $('#goals');
+  if (!container) return;
   if (!goals || goals.length === 0) {
-    $('#goals').innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_goals')}</div>`;
+    container.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_goals')}</div>`;
     return;
   }
   const R = 25, C = 2 * Math.PI * R;
-  $('#goals').innerHTML = goals.map(g => {
-    const pc = Math.min(1, g.current / g.target);
+  container.innerHTML = goals.map(g => {
+    const cur = g.currentAmount || g.current || 0;
+    const tgt = g.targetAmount || g.target || 1;
+    const pc = Math.min(1, cur / tgt);
     const done = pc >= 1;
     const dueLabel = g.targetDate
-      ? (lang === 'en' ? 'by ' + g.targetDate : 'עד ' + g.targetDate)
+      ? `${t('by_date')} ${g.targetDate}`
       : '';
+    // monthly savings advice
+    let hintHtml = '';
+    if (!done && g.targetDate) {
+      const months = monthsUntil(g.targetDate, generatedAt);
+      const needed = Math.ceil((tgt - cur) / months);
+      if (needed > 0) {
+        hintHtml = `<div class="goal-hint">₪${NF(needed)}${t('goal_per_month')}</div>`;
+      }
+    }
     return `<div class="goal">
       <svg class="ring ${done ? 'done' : ''}" viewBox="0 0 58 58">
         <circle class="bg" cx="29" cy="29" r="${R}"/>
         <circle class="fg" cx="29" cy="29" r="${R}" style="--c:${C.toFixed(1)}"/>
       </svg>
-      <div>
-        <div class="gn">${g.name}</div>
-        <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + (lang === 'en' ? 'done!' : 'הושג!') : (dueLabel ? ' · ' + dueLabel : '')}</div>
+      <div style="flex:1;min-width:0">
+        <div class="gn">${esc(g.name)}</div>
+        <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + t('goal_done') : (dueLabel ? ' · ' + dueLabel : '')}</div>
+        ${hintHtml}
       </div>
-      <div class="ga">₪${NF(g.current)}<small>${lang === 'en' ? 'of' : 'מתוך'} ₪${NF(g.target)}</small></div>
+      <div class="ga">₪${NF(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ₪${NF(tgt)}</small></div>
+      <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
     </div>`;
   }).join('');
+
+  // animate rings
   requestAnimationFrame(() => {
     $$('#goals .ring .fg').forEach((c, i) => {
-      const pc = Math.min(1, goals[i].current / goals[i].target);
+      const g = goals[i];
+      if (!g) return;
+      const cur = g.currentAmount || g.current || 0;
+      const tgt = g.targetAmount || g.target || 1;
+      const pc = Math.min(1, cur / tgt);
       c.style.strokeDashoffset = (C * (1 - pc)).toFixed(1);
     });
+  });
+
+  // delete handlers
+  $$('#goals .goal-del').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.goalId;
+      if (!id) return;
+      btn.disabled = true;
+      btn.textContent = '…';
+      try {
+        const res = await fetch(`/api/goals?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) { location.reload(); } else {
+          btn.disabled = false; btn.textContent = '×';
+        }
+      } catch(e) {
+        btn.disabled = false; btn.textContent = '×';
+      }
+    };
+  });
+}
+
+// ─── add-goal form ────────────────────────────────────────────────────────────
+function setupGoalForm(generatedAt) {
+  const addBtn  = $('#add-goal-btn');
+  const form    = $('#goal-form');
+  const submit  = $('#gf-submit');
+  const cancel  = $('#gf-cancel');
+  const errEl   = $('#gf-err');
+  if (!addBtn || !form) return;
+
+  addBtn.onclick = () => {
+    form.classList.toggle('open');
+    // update placeholder for name
+    const namePh = T.goal_name_ph[lang];
+    const inp = $('#gf-name');
+    if (inp) inp.placeholder = namePh;
+  };
+  if (cancel) cancel.onclick = () => { form.classList.remove('open'); clearGoalForm(); };
+
+  if (submit) submit.onclick = async () => {
+    const name    = ($('#gf-name')?.value || '').trim();
+    const target  = parseFloat($('#gf-target')?.value || '');
+    const dateVal = ($('#gf-date')?.value || '').trim();
+    const current = parseFloat($('#gf-current')?.value || '0') || 0;
+
+    // validate
+    if (!name) { showGoalErr(t('goal_err_name')); return; }
+    if (!target || target <= 0) { showGoalErr(t('goal_err_amt')); return; }
+    if (!dateVal) { showGoalErr(t('goal_err_date')); return; }
+    const ref = generatedAt ? new Date(generatedAt) : new Date();
+    if (new Date(dateVal) <= ref) { showGoalErr(t('goal_err_date')); return; }
+
+    submit.disabled = true;
+    submit.textContent = t('saving_cat');
+    if (errEl) errEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, targetAmount: target, targetDate: dateVal, currentAmount: current }),
+      });
+      if (res.ok) {
+        location.reload();
+      } else {
+        submit.disabled = false;
+        submit.textContent = t('goal_save');
+        showGoalErr(t('goal_err_save'));
+      }
+    } catch(e) {
+      submit.disabled = false;
+      submit.textContent = t('goal_save');
+      showGoalErr(t('goal_err_save'));
+    }
+  };
+
+  function showGoalErr(msg) {
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  }
+}
+
+function clearGoalForm() {
+  ['#gf-name','#gf-target','#gf-date','#gf-current'].forEach(sel => {
+    const el = $(sel); if (el) el.value = '';
+  });
+  const errEl = $('#gf-err');
+  if (errEl) errEl.style.display = 'none';
+}
+
+// ─── SVG donut helpers ────────────────────────────────────────────────────────
+function polarToXY(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  // clamp to avoid degenerate full-circle paths
+  const delta = Math.min(endDeg - startDeg, 359.99);
+  const s = polarToXY(cx, cy, r, startDeg);
+  const e = polarToXY(cx, cy, r, startDeg + delta);
+  const large = delta > 180 ? 1 : 0;
+  return `M${s.x.toFixed(3)},${s.y.toFixed(3)} A${r},${r} 0 ${large},1 ${e.x.toFixed(3)},${e.y.toFixed(3)}`;
+}
+
+// ─── category chip for re-tagging ────────────────────────────────────────────
+let _activePicker = null; // track open picker so we can close it
+
+function catChipHtml(tx) {
+  const cat = tx.category || 'other';
+  return `<span class="cat-picker-wrap" data-txn-id="${esc(String(tx.id || ''))}" data-cur-cat="${esc(cat)}">
+    <button class="cat-chip" style="--chip-color:${catColor(cat)}" title="${t('change_category')}" aria-label="${t('change_category')}: ${cl(cat)}">
+      <span class="cc-icon">${catIcon(cat)}</span>${cl(cat)}
+    </button>
+    <div class="cat-picker" role="listbox" aria-label="${t('change_category')}"></div>
+  </span>`;
+}
+
+function buildPicker(wrap, txnId, currentCat) {
+  const picker = wrap.querySelector('.cat-picker');
+  if (!picker) return;
+  picker.innerHTML = ALL_CATS.map(c =>
+    `<div class="cp-item ${c === currentCat ? 'cp-active' : ''}" data-cat="${esc(c)}" role="option" aria-selected="${c === currentCat}">
+      <span class="cp-dot" style="background:${catColor(c)}"></span>${cl(c)}
+    </div>`
+  ).join('');
+  picker.querySelectorAll('.cp-item').forEach(item => {
+    item.onclick = (e) => {
+      e.stopPropagation();
+      const newCat = item.dataset.cat;
+      if (newCat === currentCat) { closePicker(picker); return; }
+      doReTag(wrap, picker, txnId, newCat);
+    };
+  });
+}
+
+async function doReTag(wrap, picker, txnId, newCat) {
+  picker.innerHTML = `<div class="cp-saving">${t('saving_cat')}</div>`;
+  try {
+    const res = await fetch('/api/category', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txnId, category: newCat }),
+    });
+    if (res.ok) {
+      location.reload();
+    } else {
+      picker.innerHTML = `<div class="cp-err">${t('cat_err')}</div>`;
+      setTimeout(() => closePicker(picker), 2200);
+    }
+  } catch(e) {
+    picker.innerHTML = `<div class="cp-err">${t('cat_err')}</div>`;
+    setTimeout(() => closePicker(picker), 2200);
+  }
+}
+
+function openPicker(wrap) {
+  if (_activePicker && _activePicker !== wrap) {
+    closePicker(_activePicker.querySelector('.cat-picker'));
+  }
+  const picker = wrap.querySelector('.cat-picker');
+  const txnId  = wrap.dataset.txnId;
+  const curCat = wrap.dataset.curCat;
+  buildPicker(wrap, txnId, curCat);
+  picker.classList.add('open');
+  _activePicker = wrap;
+}
+function closePicker(picker) {
+  if (picker) picker.classList.remove('open');
+  _activePicker = null;
+}
+
+// close active picker when clicking outside
+document.addEventListener('click', e => {
+  if (_activePicker && !_activePicker.contains(e.target)) {
+    closePicker(_activePicker.querySelector('.cat-picker'));
+  }
+});
+
+function attachChipHandlers(root) {
+  (root || document).querySelectorAll('.cat-picker-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.cat-chip');
+    if (btn) btn.onclick = (e) => {
+      e.stopPropagation();
+      const picker = wrap.querySelector('.cat-picker');
+      if (picker && picker.classList.contains('open')) {
+        closePicker(picker);
+      } else {
+        openPicker(wrap);
+      }
+    };
   });
 }
 
@@ -542,22 +908,23 @@ function renderTxs(recent) {
     $('#txs').innerHTML = `<div class="tx" style="justify-content:center;color:var(--ink-soft);font-size:14px">${lang === 'en' ? 'No recent transactions.' : 'אין עסקאות אחרונות.'}</div>`;
     return;
   }
-  $('#txs').innerHTML = recent.map(tx => {
+  const html = recent.map(tx => {
     const cat = tx.category || 'other';
     const icon = catIcon(cat);
-    const catLabel = cl(cat) + (tx.rawCategory && tx.rawCategory !== cat ? ` [${tx.rawCategory}]` : '');
     const sign = tx.amount >= 0 ? 1 : -1;
     const abs = Math.abs(tx.amount);
     const dateStr = tx.date ? tx.date.slice(0, 10) : '';
     return `<div class="tx">
-      <span class="ic">${icon}</span>
-      <div>
-        <div class="n">${tx.description || ''}</div>
-        <div class="c">${dateStr ? dateStr + ' · ' : ''}${catLabel}</div>
+      <span class="ic" style="background:color-mix(in srgb,${catColor(cat)} 18%,transparent)">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div class="n">${esc(tx.description || '')}</div>
+        <div class="c">${dateStr ? dateStr + ' · ' : ''}${catChipHtml(tx)}</div>
       </div>
       <span class="a ${sign > 0 ? 'pos' : ''}">${sign > 0 ? '+' : '−'}₪${NF(abs)}</span>
     </div>`;
   }).join('');
+  $('#txs').innerHTML = html;
+  attachChipHandlers($('#txs'));
 }
 
 // ─── i18n text nodes ──────────────────────────────────────────────────────────
@@ -568,13 +935,19 @@ function applyText() {
       el.textContent = T[key][lang];
     }
   });
-  // also update placeholder attributes
   $$('[data-t-placeholder]').forEach(el => {
     const key = el.dataset.tPlaceholder;
     if (T[key] && typeof T[key] === 'object' && 'en' in T[key]) {
       el.placeholder = T[key][lang];
     }
   });
+  // update goal-form placeholders dynamically
+  const namePh = T.goal_name_ph[lang];
+  const inp = $('#gf-name');
+  if (inp) inp.placeholder = namePh;
+  // update submit/cancel text
+  const submit = $('#gf-submit'); if (submit && !submit.disabled) submit.textContent = t('goal_save');
+  const cancel = $('#gf-cancel'); if (cancel) cancel.textContent = t('goal_cancel');
 }
 
 // ─── delta chip ───────────────────────────────────────────────────────────────
@@ -599,7 +972,6 @@ function renderSparkLabels(series) {
     $('#lbl-start').textContent = '';
     return;
   }
-  // show month/year of first point
   const first = series[0].date;
   if (first) {
     try {
@@ -639,16 +1011,12 @@ let countTransfers = false;
 function txnsInPeriod(txns, period, generatedAt) {
   if (!txns || txns.length === 0) return [];
   const now = generatedAt ? new Date(generatedAt) : new Date();
-  // Use UTC noon to avoid DST edge cases
   const nowMs = now.getTime();
-  const todayYYYYMM = now.toISOString().slice(0, 7); // e.g. "2026-06"
-
+  const todayYYYYMM = now.toISOString().slice(0, 7);
   return txns.filter(tx => {
     if (!tx.date) return false;
-    const d = tx.date.slice(0, 10); // "YYYY-MM-DD"
-    if (period === 'thisMonth') {
-      return d.slice(0, 7) === todayYYYYMM;
-    }
+    const d = tx.date.slice(0, 10);
+    if (period === 'thisMonth') return d.slice(0, 7) === todayYYYYMM;
     const txMs = new Date(d + 'T12:00:00Z').getTime();
     const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
     return txMs >= nowMs - days * 86400000;
@@ -657,16 +1025,17 @@ function txnsInPeriod(txns, period, generatedAt) {
 
 // ─── compute spending stats from transaction list ─────────────────────────────
 function computeSpending(txns) {
-  // Exclude transfers unless countTransfers is true
   const spending = txns.filter(tx =>
     tx.amount < 0 && (countTransfers || tx.category !== 'transfer')
   );
   const incomeList = txns.filter(tx => tx.amount > 0 && tx.category !== 'transfer');
   const income = incomeList.reduce((s, tx) => s + tx.amount, 0);
   const spent  = spending.reduce((s, tx) => s + Math.abs(tx.amount), 0);
-  const saved  = income - spent;
-
-  // group by category
+  // savedInvested = money moved to savings or investment accounts
+  const savedInvested = txns.filter(tx =>
+    tx.amount < 0 && (tx.category === 'savings' || tx.category === 'investment')
+  ).reduce((s, tx) => s + Math.abs(tx.amount), 0);
+  const saved = income - spent;
   const byCat = {};
   for (const tx of spending) {
     const cat = tx.category || 'other';
@@ -675,11 +1044,181 @@ function computeSpending(txns) {
   const byCategory = Object.entries(byCat)
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount);
-
-  return { income, spent, saved, byCategory };
+  return { income, spent, saved, savedInvested, byCategory };
 }
 
-// ─── period spending (stat strip + donut) — now computed client-side ─────────
+// ─── SVG donut (interactive, per-segment click) ────────────────────────────────
+let _donutData = [];   // store for segment click → drawer
+let _donutTxns = null; // store for segment click → drawer
+
+const TIP = $('#donut-tip');
+
+function showTip(x, y, catKey, amount) {
+  if (!TIP) return;
+  TIP.querySelector('.tip-amt').textContent = '₪' + NF(amount);
+  TIP.querySelector('.tip-cat').textContent = cl(catKey);
+  TIP.style.left = (x + 14) + 'px';
+  TIP.style.top  = (y - 10) + 'px';
+  TIP.style.display = 'block';
+}
+function hideTip() { if (TIP) TIP.style.display = 'none'; }
+
+function renderDonut(byCategory, txns) {
+  _donutTxns = txns;
+  const svg = $('#donut-svg');
+  const wrap = $('#donut-wrap');
+  if (!byCategory || byCategory.length === 0 || !svg) {
+    if (wrap) wrap.style.display = 'none';
+    $('#legend').innerHTML = `<div class="more">${t('no_spend')}</div>`;
+    $('#insight-box').hidden = true;
+    return;
+  }
+  if (wrap) wrap.style.display = '';
+  $('#insight-box').hidden = false;
+
+  const sorted = [...byCategory].sort((a, b) => b.amount - a.amount);
+  const tot = sorted.reduce((s, c) => s + c.amount, 0);
+  _donutData = sorted;
+
+  // SVG parameters
+  const cx = 80, cy = 80, R = 62, hole = 42;
+  const strokeW = R - hole;
+  const r = hole + strokeW / 2;  // center of the stroke ring
+  const circ = 2 * Math.PI * r;
+
+  // Build arcs — top 6 categories + optional "other" aggregation
+  const slotCount = Math.min(sorted.length, 6);
+  const topSlots = sorted.slice(0, slotCount);
+  const rest = sorted.slice(slotCount);
+  const restAmt = rest.reduce((s, c) => s + c.amount, 0);
+  if (restAmt > 0) topSlots.push({ category: 'other', amount: restAmt, _isRest: true });
+
+  // Render as SVG arcs using stroke-dasharray
+  let svgHtml = '';
+  let cumAngle = 0;
+  topSlots.forEach((item, i) => {
+    const pct = tot > 0 ? item.amount / tot : 0;
+    const dash = (pct * circ).toFixed(3);
+    const offset = (cumAngle * circ).toFixed(3);
+    const color = catColor(item.category);
+    const startDeg = cumAngle * 360;
+    const spanDeg = pct * 360;
+    cumAngle += pct;
+    // gap
+    const gap = Math.min(2, circ * pct * 0.06);
+    const dashAdj = (Math.max(0, (pct * circ) - gap)).toFixed(3);
+    svgHtml += `<circle
+      class="donut-seg"
+      data-cat="${esc(item.category)}"
+      data-amt="${Math.round(item.amount)}"
+      data-idx="${i}"
+      cx="${cx}" cy="${cy}" r="${r}"
+      fill="none"
+      stroke="${color}"
+      stroke-width="${strokeW}"
+      stroke-dasharray="${dashAdj} ${circ.toFixed(3)}"
+      stroke-dashoffset="${(circ - parseFloat(offset)).toFixed(3)}"
+      style="transform-origin:${cx}px ${cy}px"
+      role="button"
+      aria-label="${cl(item.category)}: ₪${NF(item.amount)}"
+      tabindex="0"
+    />`;
+  });
+
+  // Center label
+  svgHtml += `
+    <text x="${cx}" y="${cy - 7}" text-anchor="middle" class="donut-center-label" font-size="10" fill="var(--ink-soft)">${t('total')}</text>
+    <text x="${cx}" y="${cy + 11}" text-anchor="middle" class="donut-center-label" font-size="15" fill="var(--ink)">${kfmt(tot)}</text>`;
+
+  svg.innerHTML = svgHtml;
+
+  // animate: draw from 0
+  svg.querySelectorAll('.donut-seg').forEach((seg, i) => {
+    const dashArr = parseFloat(seg.getAttribute('stroke-dasharray').split(' ')[0]);
+    seg.style.strokeDasharray = `0 ${circ.toFixed(3)}`;
+    seg.style.transition = 'none';
+    requestAnimationFrame(() => {
+      seg.style.transition = `stroke-dasharray .8s ${(0.05 + i * 0.06).toFixed(2)}s cubic-bezier(.2,.85,.25,1)`;
+      seg.style.strokeDasharray = `${dashArr} ${circ.toFixed(3)}`;
+    });
+  });
+
+  // interaction: hover + click
+  svg.querySelectorAll('.donut-seg').forEach(seg => {
+    seg.onmouseenter = (e) => {
+      svg.querySelectorAll('.donut-seg').forEach(s => s !== seg ? s.classList.add('seg-dim') : s.classList.add('seg-hover'));
+      showTip(e.clientX, e.clientY, seg.dataset.cat, parseInt(seg.dataset.amt, 10));
+    };
+    seg.onmousemove = (e) => {
+      showTip(e.clientX, e.clientY, seg.dataset.cat, parseInt(seg.dataset.amt, 10));
+    };
+    seg.onmouseleave = () => {
+      svg.querySelectorAll('.donut-seg').forEach(s => { s.classList.remove('seg-dim','seg-hover'); });
+      hideTip();
+    };
+    seg.onclick = () => {
+      const catKey = seg.dataset.cat;
+      if (openCatKey === catKey) {
+        closeDrawer('cat');
+      } else {
+        closeDrawer('cat');
+        openCatKey = catKey;
+        // highlight the matching legend row
+        $$('#legend .row').forEach(r => r.classList.toggle('active', r.dataset.cat === catKey));
+        openCatDrawer(catKey, _donutTxns);
+      }
+    };
+    seg.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); seg.click(); }
+    };
+  });
+
+  // legend: top items + "+N more" if needed — ALL rows clickable
+  const top = sorted.slice(0, 5);
+  const extra = sorted.length - 5;
+  $('#legend').innerHTML = top.map(item =>
+    `<div class="row" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
+      <span class="sw" style="background:${catColor(item.category)}"></span>
+      ${cl(item.category)}
+      <span class="lv">₪${NF(item.amount)}</span>
+    </div>`
+  ).join('') + (extra > 0
+    ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`
+    : '');
+
+  $$('#legend .row').forEach(row => {
+    row.onclick = () => {
+      const catKey = row.dataset.cat;
+      if (openCatKey === catKey) {
+        closeDrawer('cat');
+        svg.querySelectorAll('.donut-seg').forEach(s => { s.classList.remove('seg-dim','seg-hover'); });
+      } else {
+        closeDrawer('cat');
+        openCatKey = catKey;
+        row.classList.add('active');
+        // dim other donut segments
+        svg.querySelectorAll('.donut-seg').forEach(s => s.dataset.cat !== catKey ? s.classList.add('seg-dim') : s.classList.add('seg-hover'));
+        openCatDrawer(catKey, txns);
+      }
+    };
+  });
+
+  // reset donut animation
+  if (wrap) {
+    wrap.style.animation = 'none';
+    void wrap.offsetWidth;
+    wrap.style.animation = '';
+  }
+
+  const top1 = sorted[0];
+  const pct1 = tot > 0 ? Math.round(top1.amount / tot * 100) : 0;
+  const periodLabel = t('period_' + selectedPeriod).toLowerCase();
+  $('#insight-text').textContent = lang === 'en'
+    ? `${cl(top1.category)} is your biggest spend (${periodLabel}) — ${pct1}% of total.`
+    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר (${periodLabel}) — ${pct1}% מהסכום.`;
+}
+
+// ─── period spending (stat strip + donut) ─────────────────────────────────────
 function renderPeriodSpending(M) {
   const txns = (M.transactions && M.transactions.length)
     ? txnsInPeriod(M.transactions, selectedPeriod, M.generatedAt)
@@ -689,27 +1228,32 @@ function renderPeriodSpending(M) {
   if (txns && txns.length > 0) {
     p = computeSpending(txns);
   } else {
-    // fall back to server-computed spending if no M.transactions
-    p = (M.spending || {})[selectedPeriod] || { income: 0, spent: 0, saved: 0, byCategory: [] };
+    const srv = (M.spending || {})[selectedPeriod] || { income: 0, spent: 0, saved: 0, savedInvested: 0, byCategory: [] };
+    p = { ...srv, savedInvested: srv.savedInvested || 0 };
   }
 
   const periodLabel = t('period_' + selectedPeriod);
   up($('#s-in'),   p.income, '₪');
   up($('#s-out'),  p.spent,  '₪');
   up($('#s-save'), p.saved,  '₪');
+
+  // savedInvested stat
+  const siStat = $('#si-stat');
+  const siEl = $('#s-invested');
+  const siPill = $('#si-pill');
+  if (siEl) up(siEl, p.savedInvested || 0, '₪');
+  if (siPill) siPill.textContent = periodLabel;
+  if (siStat) siStat.style.display = '';
+
   $('#s-in-pill').textContent  = periodLabel;
   $('#s-out-pill').textContent = periodLabel;
   renderSavingsRate(p.income, p.saved);
   $('#spend-sub').textContent = periodLabel;
   renderDonut(p.byCategory, txns);
-  // Top merchants
   renderMerchants(txns);
-  // sync period button states
   $$('[data-period-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.periodBtn === selectedPeriod ? 'true' : 'false'));
-  // re-render open panels
   if (!$('#viewall-panel').classList.contains('hidden'))  renderViewAll(M, txns);
   if (!$('#transfers-panel').classList.contains('hidden')) renderTransfersPanel(txnsInPeriod(M.transactions || [], selectedPeriod, M.generatedAt));
-  // close any category/merchant drawers since period changed
   closeDrawer('cat');
   closeDrawer('merch');
 }
@@ -724,6 +1268,8 @@ function closeDrawer(which) {
     const d = $('#cat-drawer');
     if (d) { d.classList.add('hidden'); d.innerHTML = ''; }
     $$('#legend .row').forEach(r => r.classList.remove('active'));
+    const svg = $('#donut-svg');
+    if (svg) svg.querySelectorAll('.donut-seg').forEach(s => { s.classList.remove('seg-dim','seg-hover'); });
   }
   if (which === 'merch') {
     openMerchKey = null;
@@ -738,15 +1284,15 @@ function openDrawer(id, html) {
   if (!d) return;
   d.innerHTML = html;
   d.classList.remove('hidden');
-  // re-trigger animation
   d.style.animation = 'none';
   void d.offsetWidth;
   d.style.animation = '';
-  // scroll into view
   d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // attach chip handlers inside any newly created drawer content
+  attachChipHandlers(d);
 }
 
-// ─── transaction row HTML (shared helper) ────────────────────────────────────
+// ─── transaction row HTML (shared helper) — with category chip ────────────────
 function txRowHtml(tx) {
   const cat = tx.category || 'other';
   const icon = catIcon(cat);
@@ -758,7 +1304,7 @@ function txRowHtml(tx) {
     <span class="ic" style="background:color-mix(in srgb,${catColor(cat)} 18%,transparent)">${icon}</span>
     <div class="dtx-main">
       <div class="dtx-n">${esc(tx.merchant || tx.description || '')}</div>
-      <div class="dtx-c">${dateStr}${dateStr ? ' · ' : ''}${cl(cat)}</div>
+      <div class="dtx-c">${dateStr}${dateStr ? ' · ' : ''}${catChipHtml(tx)}</div>
       ${rc ? `<div class="dtx-rc">[${esc(rc)}]</div>` : ''}
     </div>
     <span class="dtx-a ${sign > 0 ? 'pos' : ''}">${sign > 0 ? '+' : '−'}₪${NF(abs)}</span>
@@ -776,7 +1322,6 @@ function openCatDrawer(catKey, txns) {
   const catTxns = txns.filter(tx => tx.amount < 0 && (tx.category || 'other') === catKey);
   if (catTxns.length === 0) return;
 
-  // sub-breakdown by rawCategory
   const byRaw = {};
   for (const tx of catTxns) {
     const rc = tx.rawCategory || catKey;
@@ -785,7 +1330,6 @@ function openCatDrawer(catKey, txns) {
   const rawEntries = Object.entries(byRaw).sort((a, b) => b[1] - a[1]);
   const rawMax = rawEntries[0]?.[1] || 1;
 
-  // sub-breakdown by merchant
   const byMerch = {};
   for (const tx of catTxns) {
     const m = tx.merchant || tx.description || '?';
@@ -836,92 +1380,18 @@ function openCatDrawer(catKey, txns) {
   $('#cat-close').onclick = () => closeDrawer('cat');
 }
 
-// ─── donut with clickable legend ──────────────────────────────────────────────
-function renderDonut(byCategory, txns) {
-  if (!byCategory || byCategory.length === 0) {
-    $('#donut').style.display = 'none';
-    $('#d-total').textContent = '';
-    $('#legend').innerHTML = `<div class="more">${t('no_spend')}</div>`;
-    $('#insight-box').hidden = true;
-    return;
-  }
-  $('#donut').style.display = '';
-  $('#insight-box').hidden = false;
-
-  const sorted = [...byCategory].sort((a, b) => b.amount - a.amount);
-  const tot = sorted.reduce((s, c) => s + c.amount, 0);
-
-  const slots = sorted.slice(0, 6);
-  while (slots.length < 6) slots.push({ category: '__empty', amount: 0 });
-
-  const d = $('#donut');
-  let acc = 0;
-  slots.forEach((item, i) => {
-    const pct = tot > 0 ? (acc + item.amount / tot * 100) : 0;
-    d.style.setProperty('--s' + (i + 1), catColor(item.category));
-    d.style.setProperty('--p' + (i + 1), pct.toFixed(2) + '%');
-    acc = pct;
-  });
-
-  $('#d-total').textContent = kfmt(tot);
-
-  // legend: top items + "+N more" if needed — ALL rows clickable
-  const top = sorted.slice(0, 5);
-  const extra = sorted.length - 5;
-  $('#legend').innerHTML = top.map(item =>
-    `<div class="row" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
-      <span class="sw" style="background:${catColor(item.category)}"></span>
-      ${cl(item.category)}
-      <span class="lv">₪${NF(item.amount)}</span>
-    </div>`
-  ).join('') + (extra > 0
-    ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`
-    : '');
-
-  // attach click handlers
-  $$('#legend .row').forEach(row => {
-    row.onclick = () => {
-      const catKey = row.dataset.cat;
-      if (openCatKey === catKey) {
-        closeDrawer('cat');
-      } else {
-        closeDrawer('cat');
-        openCatKey = catKey;
-        row.classList.add('active');
-        openCatDrawer(catKey, txns);
-      }
-    };
-  });
-
-  // reset donut animation
-  d.style.animation = 'none';
-  void d.offsetWidth;
-  d.style.animation = '';
-
-  const top1 = sorted[0];
-  const pct1 = tot > 0 ? Math.round(top1.amount / tot * 100) : 0;
-  const periodLabel = t('period_' + selectedPeriod).toLowerCase();
-  $('#insight-text').textContent = lang === 'en'
-    ? `${cl(top1.category)} is your biggest spend (${periodLabel}) — ${pct1}% of total.`
-    : `${cl(top1.category)} היא ההוצאה הגדולה ביותר (${periodLabel}) — ${pct1}% מהסכום.`;
-}
-
 // ─── top merchants section ─────────────────────────────────────────────────────
 function renderMerchants(txns) {
   const mc = $('#merchants-card');
   const ml = $('#merchants-list');
   const ms = $('#merchants-sub');
   if (!mc || !ml) return;
-
   if (!txns || txns.length === 0) {
     ml.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_transactions')}</div>`;
     if (ms) ms.textContent = t('period_' + selectedPeriod);
     return;
   }
-
   if (ms) ms.textContent = t('period_' + selectedPeriod);
-
-  // group spending by merchant (exclude transfers unless toggled)
   const byMerch = {};
   for (const tx of txns) {
     if (tx.amount >= 0) continue;
@@ -932,15 +1402,12 @@ function renderMerchants(txns) {
     byMerch[key].count += 1;
     byMerch[key].txns.push(tx);
   }
-
   const entries = Object.entries(byMerch).sort((a, b) => b[1].total - a[1].total).slice(0, 12);
   if (entries.length === 0) {
     ml.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:12px 0">${t('no_transactions')}</div>`;
     return;
   }
-
   const maxAmt = entries[0][1].total || 1;
-
   ml.innerHTML = entries.map(([merch, info]) => {
     const cat = info.txns[0]?.category || 'other';
     return `<div class="sub-row merch-row" data-merch="${esc(merch)}">
@@ -950,8 +1417,6 @@ function renderMerchants(txns) {
       <span class="sub-cnt">${info.count} ${t('n_transactions')}</span>
     </div>`;
   }).join('');
-
-  // attach click handlers
   $$('#merchants-list .merch-row').forEach(row => {
     row.onclick = () => {
       const key = row.dataset.merch;
@@ -989,7 +1454,6 @@ function renderViewAll(M, txns) {
     (tx.category   || '').toLowerCase().includes(q) ||
     (tx.rawCategory|| '').toLowerCase().includes(q)
   ) : all;
-
   const container = $('#viewall-txs');
   if (!container) return;
   if (filtered.length === 0) {
@@ -997,6 +1461,7 @@ function renderViewAll(M, txns) {
     return;
   }
   container.innerHTML = filtered.map(txRowHtml).join('');
+  attachChipHandlers(container);
 }
 
 // ─── transfers panel ──────────────────────────────────────────────────────────
@@ -1006,54 +1471,37 @@ function renderTransfersPanel(txns) {
   const container = $('#transfers-txs');
   const totalEl   = $('#transfers-total');
   if (!container) return;
-
   if (transfers.length === 0) {
     if (totalEl) totalEl.textContent = '';
     container.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:20px 0;text-align:center">${t('no_transfers')}</div>`;
     return;
   }
-
   const outgoing = transfers.filter(tx => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
   if (totalEl) totalEl.textContent = `${t('transfers_total')}: ₪${NF(outgoing)}`;
   container.innerHTML = transfers.map(txRowHtml).join('');
+  attachChipHandlers(container);
 }
 
 // ─── main render ─────────────────────────────────────────────────────────────
 function render() {
   const M = window.__KESEF__;
-
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
-
   if (M === null || M === undefined) {
     renderNoData();
     return;
   }
-
   applyText();
   setupDisabledButtons();
-
-  // hero net worth
   up($('#nw'), M.netWorth);
-
-  // delta chip
   renderDelta(M.netWorthSeries);
-
-  // sparkline
   const balances = (M.netWorthSeries || []).map(p => p.balance);
   spark(balances);
   renderSparkLabels(M.netWorthSeries);
-
-  // stat strip + donut — driven by selectedPeriod
   renderPeriodSpending(M);
-
-  // goals
-  renderGoals(M.goals);
-
-  // recent transactions (last ~10 from M.recent as before)
+  renderGoals(M.goals, M.generatedAt);
   renderTxs(M.recent);
-
-  // lang/view button states
+  setupGoalForm(M.generatedAt);
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === 'me' ? 'true' : 'false'));
 }
@@ -1086,10 +1534,8 @@ function setTab(which) {
   const M = window.__KESEF__;
   const isAll       = which === 'all';
   const isTransfers = which === 'transfers';
-
   if (tabAll)       tabAll.setAttribute('aria-pressed',       isAll       ? 'true' : 'false');
   if (tabTransfers) tabTransfers.setAttribute('aria-pressed', isTransfers ? 'true' : 'false');
-
   if (viewallPanel) {
     if (isAll) {
       viewallPanel.classList.remove('hidden');
@@ -1102,7 +1548,6 @@ function setTab(which) {
       viewallPanel.classList.add('hidden');
     }
   }
-
   if (transfersPanel) {
     if (isTransfers) {
       transfersPanel.classList.remove('hidden');
@@ -1133,15 +1578,14 @@ if (viewallSearch) {
 // ─── language toggle ──────────────────────────────────────────────────────────
 $$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; render(); });
 
-// Partner/Couple buttons are disabled — clicking them is suppressed in setupDisabledButtons()
-// Me button is the only active view
+// Partner/Couple buttons are disabled
 $$('[data-view-btn]').forEach(b => {
   if (b.dataset.viewBtn === 'me') {
     b.onclick = () => render();
   }
 });
 
-// ─── theme toggle (auto + manual override) ────────────────────────────────────
+// ─── theme toggle ─────────────────────────────────────────────────────────────
 const mq = matchMedia('(prefers-color-scheme: dark)');
 let manual = null;
 const cur = () => manual ?? (mq.matches ? 'dark' : 'light');
