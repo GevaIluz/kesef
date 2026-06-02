@@ -52,7 +52,9 @@ export function patchForManualLogin(scraper: PatchableScraper): void {
 
 export async function scrapeInteractive(target: InteractiveTarget, deps: InteractiveDeps): Promise<InteractiveOutcome> {
   const factory = deps.scraperFactory ?? createScraper;
-  const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 90); // ~90 days
+  // Pull ~12 months of history by default (banks cap how far back they expose; we fetch what's available).
+  const historyDays = Number(process.env.KESEF_HISTORY_DAYS) || 365;
+  const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * historyDays);
   const timeout = deps.timeoutMs ?? 180000; // 3 minutes for the human to log in
   const scraper = factory({
     companyId: target.companyId,
