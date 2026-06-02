@@ -1,4 +1,5 @@
 import type { CategoryCode } from '@kesef/core';
+import { mapCardCategory } from './cardCategory.js';
 
 // Ordered: earlier rules win. Each rule = [category, [substrings to match, lower-cased]].
 // Seeded with common Israeli merchants (Hebrew + English). Extend freely.
@@ -30,4 +31,18 @@ export function categorize(description: string, overrides?: Record<string, Categ
     if (subs.some(s => hay.includes(s))) return cat;
   }
   return 'other';
+}
+
+/** Decide a transaction's category: user override → card-provided category → description rules → other. */
+export function assignCategory(
+  t: { description: string; rawCategory?: string | undefined },
+  overrides?: Record<string, CategoryCode>,
+): CategoryCode {
+  if (overrides) {
+    const hay = t.description.toLowerCase();
+    for (const [sub, cat] of Object.entries(overrides)) if (sub && hay.includes(sub.toLowerCase())) return cat;
+  }
+  const fromCard = mapCardCategory(t.rawCategory);
+  if (fromCard) return fromCard;
+  return categorize(t.description, overrides);
 }
