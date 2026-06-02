@@ -31,5 +31,5 @@ export async function scrapeBeinleumi(creds: BeinleumiCreds, deps: ScrapeDeps): 
   });
   const result = await scraper.scrape(creds) as ScrapeResult & { errorType?: string; errorMessage?: string };
   if (!result.success) return { ok: false, errorType: result.errorType, errorMessage: result.errorMessage };
-  return { ok: true, data: mapScrapeResult(result, { now: deps.now }) };
+  return { ok: true, data: mapScrapeResult(result, { institution: 'beinleumi', accountType: 'bank', now: deps.now }) };
 }

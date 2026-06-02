@@ -12,7 +12,7 @@ export type CategoryCode =
 
 export interface Account {
   id: string;
-  institution: 'beinleumi' | 'ibi' | 'manual';
+  institution: 'beinleumi' | 'cal' | 'ibi' | 'manual';
   type: AccountType;
   displayName: string;        // user-entered; shown as-is in either language
   currency: Currency;

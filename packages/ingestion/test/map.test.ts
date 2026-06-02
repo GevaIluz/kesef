@@ -14,7 +14,7 @@ const result = {
 };
 
 describe('mapScrapeResult', () => {
-  const out = mapScrapeResult(result as any, { now: '2026-05-03' });
+  const out = mapScrapeResult(result as any, { institution: 'beinleumi', accountType: 'bank', now: '2026-05-03' });
   it('produces one account with a beinleumi institution', () => {
     expect(out.accounts).toHaveLength(1);
     expect(out.accounts[0]!.institution).toBe('beinleumi');
@@ -33,5 +33,17 @@ describe('mapScrapeResult', () => {
     expect(out.snapshots).toHaveLength(1);
     expect(out.snapshots[0]!.balance).toBe(42300);
     expect(out.snapshots[0]!.date).toBe('2026-05-03');
+  });
+
+  it('captures the source category as rawCategory when present, with cal institution', () => {
+    const r = { success: true, accounts: [{ accountNumber: 'c1', txns: [
+      { date: '2026-05-01T00:00:00Z', chargedAmount: -90, description: 'ל.ל אחזקות בע״מ', category: 'מסעדות', identifier: 5 },
+    ] }] };
+    const o = mapScrapeResult(r as any, { institution: 'cal', accountType: 'credit_card', now: '2026-05-02' });
+    expect(o.accounts[0]!.institution).toBe('cal');
+    expect(o.accounts[0]!.type).toBe('credit_card');
+    expect(o.accounts[0]!.id).toBe('cal:c1');
+    expect(o.transactions[0]!.rawCategory).toBe('מסעדות');
+    expect(o.transactions[0]!.description).toBe('ל.ל אחזקות בע״מ');
   });
 });
