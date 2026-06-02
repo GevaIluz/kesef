@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { KeyringVault, Store } from '@kesef/core';
-import { dbPath } from './paths.js';
+import { join } from 'node:path';
+import { dbPath, kesefDir } from './paths.js';
 import { ask, askHidden } from './prompt.js';
 import { scrapeBeinleumi } from './beinleumi.js';
 
@@ -31,9 +32,20 @@ async function sync(): Promise<void> {
   try { creds = JSON.parse(raw); }
   catch { console.error('Stored credentials are corrupt — run `npm run connect` to re-enter.'); process.exit(1); }
   const { username, password } = creds;
+  const debug = !!process.env.KESEF_DEBUG;
+  if (debug) console.log('(debug mode: visible browser + verbose logs; a screenshot is saved if login fails)');
   console.log('Logging in to Beinleumi…');
-  const res = await scrapeBeinleumi({ username, password }, { now: todayISO() });
-  if (!res.ok) { console.error(`✗ Login failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim()); process.exit(1); }
+  const res = await scrapeBeinleumi({ username, password }, {
+    now: todayISO(),
+    showBrowser: debug,
+    verbose: debug,
+    failureScreenshotPath: debug ? join(kesefDir(), 'last-failure.png') : undefined,
+  });
+  if (!res.ok) {
+    console.error(`✗ Login failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim());
+    if (debug) console.error(`  A screenshot of the stuck page was saved to ${join(kesefDir(), 'last-failure.png')}`);
+    process.exit(1);
+  }
   const key = await getDbKey(false);
   const store = Store.open({ path: dbPath(), key });
   const { accounts, transactions, snapshots } = res.data!;

@@ -7,6 +7,10 @@ export interface ScrapeDeps {
   scraperFactory?: typeof createScraper; // injectable for tests; defaults to the real library
   startDate?: Date;
   now: string;
+  // diagnostics (opt-in): watch the login live, log verbosely, and screenshot the page if scraping fails
+  showBrowser?: boolean;
+  verbose?: boolean;
+  failureScreenshotPath?: string;
 }
 export interface ScrapeOutcome {
   ok: boolean; errorType?: string; errorMessage?: string;
@@ -16,7 +20,12 @@ export interface ScrapeOutcome {
 export async function scrapeBeinleumi(creds: BeinleumiCreds, deps: ScrapeDeps): Promise<ScrapeOutcome> {
   const factory = deps.scraperFactory ?? createScraper;
   const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * 90); // ~90 days
-  const scraper = factory({ companyId: CompanyTypes.beinleumi, startDate, combineInstallments: false, showBrowser: false });
+  const scraper = factory({
+    companyId: CompanyTypes.beinleumi, startDate, combineInstallments: false,
+    showBrowser: deps.showBrowser ?? false,
+    verbose: deps.verbose ?? false,
+    storeFailureScreenShotPath: deps.failureScreenshotPath,
+  });
   const result = await scraper.scrape(creds) as ScrapeResult & { errorType?: string; errorMessage?: string };
   if (!result.success) return { ok: false, errorType: result.errorType, errorMessage: result.errorMessage };
   return { ok: true, data: mapScrapeResult(result, { now: deps.now }) };
