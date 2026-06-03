@@ -51,6 +51,16 @@ describe('Store sync helpers', () => {
     expect(m.get('t2')).toBe('housing');
     s.close();
   });
+  it('stores and reads merchant category rules (the app "learns" a merchant)', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.setMerchantRule('Lime', 'transport');
+    s.setMerchantRule('Lime', 'fees');     // overwrite
+    s.setMerchantRule('Wolt', 'dining');
+    const m = s.merchantRules();
+    expect(m.get('Lime')).toBe('fees');
+    expect(m.get('Wolt')).toBe('dining');
+    s.close();
+  });
   it('goals CRUD', () => {
     const s = Store.open({ path: newDb(), key: 'pw' });
     const g = { id: 'g1', name: 'Japan', targetAmount: 40000, targetDate: '2027-01-01', currentAmount: 1000, shareable: false };

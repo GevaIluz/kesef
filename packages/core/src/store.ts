@@ -117,6 +117,26 @@ export class Store {
     return new Map(rows.map(r => [r['transaction_id'] as string, r['category'] as string]));
   }
 
+  /** Remove a per-transaction override so the transaction falls back to its merchant rule / auto category. */
+  clearCategoryOverride(transactionId: string): void {
+    this.db.prepare('DELETE FROM tx_overrides WHERE transaction_id = ?').run(transactionId);
+  }
+
+  /** Merchant-level rule: applies to every transaction whose normalized merchant matches (incl. future syncs). */
+  setMerchantRule(merchant: string, category: string): void {
+    this.db.prepare('INSERT INTO merchant_rules (merchant, category) VALUES (?, ?) ON CONFLICT(merchant) DO UPDATE SET category = excluded.category')
+      .run(merchant, category);
+  }
+
+  merchantRules(): Map<string, string> {
+    const rows = this.db.prepare('SELECT merchant, category FROM merchant_rules').all() as Record<string, unknown>[];
+    return new Map(rows.map(r => [r['merchant'] as string, r['category'] as string]));
+  }
+
+  deleteMerchantRule(merchant: string): void {
+    this.db.prepare('DELETE FROM merchant_rules WHERE merchant = ?').run(merchant);
+  }
+
   upsertGoal(g: Goal): void {
     this.db.prepare(`INSERT INTO goals (id, name, target_amount, target_date, current_amount, shareable)
       VALUES (@id, @name, @targetAmount, @targetDate, @currentAmount, @shareable)

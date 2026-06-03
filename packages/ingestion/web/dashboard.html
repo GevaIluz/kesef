@@ -148,6 +148,10 @@
   .legend .sw{width:13px;height:13px;border-radius:5px;flex:0 0 auto}
   .legend .lv{margin-inline-start:auto;font-family:var(--round);color:var(--ink-soft)}
   .legend .more{font-size:12.5px;color:var(--ink-soft)}
+  .legend .lv-arrow{margin-inline-start:8px;color:var(--ink-soft);opacity:.45;font-family:var(--round);transition:transform .18s,opacity .18s}
+  .legend .row:hover .lv-arrow{opacity:.9;transform:translateX(2px)}
+  html[dir=rtl] .legend .row:hover .lv-arrow{transform:translateX(-2px)}
+  .zoom-hint{font-size:11.5px;color:var(--ink-soft);font-family:var(--round);margin-top:14px;opacity:.85;display:flex;align-items:center;gap:6px}
   .insight{margin-top:16px;font-size:13px;color:var(--ink-soft);background:color-mix(in srgb,var(--gold) 16%,transparent);border-radius:16px;padding:12px 14px;display:flex;gap:9px}
 
   /* ── DONUT TOOLTIP ─────────────────────────────────────────────────────── */
@@ -225,6 +229,10 @@
   .cat-picker .cp-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
   .cat-picker .cp-saving{font-size:12px;color:var(--ink-soft);padding:6px 10px;text-align:center}
   .cat-picker .cp-err{font-size:11.5px;color:var(--neg);padding:4px 10px}
+  /* "apply to all <merchant>" scope toggle at the top of the picker */
+  .cat-picker .cp-scope{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:5px;border-bottom:1px solid var(--line);
+    font-size:12px;color:var(--ink-soft);font-family:var(--round);cursor:pointer;user-select:none;line-height:1.3}
+  .cat-picker .cp-scope input{width:14px;height:14px;accent-color:var(--teal);cursor:pointer;flex:0 0 auto}
 
   /* disabled partner/couple buttons */
   .seg button[data-disabled="true"]{opacity:.38;cursor:not-allowed;}
@@ -388,6 +396,7 @@
         </div>
         <div class="legend" id="legend"></div>
       </div>
+      <div class="zoom-hint" id="zoom-hint" data-t="zoom_hint">👆 tap any slice or row to zoom in</div>
       <div class="insight" id="insight-box">💡 <span id="insight-text"></span></div>
     </section>
 
@@ -532,6 +541,7 @@ const T = {
   of_income: { en: '% of income',    he: '% מההכנסה' },
   partner_disabled: { en: 'Arrives with couple-sync', he: 'יגיע עם סנכרון זוגי' },
   more_cats: { en: 'more categories', he: 'קטגוריות נוספות' },
+  zoom_hint: { en: '👆 tap any slice or row to zoom in', he: '👆 הקישו על פלח או שורה כדי להתמקד' },
   top_merchants:      { en: 'Top merchants',               he: 'בתי עסק מובילים' },
   transfers:          { en: 'Transfers',                   he: 'העברות' },
   view_all_btn:       { en: 'View all',                    he: 'הצג הכל' },
@@ -546,6 +556,7 @@ const T = {
   transfers_total:    { en: 'Total transferred',           he: 'סה״כ העברות' },
   n_transactions:     { en: 'transactions',                he: 'עסקאות' },
   change_category:    { en: 'Change category',             he: 'שנה קטגוריה' },
+  apply_all:          { en: 'Apply to all',                he: 'החל על כל' },
   saving_cat:         { en: 'Saving…',                     he: 'שומר…' },
   cat_err:            { en: 'Failed to save — try again',  he: 'שגיאה — נסה שוב' },
   /* goals form */
@@ -823,7 +834,7 @@ let _activePicker = null; // track open picker so we can close it
 
 function catChipHtml(tx) {
   const cat = tx.category || 'other';
-  return `<span class="cat-picker-wrap" data-txn-id="${esc(String(tx.id || ''))}" data-cur-cat="${esc(cat)}">
+  return `<span class="cat-picker-wrap" data-txn-id="${esc(String(tx.id || ''))}" data-cur-cat="${esc(cat)}" data-merchant="${esc(String(tx.merchant || ''))}">
     <button class="cat-chip" style="--chip-color:${catColor(cat)}" title="${t('change_category')}" aria-label="${t('change_category')}: ${cl(cat)}">
       <span class="cc-icon">${catIcon(cat)}</span>${cl(cat)}
     </button>
@@ -831,31 +842,48 @@ function catChipHtml(tx) {
   </span>`;
 }
 
+// how many transactions (this period-agnostic full list) share this merchant
+function merchantTxnCount(merchant) {
+  if (!merchant) return 0;
+  const all = (window.__KESEF__ && window.__KESEF__.transactions) || [];
+  return all.filter(x => (x.merchant || '') === merchant).length;
+}
+
 function buildPicker(wrap, txnId, currentCat) {
   const picker = wrap.querySelector('.cat-picker');
   if (!picker) return;
-  picker.innerHTML = ALL_CATS.map(c =>
+  const merchant = wrap.dataset.merchant || '';
+  const count = merchantTxnCount(merchant);
+  // When the merchant recurs, default to "apply to all" so a correction sticks (the app learns).
+  const scopeHtml = (merchant && count > 1)
+    ? `<label class="cp-scope"><input type="checkbox" class="cp-scope-cb" checked> ${t('apply_all')} ${count} · ${esc(merchant)}</label>`
+    : '';
+  picker.innerHTML = scopeHtml + ALL_CATS.map(c =>
     `<div class="cp-item ${c === currentCat ? 'cp-active' : ''}" data-cat="${esc(c)}" role="option" aria-selected="${c === currentCat}">
       <span class="cp-dot" style="background:${catColor(c)}"></span>${cl(c)}
     </div>`
   ).join('');
+  const scopeLabel = picker.querySelector('.cp-scope');
+  if (scopeLabel) scopeLabel.onclick = (e) => e.stopPropagation(); // toggling scope must not close the picker
   picker.querySelectorAll('.cp-item').forEach(item => {
     item.onclick = (e) => {
       e.stopPropagation();
       const newCat = item.dataset.cat;
-      if (newCat === currentCat) { closePicker(picker); return; }
-      doReTag(wrap, picker, txnId, newCat);
+      const cb = picker.querySelector('.cp-scope-cb');
+      const scope = (cb && cb.checked) ? 'merchant' : 'one';
+      if (newCat === currentCat && scope === 'one') { closePicker(picker); return; }
+      doReTag(wrap, picker, txnId, newCat, scope, merchant);
     };
   });
 }
 
-async function doReTag(wrap, picker, txnId, newCat) {
+async function doReTag(wrap, picker, txnId, newCat, scope, merchant) {
   picker.innerHTML = `<div class="cp-saving">${t('saving_cat')}</div>`;
   try {
     const res = await fetch('/api/category', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ txnId, category: newCat }),
+      body: JSON.stringify({ txnId, category: newCat, scope: scope || 'one', merchant: merchant || '' }),
     });
     if (res.ok) {
       location.reload();
@@ -1096,7 +1124,11 @@ function renderDonut(byCategory, txns) {
   const topSlots = sorted.slice(0, slotCount);
   const rest = sorted.slice(slotCount);
   const restAmt = rest.reduce((s, c) => s + c.amount, 0);
-  if (restAmt > 0) topSlots.push({ category: 'other', amount: restAmt, _isRest: true });
+  if (restAmt > 0) {
+    const existingOther = topSlots.find(s => s.category === 'other');
+    if (existingOther) existingOther.amount += restAmt;   // merge — never show two "Other" slices
+    else topSlots.push({ category: 'other', amount: restAmt, _isRest: true });
+  }
 
   // Render as SVG arcs using stroke-dasharray
   let svgHtml = '';
@@ -1186,6 +1218,7 @@ function renderDonut(byCategory, txns) {
       <span class="sw" style="background:${catColor(item.category)}"></span>
       ${cl(item.category)}
       <span class="lv">₪${NF(item.amount)}</span>
+      <span class="lv-arrow" aria-hidden="true">›</span>
     </div>`
   ).join('') + (extra > 0
     ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`

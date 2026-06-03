@@ -52,7 +52,17 @@ createServer(async (req, res) => {
       const txnId = typeof b['txnId'] === 'string' ? b['txnId'] : '';
       const category = typeof b['category'] === 'string' ? b['category'] : '';
       if (!txnId || !CATEGORIES.has(category)) return sendJson(res, 400, { error: 'txnId + valid category required' });
-      await withStore(s => s.setCategoryOverride(txnId, category));
+      // scope 'merchant' makes the change stick to EVERY transaction of this merchant (incl. future syncs).
+      const scope = b['scope'] === 'merchant' ? 'merchant' : 'one';
+      const merchant = typeof b['merchant'] === 'string' ? b['merchant'].trim() : '';
+      await withStore(s => {
+        if (scope === 'merchant' && merchant) {
+          s.setMerchantRule(merchant, category);
+          s.clearCategoryOverride(txnId); // let the merchant rule govern this row too
+        } else {
+          s.setCategoryOverride(txnId, category);
+        }
+      });
       return sendJson(res, 200, { ok: true });
     }
     if (path === '/api/goals' && method === 'POST') {
@@ -84,7 +94,7 @@ createServer(async (req, res) => {
       const model = await withStore(s => buildDashboard(
         s.listAccounts(), s.allTransactions(), s.allBalanceSnapshots(),
         new Date().toISOString().slice(0, 10),
-        { goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode> },
+        { goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules() },
       ));
       const json = JSON.stringify(model).replace(/</g, '\\u003c'); // can't break out of <script>
       const html = readFileSync(join(webDir, 'dashboard.html'), 'utf8').replace('/*__KESEF_DATA__*/ null', () => json);

@@ -39,3 +39,10 @@ CREATE TABLE IF NOT EXISTS tx_overrides (
   transaction_id TEXT PRIMARY KEY,
   category TEXT NOT NULL
 );
+
+-- Merchant-level category rules: re-tagging a merchant applies to all its
+-- transactions (past and future syncs) so the app "learns" durably.
+CREATE TABLE IF NOT EXISTS merchant_rules (
+  merchant TEXT PRIMARY KEY,
+  category TEXT NOT NULL
+);

@@ -78,4 +78,20 @@ describe('buildDashboard', () => {
     const g = { id: 'g', name: 'x', targetAmount: 1, targetDate: '2027-01-01', currentAmount: 0, shareable: false };
     expect(buildDashboard([], [], [], '2026-06-15', { goals: [g] }).goals).toEqual([g]);
   });
+  it('a merchant rule recategorizes EVERY matching transaction (learning sticks)', () => {
+    const lime = [
+      { id: 'l1', accountId: 'a', date: '2026-06-10', amount: -15, description: 'LIME*5 RIDES 3VJJ +18885463345 US', category: 'transport', shareable: false },
+      { id: 'l2', accountId: 'a', date: '2026-06-11', amount: -12, description: 'LIME*RIDE 3VJJ', category: 'transport', shareable: false },
+    ] as any;
+    const d = buildDashboard([], lime, [], '2026-06-15', { merchantRules: new Map([['Lime', 'fees']]) });
+    expect(d.transactions.map(t => t.category)).toEqual(['fees', 'fees']);  // both Lime → fees
+  });
+  it('per-transaction override beats a merchant rule', () => {
+    const lime = [{ id: 'l1', accountId: 'a', date: '2026-06-10', amount: -15, description: 'LIME*5 RIDES', category: 'transport', shareable: false }] as any;
+    const d = buildDashboard([], lime, [], '2026-06-15', {
+      merchantRules: new Map([['Lime', 'fees']]),
+      overrides: new Map([['l1', 'health']]),
+    });
+    expect(d.transactions[0]!.category).toBe('health');  // per-txn override wins
+  });
 });

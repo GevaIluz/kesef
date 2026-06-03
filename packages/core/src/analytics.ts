@@ -17,7 +17,7 @@ export interface DashboardModel {
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
   accounts: { id: string; name: string; institution: string; type: string; balance: number | null }[];
-  recent: { date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string }[];
+  recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
   transactions: ClientTxn[];
@@ -56,10 +56,17 @@ function shiftDays(iso: string, days: number): string {
 
 export function buildDashboard(
   accounts: Account[], transactions: Transaction[], snapshots: BalanceSnapshot[], now: string,
-  opts: { goals?: Goal[]; overrides?: Map<string, string> } = {},
+  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string> } = {},
 ): DashboardModel {
   const overrides = opts.overrides ?? new Map<string, string>();
-  const eff = transactions.map(t => ({ ...t, category: (overrides.get(t.id) as CategoryCode | undefined) ?? t.category }));
+  const merchantRules = opts.merchantRules ?? new Map<string, string>();
+  // Effective category precedence: per-transaction override → merchant rule → auto-assigned.
+  // The merchant rule keys off normalizeMerchant(description), so it also catches future syncs.
+  const eff = transactions.map(t => {
+    const byTxn = overrides.get(t.id) as CategoryCode | undefined;
+    const byMerchant = merchantRules.get(normalizeMerchant(t.description)) as CategoryCode | undefined;
+    return { ...t, category: byTxn ?? byMerchant ?? t.category };
+  });
 
   const month = now.slice(0, 7);
   const inRange = (from: string) => eff.filter(t => t.date >= from && t.date <= now);
@@ -79,7 +86,7 @@ export function buildDashboard(
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const recent = [...eff].sort((a, b) => b.date.localeCompare(a.date)).slice(0, RECENT_LIMIT)
-    .map(t => ({ date: t.date, amount: t.amount, category: t.category ?? null, rawCategory: t.rawCategory ?? null, description: t.description }));
+    .map(t => ({ id: t.id, date: t.date, amount: t.amount, category: t.category ?? null, rawCategory: t.rawCategory ?? null, description: t.description, merchant: normalizeMerchant(t.description) }));
 
   const txList: ClientTxn[] = [...eff]
     .sort((a, b) => b.date.localeCompare(a.date))
