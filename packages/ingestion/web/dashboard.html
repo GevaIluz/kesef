@@ -554,7 +554,7 @@ const T = {
   goal_name_lbl:  { en: 'Name',               he: 'שם' },
   goal_name_ph:   { en: 'e.g. New laptop',    he: 'למשל: לפטופ חדש' },
   goal_target_lbl:{ en: 'Target amount (₪)',  he: 'סכום יעד (₪)' },
-  goal_date_lbl:  { en: 'Target date',        he: 'תאריך יעד' },
+  goal_date_lbl:  { en: 'Target date (optional)', he: 'תאריך יעד (לא חובה)' },
   goal_current_lbl:{ en: 'Current amount (₪, optional)', he: 'סכום נוכחי (₪, אופציונלי)' },
   goal_save:      { en: 'Save',               he: 'שמור' },
   goal_cancel:    { en: 'Cancel',             he: 'ביטול' },
@@ -745,6 +745,12 @@ function setupGoalForm(generatedAt) {
     const namePh = T.goal_name_ph[lang];
     const inp = $('#gf-name');
     if (inp) inp.placeholder = namePh;
+    // steer the (optional) date picker to the future: min = tomorrow
+    const dateEl = $('#gf-date');
+    if (dateEl && generatedAt) {
+      const tmo = new Date(generatedAt); tmo.setDate(tmo.getDate() + 1);
+      dateEl.min = tmo.toISOString().slice(0, 10);
+    }
   };
   if (cancel) cancel.onclick = () => { form.classList.remove('open'); clearGoalForm(); };
 
@@ -754,12 +760,11 @@ function setupGoalForm(generatedAt) {
     const dateVal = ($('#gf-date')?.value || '').trim();
     const current = parseFloat($('#gf-current')?.value || '0') || 0;
 
-    // validate
+    // validate — target date is OPTIONAL; only check it when the user actually picked one
     if (!name) { showGoalErr(t('goal_err_name')); return; }
     if (!target || target <= 0) { showGoalErr(t('goal_err_amt')); return; }
-    if (!dateVal) { showGoalErr(t('goal_err_date')); return; }
     const ref = generatedAt ? new Date(generatedAt) : new Date();
-    if (new Date(dateVal) <= ref) { showGoalErr(t('goal_err_date')); return; }
+    if (dateVal && new Date(dateVal) <= ref) { showGoalErr(t('goal_err_date')); return; }
 
     submit.disabled = true;
     submit.textContent = t('saving_cat');

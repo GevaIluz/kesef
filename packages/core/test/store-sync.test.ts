@@ -62,4 +62,12 @@ describe('Store sync helpers', () => {
     expect(s.listGoals()).toHaveLength(0);
     s.close();
   });
+  it('goal without a target date round-trips (deadline is optional)', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertGoal({ id: 'g2', name: 'Emergency fund', targetAmount: 30000, currentAmount: 0, shareable: false });
+    const got = s.listGoals().find(g => g.id === 'g2')!;
+    expect(got.targetAmount).toBe(30000);
+    expect(got.targetDate).toBeUndefined();
+    s.close();
+  });
 });

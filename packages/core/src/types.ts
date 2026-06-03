@@ -41,7 +41,7 @@ export interface Goal {
   id: string;
   name: string;               // user-entered
   targetAmount: number;
-  targetDate: string;         // ISO-8601
+  targetDate?: string;        // ISO-8601; optional — a goal need not have a deadline
   currentAmount: number;
   shareable: boolean;
 }

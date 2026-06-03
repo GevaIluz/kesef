@@ -121,14 +121,20 @@ export class Store {
     this.db.prepare(`INSERT INTO goals (id, name, target_amount, target_date, current_amount, shareable)
       VALUES (@id, @name, @targetAmount, @targetDate, @currentAmount, @shareable)
       ON CONFLICT(id) DO UPDATE SET name=@name, target_amount=@targetAmount, target_date=@targetDate, current_amount=@currentAmount, shareable=@shareable`)
-      .run({ id: g.id, name: g.name, targetAmount: g.targetAmount, targetDate: g.targetDate, currentAmount: g.currentAmount, shareable: g.shareable ? 1 : 0 });
+      .run({ id: g.id, name: g.name, targetAmount: g.targetAmount, targetDate: g.targetDate ?? '', currentAmount: g.currentAmount, shareable: g.shareable ? 1 : 0 });
   }
 
   listGoals(): Goal[] {
-    return (this.db.prepare('SELECT * FROM goals ORDER BY target_date').all() as Record<string, unknown>[]).map(r => ({
-      id: r['id'] as string, name: r['name'] as string, targetAmount: r['target_amount'] as number,
-      targetDate: r['target_date'] as string, currentAmount: r['current_amount'] as number, shareable: !!(r['shareable'] as number),
-    }));
+    // Order dated goals by their deadline; undated goals sort last (empty string → after dates here we coalesce).
+    return (this.db.prepare("SELECT * FROM goals ORDER BY CASE WHEN target_date = '' THEN 1 ELSE 0 END, target_date").all() as Record<string, unknown>[]).map(r => {
+      const g: Goal = {
+        id: r['id'] as string, name: r['name'] as string, targetAmount: r['target_amount'] as number,
+        currentAmount: r['current_amount'] as number, shareable: !!(r['shareable'] as number),
+      };
+      const td = r['target_date'] as string;
+      if (td) g.targetDate = td; // '' (no deadline) → leave undefined
+      return g;
+    });
   }
 
   deleteGoal(id: string): void { this.db.prepare('DELETE FROM goals WHERE id = ?').run(id); }

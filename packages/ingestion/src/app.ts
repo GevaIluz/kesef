@@ -57,15 +57,18 @@ createServer(async (req, res) => {
     }
     if (path === '/api/goals' && method === 'POST') {
       const b = await readJson(req);
-      if (typeof b['name'] !== 'string' || typeof b['targetAmount'] !== 'number' || typeof b['targetDate'] !== 'string') {
-        return sendJson(res, 400, { error: 'name + targetAmount + targetDate required' });
+      // targetDate is OPTIONAL — a goal need not have a deadline.
+      const name = typeof b['name'] === 'string' ? b['name'].trim() : '';
+      if (!name || typeof b['targetAmount'] !== 'number' || !(b['targetAmount'] > 0)) {
+        return sendJson(res, 400, { error: 'name + positive targetAmount required' });
       }
       const goal: Goal = {
         id: typeof b['id'] === 'string' && b['id'] ? b['id'] : randomUUID(),
-        name: b['name'], targetAmount: b['targetAmount'], targetDate: b['targetDate'],
+        name, targetAmount: b['targetAmount'],
         currentAmount: typeof b['currentAmount'] === 'number' ? b['currentAmount'] : 0,
         shareable: !!b['shareable'],
       };
+      if (typeof b['targetDate'] === 'string' && b['targetDate']) goal.targetDate = b['targetDate'];
       await withStore(s => s.upsertGoal(goal));
       return sendJson(res, 200, { ok: true, goal });
     }
