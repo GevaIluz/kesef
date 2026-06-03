@@ -171,7 +171,8 @@ createServer(async (req, res) => {
       ));
       const json = JSON.stringify(model).replace(/</g, '\\u003c'); // can't break out of <script>
       const html = readFileSync(join(webDir, 'dashboard.html'), 'utf8').replace('/*__KESEF_DATA__*/ null', () => json);
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      // never cache the dashboard — a plain refresh should always show the latest build + data
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store, must-revalidate' });
       res.end(html);
       return;
     }
