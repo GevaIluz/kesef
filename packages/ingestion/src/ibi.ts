@@ -145,11 +145,19 @@ async function captureClick(
       }
       return parts.join(' > ');
     };
+    // Only treat a click as "the total" if its text is a money amount. Crucially we NEVER
+    // preventDefault/stopPropagation — so login controls (e.g. the "SMS" option) keep working.
+    const moneyValue = (text: string): number | null => {
+      if (!text || text.indexOf('%') >= 0) return null;
+      if (!/[₪]|\d{1,3}(,\d{3})+|\d+\.\d{2}/.test(text)) return null; // must look like currency
+      const n = Number(text.replace(/[^\d.\-]/g, ''));
+      return Number.isFinite(n) && Math.abs(n) >= 1 ? n : null;
+    };
     const onClick = (e: Event) => {
       const el = e.target as Element | null;
-      if (!el || (el as HTMLElement).id === '__kesef_banner') return; // ignore clicks on our banner
+      if (!el || (el as HTMLElement).id === '__kesef_banner') return;
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      e.preventDefault(); e.stopPropagation();
+      if (moneyValue(text) === null) return; // not a number (login button, "SMS", a label) → leave it alone
       w.__kesefCaptured = { text, selector: selectorFor(el) };
       const b = document.getElementById('__kesef_banner'); if (b) b.remove();
     };
@@ -158,7 +166,7 @@ async function captureClick(
       if (!document.body || document.getElementById('__kesef_banner')) return;
       const banner = document.createElement('div');
       banner.id = '__kesef_banner';
-      banner.textContent = '👆 kesef — when your portfolio total is on screen, click it';
+      banner.textContent = '👆 kesef — after you log in, click your portfolio total (the ₪ number)';
       banner.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0C7A66;color:#fff;font:600 15px system-ui,sans-serif;padding:11px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)');
       document.body.appendChild(banner);
     };
