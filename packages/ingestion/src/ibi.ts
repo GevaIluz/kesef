@@ -58,6 +58,7 @@ export interface IbiReadResult {
   selector: string | null;
   rawText: string | null;
   mode: 'auto' | 'taught' | 'none';
+  error?: string;
 }
 
 /** Open IBI; read the portfolio total automatically (saved selector) or by letting the user click it. */
@@ -65,10 +66,14 @@ export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
   const browser = await puppeteer.launch({
     headless: deps.headless ?? false,
     defaultViewport: null,
-    args: ['--start-maximized'],
+    // --disable-dev-shm-usage avoids the renderer "tab crash" from /dev/shm exhaustion under memory
+    // pressure; a modest window keeps memory down vs. --start-maximized.
+    args: ['--disable-dev-shm-usage', '--window-size=1280,1000'],
   });
   try {
     const page = (await browser.pages())[0] ?? await browser.newPage();
+    let pageCrashed = false;
+    page.on('error', () => { pageCrashed = true; }); // Chromium emitted "Page crashed!"
     // esbuild/tsx wraps named functions with a __name() helper; that helper doesn't exist in the
     // browser, so injected page functions throw "__name is not defined". Shim it on every document.
     await page.evaluateOnNewDocument(() => { (globalThis as Record<string, unknown>)['__name'] ||= ((f: unknown) => f); });
@@ -89,10 +94,13 @@ export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
     }
 
     // 2) Teach: capture the element the user clicks.
-    const captured = await captureClick(page, deps.promptClick, deps.clickTimeoutMs ?? 180_000);
+    const captured = await captureClick(page, deps.promptClick, deps.clickTimeoutMs ?? 180_000, () => pageCrashed);
     if (!captured) {
-      if (deps.failureScreenshotPath) await page.screenshot({ path: deps.failureScreenshotPath as `${string}.png` }).catch(() => {});
-      return { value: null, selector: null, rawText: null, mode: 'none' };
+      if (deps.failureScreenshotPath && !pageCrashed) await page.screenshot({ path: deps.failureScreenshotPath as `${string}.png` }).catch(() => {});
+      return {
+        value: null, selector: null, rawText: null, mode: 'none',
+        error: pageCrashed ? 'the IBI tab crashed (likely low memory — close some browser tabs/windows and retry)' : undefined,
+      };
     }
     return { value: parseShekel(captured.text), selector: captured.selector, rawText: captured.text, mode: 'taught' };
   } finally {
@@ -105,6 +113,7 @@ async function captureClick(
   page: Page,
   promptClick: () => void,
   timeoutMs: number,
+  isCrashed?: () => boolean,
 ): Promise<{ text: string; selector: string } | null> {
   // Re-installable on EVERY document: the user logs in first, which navigates SPARK (Angular) to a
   // new page — so we install via evaluateOnNewDocument (future docs) AND on the current doc. Each
@@ -161,6 +170,7 @@ async function captureClick(
   promptClick();
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (isCrashed && isCrashed()) return null; // tab crashed — stop waiting, fail fast
     const got = await page
       .evaluate(() => (window as unknown as { __kesefCaptured: { text: string; selector: string } | null }).__kesefCaptured)
       .catch(() => null);

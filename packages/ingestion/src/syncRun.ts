@@ -89,7 +89,7 @@ export async function runSync(opts: SyncOptions): Promise<void> {
         store.upsertBalanceSnapshot({ id: `${spec.id}@${now}`, accountId: spec.id, date: now, balance: r.value });
         onEvent({ type: 'source-done', source: 'IBI', value: r.value });
       } else {
-        onEvent({ type: 'source-error', source: 'IBI', message: 'no value captured — open your portfolio screen and click the total' });
+        onEvent({ type: 'source-error', source: 'IBI', message: r.error || 'no value captured — open your portfolio screen and click the total' });
       }
     } catch (e) {
       onEvent({ type: 'source-error', source: 'IBI', message: e instanceof Error ? e.message : 'error' });
