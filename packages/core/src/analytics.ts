@@ -16,7 +16,7 @@ export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
-  accounts: { id: string; name: string; institution: string; type: string; balance: number | null }[];
+  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null }[];
   recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
@@ -26,13 +26,13 @@ export interface DashboardModel {
 const RECENT_LIMIT = 12;
 const NON_SPEND = new Set<string>(['transfer', 'savings', 'investment']);
 
-function latestBalanceByAccount(snaps: BalanceSnapshot[]): Map<string, number> {
-  const latestDate = new Map<string, string>(); const bal = new Map<string, number>();
+function latestBalanceByAccount(snaps: BalanceSnapshot[]): { bal: Map<string, number>; asOf: Map<string, string> } {
+  const asOf = new Map<string, string>(); const bal = new Map<string, number>();
   for (const s of snaps) {
-    const prev = latestDate.get(s.accountId);
-    if (!prev || s.date > prev) { latestDate.set(s.accountId, s.date); bal.set(s.accountId, s.balance); }
+    const prev = asOf.get(s.accountId);
+    if (!prev || s.date > prev) { asOf.set(s.accountId, s.date); bal.set(s.accountId, s.balance); }
   }
-  return bal;
+  return { bal, asOf };
 }
 
 function summarize(txns: Transaction[]): PeriodSummary {
@@ -77,7 +77,7 @@ export function buildDashboard(
     year: summarize(inRange(shiftDays(now, -365))),
   };
 
-  const latest = latestBalanceByAccount(snapshots);
+  const { bal: latest, asOf } = latestBalanceByAccount(snapshots);
   const netWorth = [...latest.values()].reduce((a, b) => a + b, 0);
 
   const byDate = new Map<string, number>();
@@ -102,7 +102,7 @@ export function buildDashboard(
   return {
     generatedAt: now, netWorth,
     spending,
-    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null })),
+    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
   };

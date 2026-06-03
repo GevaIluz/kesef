@@ -72,6 +72,17 @@ describe('Store sync helpers', () => {
     expect(s.listGoals()).toHaveLength(0);
     s.close();
   });
+  it('deleteAccount removes the account and its snapshots/transactions', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount(a);
+    s.upsertTransaction(t);
+    s.upsertBalanceSnapshot({ id: 's1', accountId: 'a1', date: '2026-05-01', balance: 1000 });
+    s.deleteAccount('a1');
+    expect(s.countAccounts()).toBe(0);
+    expect(s.countTransactions()).toBe(0);
+    expect(s.allBalanceSnapshots()).toHaveLength(0);
+    s.close();
+  });
   it('goal without a target date round-trips (deadline is optional)', () => {
     const s = Store.open({ path: newDb(), key: 'pw' });
     s.upsertGoal({ id: 'g2', name: 'Emergency fund', targetAmount: 30000, currentAmount: 0, shareable: false });

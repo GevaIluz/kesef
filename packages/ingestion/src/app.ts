@@ -5,6 +5,10 @@ import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } from '@kesef/core';
 import { dbPath } from './paths.js';
+import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
+
+const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
+const todayISO = () => new Date().toISOString().slice(0, 10);
 
 const vault = new KeyringVault('kesef');
 const webDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'web');
@@ -86,6 +90,29 @@ createServer(async (req, res) => {
       const id = url.searchParams.get('id');
       if (!id) return sendJson(res, 400, { error: 'id required' });
       await withStore(s => s.deleteGoal(id));
+      return sendJson(res, 200, { ok: true });
+    }
+    // Add/update a manual balance (pension, gemel, keren, IBI, savings, other) → counts toward net worth.
+    if (path === '/api/balance' && method === 'POST') {
+      const b = await readJson(req);
+      const kind = b['kind'] as BalanceKind;
+      const value = typeof b['value'] === 'number' ? b['value'] : Number(b['value']);
+      if (!BALANCE_KINDS.has(kind) || !Number.isFinite(value)) {
+        return sendJson(res, 400, { error: 'valid kind + numeric value required' });
+      }
+      const name = typeof b['name'] === 'string' ? b['name'] : undefined;
+      const date = (typeof b['date'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b['date'])) ? b['date'] : todayISO();
+      const spec = manualAccountFor(kind, name);
+      await withStore(s => {
+        s.upsertAccount({ id: spec.id, institution: spec.institution, type: spec.type, displayName: spec.displayName, currency: 'ILS', shareable: false });
+        s.upsertBalanceSnapshot({ id: `${spec.id}@${date}`, accountId: spec.id, date, balance: value });
+      });
+      return sendJson(res, 200, { ok: true, account: spec, date, value });
+    }
+    if (path === '/api/balance' && method === 'DELETE') {
+      const id = url.searchParams.get('id');
+      if (!id) return sendJson(res, 400, { error: 'id required' });
+      await withStore(s => s.deleteAccount(id));
       return sendJson(res, 200, { ok: true });
     }
 

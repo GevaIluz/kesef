@@ -197,6 +197,31 @@
   .goal-form .gf-cancel:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
   .goal-form .gf-err{font-size:12px;color:var(--neg);margin-top:8px;display:none}
 
+  /* ── ACCOUNTS & BALANCES (all your money) ──────────────────────────────── */
+  .accounts-card .acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+  .composition{margin-bottom:14px}
+  .comp-bar{display:flex;height:14px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--ink) 8%,transparent);margin-bottom:12px}
+  .comp-seg{height:100%;transition:width .7s cubic-bezier(.2,.85,.25,1)}
+  .comp-legend{display:flex;flex-wrap:wrap;gap:8px 18px}
+  .comp-item{display:flex;align-items:center;gap:8px;font-size:13px}
+  .comp-item .sw{width:11px;height:11px;border-radius:4px;flex:0 0 auto}
+  .comp-item .cv{font-family:var(--round);color:var(--ink);font-variant-numeric:tabular-nums}
+  .comp-item .ck{color:var(--ink-soft)}
+  .comp-liabilities{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
+  .acc-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .acc-row:first-of-type{border-top:0}
+  .acc-row .acc-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:15px;flex:0 0 auto;background:color-mix(in srgb,var(--teal) 14%,transparent)}
+  .acc-row .acc-main{flex:1;min-width:0}
+  .acc-row .acc-name{font-family:var(--round);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acc-row .acc-meta{font-size:11.5px;color:var(--ink-soft)}
+  .acc-row .acc-bal{font-family:var(--round);font-variant-numeric:tabular-nums;white-space:nowrap;margin-inline-start:auto}
+  .acc-row .acc-bal.neg{color:var(--neg)}
+  .acc-row .acc-del{background:none;border:0;cursor:pointer;font-size:15px;color:var(--ink-soft);opacity:.5;padding:2px 6px;border-radius:8px;transition:.18s;flex:0 0 auto}
+  .acc-row .acc-del:hover{opacity:1;background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg)}
+  .acc-stale{color:var(--gold)}
+  .bf-select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;transition:.2s}
+  .bf-select:focus{border-color:var(--teal)}
+
   /* ── RECENT TRANSACTIONS ─────────────────────────────────────────────── */
   .recent{margin-top:18px;background:var(--card);border-radius:var(--r);padding:22px 24px;box-shadow:var(--shadow-sm);opacity:0;transform:translateY(14px);animation:rise .6s .3s forwards}
   .recent .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -386,6 +411,44 @@
   </section>
 
   <div class="cards">
+    <!-- Your money: every account (incl. pension / gemel / keren / IBI) + composition -->
+    <section class="card accounts-card" style="grid-column:1/-1;animation-delay:.12s">
+      <div class="acc-head">
+        <div>
+          <h3 data-t="accounts">Your money</h3>
+          <p class="sub" data-t="accounts_sub" style="margin-bottom:0">everything you own — bank, cards, investments, pension</p>
+        </div>
+        <button class="add-goal-btn" id="add-balance-btn" style="margin-top:0">＋ <span data-t="add_balance">Add / update balance</span></button>
+      </div>
+      <div class="composition" id="composition"></div>
+      <div id="accounts-list"></div>
+      <div class="goal-form" id="balance-form">
+        <p class="gf-title" data-t="new_balance">Add or update a balance</p>
+        <label data-t="balance_kind_lbl">What is it?</label>
+        <select id="bf-kind" class="bf-select">
+          <option value="pension"  data-t="kind_pension">Pension (פנסיה)</option>
+          <option value="gemel"    data-t="kind_gemel">Provident fund (קופת גמל)</option>
+          <option value="keren"    data-t="kind_keren">Study fund (קרן השתלמות)</option>
+          <option value="ibi"      data-t="kind_ibi">IBI portfolio</option>
+          <option value="savings"  data-t="kind_savings">Savings</option>
+          <option value="other"    data-t="kind_other">Other…</option>
+        </select>
+        <div id="bf-name-row" style="display:none">
+          <label data-t="balance_name_lbl">Name</label>
+          <input type="text" id="bf-name" data-t-placeholder="balance_name_ph" placeholder="e.g. Leumi">
+        </div>
+        <label data-t="balance_value_lbl">Current value (₪)</label>
+        <input type="number" id="bf-value" min="0" step="1" placeholder="100000">
+        <label data-t="balance_date_lbl">As of date</label>
+        <input type="date" id="bf-date">
+        <div class="gf-row">
+          <button class="gf-ok" id="bf-submit" data-t="balance_save">Save</button>
+          <button class="gf-cancel" id="bf-cancel" data-t="goal_cancel">Cancel</button>
+        </div>
+        <div class="gf-err" id="bf-err"></div>
+      </div>
+    </section>
+
     <section class="card" style="animation-delay:.2s">
       <h3 data-t="spend">Where it goes</h3>
       <p class="sub" id="spend-sub">this month</p>
@@ -576,6 +639,35 @@ const T = {
   goal_err_save:  { en: 'Failed to save goal — try again.',he: 'שגיאה בשמירת היעד.' },
   by_date:        { en: 'by',                 he: 'עד' },
   goal_done:      { en: 'done!',              he: 'הושג!' },
+  /* accounts & balances */
+  accounts:       { en: 'Your money',         he: 'הכסף שלך' },
+  accounts_sub:   { en: 'everything you own — bank, cards, investments, pension', he: 'כל מה שיש לך — בנק, אשראי, השקעות, פנסיה' },
+  add_balance:    { en: 'Add / update balance', he: 'הוסף / עדכן יתרה' },
+  new_balance:    { en: 'Add or update a balance', he: 'הוספה או עדכון יתרה' },
+  balance_kind_lbl:{ en: 'What is it?',        he: 'מה זה?' },
+  kind_pension:   { en: 'Pension (פנסיה)',     he: 'פנסיה' },
+  kind_gemel:     { en: 'Provident fund (קופת גמל)', he: 'קופת גמל' },
+  kind_keren:     { en: 'Study fund (קרן השתלמות)',  he: 'קרן השתלמות' },
+  kind_ibi:       { en: 'IBI portfolio',       he: 'תיק IBI' },
+  kind_savings:   { en: 'Savings',             he: 'חיסכון' },
+  kind_other:     { en: 'Other…',              he: 'אחר…' },
+  balance_name_lbl:{ en: 'Name',               he: 'שם' },
+  balance_name_ph:{ en: 'e.g. Leumi',          he: 'למשל: לאומי' },
+  balance_value_lbl:{ en: 'Current value (₪)', he: 'ערך נוכחי (₪)' },
+  balance_date_lbl:{ en: 'As of date',         he: 'נכון לתאריך' },
+  balance_save:   { en: 'Save',                he: 'שמור' },
+  balance_err:    { en: 'Enter a value.',      he: 'נא להזין ערך.' },
+  balance_save_err:{ en: 'Failed to save — try again.', he: 'שמירה נכשלה — נסו שוב.' },
+  comp_liquid:    { en: 'Liquid',              he: 'נזיל' },
+  comp_investments:{ en: 'Investments',        he: 'השקעות' },
+  comp_retirement:{ en: 'Retirement',          he: 'פרישה' },
+  comp_liabilities:{ en: 'owed',               he: 'חוב' },
+  no_accounts:    { en: 'No accounts yet — add your balances below.', he: 'אין חשבונות עדיין — הוסיפו יתרות למטה.' },
+  as_of:          { en: 'as of',               he: 'נכון ל־' },
+  acct_type_bank: { en: 'Bank',                he: 'בנק' },
+  acct_type_credit_card: { en: 'Credit card',  he: 'כרטיס אשראי' },
+  acct_type_investment:  { en: 'Investment',   he: 'השקעות' },
+  acct_type_pension:     { en: 'Retirement',   he: 'פרישה' },
   cat: {
     housing:       { en: 'Housing',       he: 'דיור' },
     groceries:     { en: 'Groceries',     he: 'מזון' },
@@ -812,6 +904,128 @@ function clearGoalForm() {
   });
   const errEl = $('#gf-err');
   if (errEl) errEl.style.display = 'none';
+}
+
+// ─── accounts & balances (all your money) ───────────────────────────────────
+const ACCT_TYPE_ICON = { bank:'🏦', credit_card:'💳', investment:'📈', pension:'🌴' };
+const COMP_BUCKETS = [
+  { key: 'liquid',      types: ['bank'],       cssVar: '--cat-savings' },
+  { key: 'investments', types: ['investment'], cssVar: '--cat-investment' },
+  { key: 'retirement',  types: ['pension'],    cssVar: '--cat-transfer' },
+];
+const acctTypeLabel = type => t('acct_type_' + type) || type;
+const isManualAcct = a => a.institution === 'manual' || a.institution === 'ibi';
+
+function renderAccounts(M) {
+  const accounts = M.accounts || [];
+  const listEl = $('#accounts-list');
+  const compEl = $('#composition');
+  if (!listEl || !compEl) return;
+
+  // composition: assets by bucket (positive balances); liabilities = negative balances, shown apart
+  let assetsTotal = 0, liabilities = 0;
+  const bucketTotals = {};
+  for (const a of accounts) {
+    const bal = (typeof a.balance === 'number') ? a.balance : 0;
+    if (bal < 0) { liabilities += -bal; continue; }
+    if (bal === 0) continue;
+    const bucket = COMP_BUCKETS.find(b => b.types.includes(a.type));
+    const key = bucket ? bucket.key : 'liquid';
+    bucketTotals[key] = (bucketTotals[key] || 0) + bal;
+    assetsTotal += bal;
+  }
+  if (assetsTotal > 0) {
+    const segs = COMP_BUCKETS.filter(b => (bucketTotals[b.key] || 0) > 0).map(b => ({ ...b, color: catColorVar(b.cssVar) }));
+    compEl.innerHTML =
+      `<div class="comp-bar">${segs.map(b => `<div class="comp-seg" style="width:${(bucketTotals[b.key]/assetsTotal*100).toFixed(1)}%;background:${b.color}" title="${t('comp_'+b.key)}"></div>`).join('')}</div>` +
+      `<div class="comp-legend">${segs.map(b => `<span class="comp-item"><span class="sw" style="background:${b.color}"></span><span class="ck">${t('comp_'+b.key)}</span> <span class="cv">₪${NF(bucketTotals[b.key])}</span></span>`).join('')}</div>` +
+      (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
+    compEl.style.display = '';
+  } else {
+    compEl.style.display = 'none';
+  }
+
+  if (accounts.length === 0) {
+    listEl.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:10px 0">${t('no_accounts')}</div>`;
+    return;
+  }
+  const now = M.generatedAt ? new Date(M.generatedAt) : new Date();
+  listEl.innerHTML = accounts.map(a => {
+    const bal = (typeof a.balance === 'number') ? a.balance : null;
+    const balStr = bal === null ? '—' : (bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal));
+    const icon = ACCT_TYPE_ICON[a.type] || '🏦';
+    let asof = '';
+    if (a.asOf) {
+      const days = Math.floor((now - new Date(a.asOf)) / 86400000);
+      const stale = isManualAcct(a) && days > 45;
+      asof = ` · ${t('as_of')} ${a.asOf}${stale ? ' <span class="acct-stale" title="stale">⚠︎</span>' : ''}`;
+    }
+    return `<div class="acc-row">
+      <span class="acc-ic">${icon}</span>
+      <div class="acc-main">
+        <div class="acc-name">${esc(a.name || a.id)}</div>
+        <div class="acc-meta">${acctTypeLabel(a.type)}${asof}</div>
+      </div>
+      <span class="acc-bal ${bal !== null && bal < 0 ? 'neg' : ''}">${balStr}</span>
+      ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
+    </div>`;
+  }).join('');
+
+  $$('#accounts-list .acc-del').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.accId; if (!id) return;
+      btn.disabled = true; btn.textContent = '…';
+      try {
+        const res = await fetch(`/api/balance?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) location.reload(); else { btn.disabled = false; btn.textContent = '×'; }
+      } catch (e) { btn.disabled = false; btn.textContent = '×'; }
+    };
+  });
+}
+
+// resolve a CSS custom property to a concrete color (composition segments)
+function catColorVar(v) {
+  return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#9E8A70';
+}
+
+function setupBalanceForm(M) {
+  const addBtn = $('#add-balance-btn');
+  const form   = $('#balance-form');
+  const kindEl = $('#bf-kind');
+  const nameRow= $('#bf-name-row');
+  const submit = $('#bf-submit');
+  const cancel = $('#bf-cancel');
+  const errEl  = $('#bf-err');
+  const dateEl = $('#bf-date');
+  if (!addBtn || !form) return;
+
+  const showErr = m => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+  const syncNameRow = () => { if (nameRow) nameRow.style.display = (kindEl && kindEl.value === 'other') ? 'block' : 'none'; };
+
+  addBtn.onclick = () => {
+    form.classList.toggle('open');
+    if (dateEl && !dateEl.value && M.generatedAt) dateEl.value = M.generatedAt; // default "as of" = today
+    syncNameRow();
+  };
+  if (kindEl) kindEl.onchange = syncNameRow;
+  if (cancel) cancel.onclick = () => { form.classList.remove('open'); if (errEl) errEl.style.display = 'none'; };
+
+  if (submit) submit.onclick = async () => {
+    const kind = kindEl ? kindEl.value : 'other';
+    const name = ($('#bf-name')?.value || '').trim();
+    const value = parseFloat($('#bf-value')?.value || '');
+    const date = ($('#bf-date')?.value || '').trim() || (M.generatedAt || '');
+    if (!Number.isFinite(value)) { showErr(t('balance_err')); return; }
+    submit.disabled = true; submit.textContent = t('saving_cat'); if (errEl) errEl.style.display = 'none';
+    try {
+      const res = await fetch('/api/balance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind, name, value, date }),
+      });
+      if (res.ok) location.reload();
+      else { submit.disabled = false; submit.textContent = t('balance_save'); showErr(t('balance_save_err')); }
+    } catch (e) { submit.disabled = false; submit.textContent = t('balance_save'); showErr(t('balance_save_err')); }
+  };
 }
 
 // ─── SVG donut helpers ────────────────────────────────────────────────────────
@@ -1537,6 +1751,8 @@ function render() {
   spark(balances);
   renderSparkLabels(M.netWorthSeries);
   renderPeriodSpending(M);
+  renderAccounts(M);
+  setupBalanceForm(M);
   renderGoals(M.goals, M.generatedAt);
   renderTxs(M.recent);
   setupGoalForm(M.generatedAt);

@@ -159,6 +159,16 @@ export class Store {
 
   deleteGoal(id: string): void { this.db.prepare('DELETE FROM goals WHERE id = ?').run(id); }
 
+  /** Remove an account and everything that references it (snapshots, transactions) in one transaction. */
+  deleteAccount(id: string): void {
+    const run = this.db.transaction((accountId: string) => {
+      this.db.prepare('DELETE FROM balance_snapshots WHERE account_id = ?').run(accountId);
+      this.db.prepare('DELETE FROM transactions WHERE account_id = ?').run(accountId);
+      this.db.prepare('DELETE FROM accounts WHERE id = ?').run(accountId);
+    });
+    run(id);
+  }
+
   close(): void { this.db.close(); }
 }
 
