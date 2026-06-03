@@ -1,5 +1,7 @@
+import { join } from 'node:path';
 import { CompanyTypes } from 'israeli-bank-scrapers';
 import type { Store } from '@kesef/core';
+import { kesefDir } from './paths.js';
 import { scrapeInteractive } from './interactive.js';
 import { assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
@@ -46,7 +48,7 @@ export async function runSync(opts: SyncOptions): Promise<void> {
     try {
       const res = await scrapeInteractive(
         { companyId: t.companyId, institution: t.institution, accountType: t.accountType },
-        { now },
+        { now, verbose: true, failureScreenshotPath: join(kesefDir(), `last-failure-${t.institution}.png`) },
       );
       if (!res.ok) {
         onEvent({ type: 'source-error', source: t.label, message: `${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim() || 'login failed' });
