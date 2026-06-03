@@ -48,6 +48,7 @@ export interface IbiReadDeps {
   savedSelector?: string | undefined;
   navTimeoutMs?: number;
   clickTimeoutMs?: number;
+  autoTimeoutMs?: number;   // how long to poll for the saved selector (waits out login)
   headless?: boolean;
 }
 
@@ -74,11 +75,16 @@ export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
 
     await deps.waitForLogin(); // human logs in + opens the portfolio screen
 
-    // 1) Auto: try a previously-taught selector.
+    // 1) Auto: poll a previously-taught selector (waits out login / SPA render).
     if (deps.savedSelector) {
-      const txt = await page.$eval(deps.savedSelector, el => (el.textContent || '').trim()).catch(() => null);
-      const v = txt ? parseShekel(txt) : null;
-      if (v !== null) return { value: v, selector: deps.savedSelector, rawText: txt, mode: 'auto' };
+      const deadline = Date.now() + (deps.autoTimeoutMs ?? 8_000);
+      while (Date.now() < deadline) {
+        const txt = await page.$eval(deps.savedSelector, el => (el.textContent || '').trim()).catch(() => null);
+        const v = txt ? parseShekel(txt) : null;
+        if (v !== null) return { value: v, selector: deps.savedSelector, rawText: txt, mode: 'auto' };
+        await new Promise(r => { setTimeout(r, 500); });
+      }
+      // selector never resolved (page changed / still logging in) → fall through to teach
     }
 
     // 2) Teach: capture the element the user clicks.
@@ -100,6 +106,12 @@ async function captureClick(
   await page.evaluate(() => {
     const w = window as unknown as { __kesefCaptured: { text: string; selector: string } | null };
     w.__kesefCaptured = null;
+    // Banner so the user knows to click their total — right in the IBI window (no terminal).
+    const banner = document.createElement('div');
+    banner.id = '__kesef_banner';
+    banner.textContent = '👆 kesef — click your portfolio total (the ₪ number)';
+    banner.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0C7A66;color:#fff;font:600 15px system-ui,sans-serif;padding:11px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)');
+    if (document.body) document.body.appendChild(banner);
     const selectorFor = (el: Element): string => {
       const parts: string[] = [];
       let node: Element | null = el;
@@ -123,10 +135,11 @@ async function captureClick(
     };
     const handler = (e: Event) => {
       const el = e.target as Element | null;
-      if (!el) return;
+      if (!el || (el as HTMLElement).id === '__kesef_banner') return; // ignore clicks on our banner
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
       document.removeEventListener('click', handler, true);
       e.preventDefault(); e.stopPropagation();
+      banner.remove();
       w.__kesefCaptured = { text, selector: selectorFor(el) };
     };
     document.addEventListener('click', handler, true);

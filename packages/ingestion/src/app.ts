@@ -2,10 +2,11 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } from '@kesef/core';
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
+import { runSync, type SyncEvent } from './syncRun.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -24,6 +25,15 @@ async function dbKey(): Promise<string> {
   if (!k) throw new Error('No data yet — run `npm run sync` first.');
   return k;
 }
+
+/** Local DB encryption key (not a bank credential); created on first sync. */
+async function getOrCreateDbKey(): Promise<string> {
+  let k = await vault.get('db-key');
+  if (!k) { k = randomBytes(32).toString('hex'); await vault.set('db-key', k); }
+  return k;
+}
+
+let syncing = false; // only one sync run at a time
 
 /** Open the encrypted store, run fn, always close. */
 async function withStore<T>(fn: (s: Store) => T): Promise<T> {
@@ -114,6 +124,42 @@ createServer(async (req, res) => {
       if (!id) return sendJson(res, 400, { error: 'id required' });
       await withStore(s => s.deleteAccount(id));
       return sendJson(res, 200, { ok: true });
+    }
+
+    // --- sync (Server-Sent Events): runs all sources with live progress, no terminal ---
+    if (path === '/api/sync' && method === 'GET') {
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', connection: 'keep-alive', 'x-accel-buffering': 'no' });
+      const send = (e: SyncEvent | { type: string; [k: string]: unknown }) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+
+      // Dry-run: scripted events to verify the UI without opening any browsers.
+      if (url.searchParams.get('dry') === '1') {
+        send({ type: 'start', sources: ['Beinleumi', 'Cal', 'IBI'] });
+        send({ type: 'source-start', source: 'Beinleumi', hint: '(dry run)' });
+        send({ type: 'source-done', source: 'Beinleumi', accounts: 1, transactions: 11 });
+        send({ type: 'source-start', source: 'Cal' });
+        send({ type: 'source-done', source: 'Cal', accounts: 1, transactions: 208 });
+        send({ type: 'source-start', source: 'IBI' });
+        send({ type: 'source-done', source: 'IBI', value: 312450 });
+        send({ type: 'complete', transactions: 219, accounts: 5 });
+        res.end();
+        return;
+      }
+
+      if (syncing) { send({ type: 'fatal', message: 'a sync is already running' }); res.end(); return; }
+      syncing = true;
+      let store: Store | undefined;
+      try {
+        store = Store.open({ path: dbPath(), key: await getOrCreateDbKey() });
+        const now = new Date().toISOString().slice(0, 10);
+        await runSync({ store, now, onEvent: send });
+      } catch (e) {
+        send({ type: 'fatal', message: e instanceof Error ? e.message : 'sync failed' });
+      } finally {
+        store?.close();
+        syncing = false;
+        res.end();
+      }
+      return;
     }
 
     // --- dashboard ---

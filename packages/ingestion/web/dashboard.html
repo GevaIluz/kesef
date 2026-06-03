@@ -98,6 +98,25 @@
   .icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-size:17px;box-shadow:var(--shadow-sm);transition:.25s}
   .icon-btn:hover{transform:translateY(-2px) rotate(-8deg);box-shadow:var(--shadow-lift)}
 
+  /* SYNC button + progress overlay */
+  .sync-btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--round);font-size:13.5px;color:#fff;
+    background:linear-gradient(135deg,var(--teal),var(--teal-ink));border:0;border-radius:999px;padding:9px 18px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.2s}
+  .sync-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-lift)}
+  .sync-btn:disabled{opacity:.65;cursor:default;transform:none}
+  .sync-btn .sync-ic{display:inline-block}
+  .sync-btn .sync-ic.spin{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sync-overlay{position:fixed;inset:0;z-index:1000;background:rgba(20,15,8,.45);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px}
+  .sync-overlay.hidden{display:none}
+  .sync-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:26px;max-width:460px;width:100%;animation:rise .3s}
+  .sync-card h3{font-family:var(--round);font-size:20px;margin:0 0 4px}
+  .sync-step{display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+  .sync-step:first-of-type{border-top:0}
+  .sync-step .si{width:22px;text-align:center;flex:0 0 auto;font-size:15px}
+  .sync-step .sl{font-family:var(--round)}
+  .sync-step .sd{margin-inline-start:auto;color:var(--ink-soft);font-size:12.5px;text-align:end;max-width:55%}
+  .sync-step.err .sd{color:var(--neg)}
+
   /* HERO */
   .hero{position:relative;background:linear-gradient(135deg,var(--teal),var(--teal-ink) 86%);color:#fff;
     border-radius:34px;padding:clamp(24px,3.4vw,40px);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
@@ -355,6 +374,7 @@
 <div class="wrap">
   <header>
     <div class="brand"><span class="mark">ke<b>$</b>ef</span><span class="tag" data-t="tagline">your money</span></div>
+    <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic">🔄</span> <span data-t="sync">Sync</span></button>
     <div class="seg" role="group" aria-label="view">
       <button data-view-btn="me" aria-pressed="true" data-t="v_me">Me</button>
       <button data-view-btn="partner" aria-pressed="false" data-t="v_partner" data-disabled="true">Partner</button>
@@ -532,6 +552,16 @@
     <div id="transfers-txs"></div>
   </div>
 
+  <!-- Sync progress overlay -->
+  <div id="sync-overlay" class="sync-overlay hidden">
+    <div class="sync-card">
+      <h3 data-t="syncing">Syncing your money</h3>
+      <p class="sub" data-t="sync_hint" style="margin-bottom:16px">A browser opens for each account — just log in there. Nothing is typed here.</p>
+      <div id="sync-steps"></div>
+      <button class="gf-cancel" id="sync-close" style="display:none;margin-top:16px" data-t="close">Close</button>
+    </div>
+  </div>
+
   <footer><span data-t="footer">kesef · local-first · </span><b>kesef</b> · He/En</footer>
 </div>
 
@@ -610,6 +640,9 @@ const T = {
   view_all_btn:       { en: 'View all',                    he: 'הצג הכל' },
   count_transfers:    { en: 'Count transfers as spending', he: 'כלול העברות בהוצאות' },
   close:              { en: 'Close',                       he: 'סגור' },
+  sync:               { en: 'Sync',                        he: 'סנכרון' },
+  syncing:            { en: 'Syncing your money',          he: 'מסנכרן את הכסף שלך' },
+  sync_hint:          { en: 'A browser opens for each account — just log in there. Nothing is typed here.', he: 'נפתח דפדפן לכל חשבון — פשוט התחברו שם. לא צריך להקליד כאן כלום.' },
   by_raw_cat:         { en: 'By sub-category',             he: 'לפי תת-קטגוריה' },
   by_merchant:        { en: 'By merchant',                 he: 'לפי בית עסק' },
   transactions:       { en: 'Transactions',                he: 'עסקאות' },
@@ -1838,6 +1871,57 @@ $$('[data-view-btn]').forEach(b => {
     b.onclick = () => render();
   }
 });
+
+// ─── Sync button (live SSE progress; all sources; no terminal) ──────────────────
+function setupSync() {
+  const btn = $('#sync-btn'), overlay = $('#sync-overlay'), stepsEl = $('#sync-steps'), closeBtn = $('#sync-close');
+  const icon = btn ? btn.querySelector('.sync-ic') : null;
+  if (!btn || !overlay || !stepsEl) return;
+  let es = null;
+  const stepEls = {};
+  function setStep(source, si, detail, isErr) {
+    let el = stepEls[source];
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'sync-step';
+      el.innerHTML = `<span class="si"></span><span class="sl"></span><span class="sd"></span>`;
+      el.querySelector('.sl').textContent = source;
+      stepsEl.appendChild(el);
+      stepEls[source] = el;
+    }
+    el.classList.toggle('err', !!isErr);
+    el.querySelector('.si').textContent = si;
+    el.querySelector('.sd').textContent = detail || '';
+  }
+  function stop(reload) {
+    if (es) { es.close(); es = null; }
+    btn.disabled = false;
+    if (icon) icon.classList.remove('spin');
+    if (reload) setTimeout(() => location.reload(), 1000);
+    else if (closeBtn) closeBtn.style.display = '';
+  }
+  btn.onclick = () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    if (icon) icon.classList.add('spin');
+    overlay.classList.remove('hidden');
+    stepsEl.innerHTML = '';
+    Object.keys(stepEls).forEach(k => delete stepEls[k]);
+    if (closeBtn) closeBtn.style.display = 'none';
+    es = new EventSource('/api/sync');
+    es.onmessage = (m) => {
+      let e; try { e = JSON.parse(m.data); } catch { return; }
+      if (e.type === 'source-start') setStep(e.source, '⏳', e.hint || '…');
+      else if (e.type === 'source-done') setStep(e.source, '✓', e.value != null ? ('₪' + NF(e.value)) : ((e.transactions || 0) + ' ' + t('n_transactions')));
+      else if (e.type === 'source-error') setStep(e.source, '⚠️', e.message, true);
+      else if (e.type === 'complete') stop(true);
+      else if (e.type === 'fatal') { setStep('kesef', '⚠️', e.message, true); stop(false); }
+    };
+    es.onerror = () => { if (!es) return; setStep('kesef', '⚠️', lang === 'en' ? 'connection lost' : 'החיבור נותק', true); stop(false); };
+  };
+  if (closeBtn) closeBtn.onclick = () => overlay.classList.add('hidden');
+}
+setupSync();
 
 // ─── theme toggle ─────────────────────────────────────────────────────────────
 const mq = matchMedia('(prefers-color-scheme: dark)');

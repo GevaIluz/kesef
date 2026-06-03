@@ -1,5 +1,4 @@
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { CompanyTypes } from 'israeli-bank-scrapers';
 import { KeyringVault, Store } from '@kesef/core';
 import { join } from 'node:path';
@@ -9,6 +8,7 @@ import { scrapeInteractive } from './interactive.js';
 import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
 import { manualAccountFor } from './manualAccounts.js';
+import { loadIbiConfig, saveIbiConfig } from './ibiConfig.js';
 
 const vault = new KeyringVault('kesef');
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -119,18 +119,6 @@ async function addBalance(): Promise<void> {
   store.close();
 }
 
-// Remember which element holds your IBI total, per portal URL, so future runs read it automatically.
-const ibiConfigPath = () => join(kesefDir(), 'ibi.json');
-function loadIbiSelector(url: string): string | undefined {
-  try { const j = JSON.parse(readFileSync(ibiConfigPath(), 'utf8')); return typeof j?.[url] === 'string' ? j[url] : undefined; } catch { return undefined; }
-}
-function saveIbiSelector(url: string, selector: string): void {
-  let j: Record<string, string> = {};
-  try { j = JSON.parse(readFileSync(ibiConfigPath(), 'utf8')) || {}; } catch { /* first time */ }
-  j[url] = selector;
-  try { mkdirSync(kesefDir(), { recursive: true }); writeFileSync(ibiConfigPath(), JSON.stringify(j, null, 2)); } catch { /* non-fatal */ }
-}
-
 // Interactive IBI reader: you log in yourself (no creds stored), then CLICK your portfolio total once.
 // kesef captures that number + remembers where it is, so next time it reads it automatically.
 async function syncIbi(): Promise<void> {
@@ -140,7 +128,8 @@ async function syncIbi(): Promise<void> {
     : choice === '4' ? ((await ask('Portal URL: ')).trim() || 'https://mycapital.ibi.co.il')
     : (process.env.KESEF_IBI_URL || 'https://mycapital.ibi.co.il');
 
-  const saved = loadIbiSelector(url);
+  const cfg = loadIbiConfig();
+  const saved = cfg.url === url ? cfg.selector : undefined;
   console.log('\nA browser will open to IBI. Log in yourself — kesef never sees your credentials.');
   console.log('Open the screen that shows your portfolio total.');
   if (saved) console.log('(I’ll try to read your saved total automatically first.)');
@@ -163,7 +152,7 @@ async function syncIbi(): Promise<void> {
     console.log(`\nRead automatically: ₪${total.toLocaleString('en-US')}`);
   } else {
     console.log(`\nCaptured: ₪${total.toLocaleString('en-US')}  (from "${res.rawText}")`);
-    if (res.selector) { saveIbiSelector(url, res.selector); console.log('✓ Saved where it lives — next time it reads automatically, no clicking.'); }
+    if (res.selector) { saveIbiConfig({ url, selector: res.selector }); console.log('✓ Saved where it lives — next time it reads automatically, no clicking.'); }
   }
 
   const spec = manualAccountFor('ibi');
