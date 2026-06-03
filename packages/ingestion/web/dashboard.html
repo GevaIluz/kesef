@@ -106,6 +106,18 @@
   .sync-btn .sync-ic{display:inline-block}
   .sync-btn .sync-ic.spin{animation:spin 1s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  /* split button: Sync + per-source caret menu */
+  .sync-wrap{position:relative;display:inline-flex;align-items:stretch}
+  .sync-wrap .sync-btn{border-start-end-radius:0;border-end-end-radius:0}
+  .sync-caret{font-family:var(--round);font-size:11px;color:#fff;background:linear-gradient(135deg,var(--teal),var(--teal-ink));
+    border:0;border-inline-start:1px solid rgba(255,255,255,.28);border-start-start-radius:0;border-end-start-radius:0;border-start-end-radius:999px;border-end-end-radius:999px;
+    padding:0 11px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.2s}
+  .sync-caret:hover{filter:brightness(1.06)}
+  .sync-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;min-width:180px;background:var(--card);border:1.5px solid var(--line);
+    border-radius:14px;box-shadow:0 14px 40px -10px rgba(0,0,0,.28);padding:6px;display:none;z-index:1100}
+  .sync-menu.open{display:block;animation:rise .16s}
+  .sync-menu-item{font-family:var(--round);font-size:13.5px;color:var(--ink);padding:8px 12px;border-radius:9px;cursor:pointer;transition:background .13s;white-space:nowrap}
+  .sync-menu-item:hover{background:color-mix(in srgb,var(--teal) 12%,transparent);color:var(--teal-ink)}
   .sync-overlay{position:fixed;inset:0;z-index:1000;background:rgba(20,15,8,.45);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px}
   .sync-overlay.hidden{display:none}
   .sync-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:26px;max-width:460px;width:100%;animation:rise .3s}
@@ -374,7 +386,16 @@
 <div class="wrap">
   <header>
     <div class="brand"><span class="mark">ke<b>$</b>ef</span><span class="tag" data-t="tagline">your money</span></div>
-    <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic">🔄</span> <span data-t="sync">Sync</span></button>
+    <div class="sync-wrap">
+      <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic">🔄</span> <span data-t="sync">Sync</span></button>
+      <button class="sync-caret" id="sync-caret" aria-label="sync options" aria-haspopup="true">▾</button>
+      <div class="sync-menu" id="sync-menu" role="menu">
+        <div class="sync-menu-item" data-only="" role="menuitem" data-t="sync_all">All accounts</div>
+        <div class="sync-menu-item" data-only="beinleumi" role="menuitem">Beinleumi</div>
+        <div class="sync-menu-item" data-only="cal" role="menuitem">Cal</div>
+        <div class="sync-menu-item" data-only="ibi" role="menuitem">IBI</div>
+      </div>
+    </div>
     <div class="seg" role="group" aria-label="view">
       <button data-view-btn="me" aria-pressed="true" data-t="v_me">Me</button>
       <button data-view-btn="partner" aria-pressed="false" data-t="v_partner" data-disabled="true">Partner</button>
@@ -641,6 +662,7 @@ const T = {
   count_transfers:    { en: 'Count transfers as spending', he: 'כלול העברות בהוצאות' },
   close:              { en: 'Close',                       he: 'סגור' },
   sync:               { en: 'Sync',                        he: 'סנכרון' },
+  sync_all:           { en: 'All accounts',                he: 'כל החשבונות' },
   syncing:            { en: 'Syncing your money',          he: 'מסנכרן את הכסף שלך' },
   sync_hint:          { en: 'A browser opens for each account — just log in there. Nothing is typed here.', he: 'נפתח דפדפן לכל חשבון — פשוט התחברו שם. לא צריך להקליד כאן כלום.' },
   by_raw_cat:         { en: 'By sub-category',             he: 'לפי תת-קטגוריה' },
@@ -1874,7 +1896,8 @@ $$('[data-view-btn]').forEach(b => {
 
 // ─── Sync button (live SSE progress; all sources; no terminal) ──────────────────
 function setupSync() {
-  const btn = $('#sync-btn'), overlay = $('#sync-overlay'), stepsEl = $('#sync-steps'), closeBtn = $('#sync-close');
+  const btn = $('#sync-btn'), caret = $('#sync-caret'), menu = $('#sync-menu');
+  const overlay = $('#sync-overlay'), stepsEl = $('#sync-steps'), closeBtn = $('#sync-close');
   const icon = btn ? btn.querySelector('.sync-ic') : null;
   if (!btn || !overlay || !stepsEl) return;
   let es = null;
@@ -1900,15 +1923,16 @@ function setupSync() {
     if (reload) setTimeout(() => location.reload(), 1000);
     else if (closeBtn) closeBtn.style.display = '';
   }
-  btn.onclick = () => {
+  function startSync(only) {
     if (btn.disabled) return;
+    if (menu) menu.classList.remove('open');
     btn.disabled = true;
     if (icon) icon.classList.add('spin');
     overlay.classList.remove('hidden');
     stepsEl.innerHTML = '';
     Object.keys(stepEls).forEach(k => delete stepEls[k]);
     if (closeBtn) closeBtn.style.display = 'none';
-    es = new EventSource('/api/sync');
+    es = new EventSource('/api/sync' + (only ? '?only=' + encodeURIComponent(only) : ''));
     es.onmessage = (m) => {
       let e; try { e = JSON.parse(m.data); } catch { return; }
       if (e.type === 'source-start') setStep(e.source, '⏳', e.hint || '…');
@@ -1918,7 +1942,11 @@ function setupSync() {
       else if (e.type === 'fatal') { setStep('kesef', '⚠️', e.message, true); stop(false); }
     };
     es.onerror = () => { if (!es) return; setStep('kesef', '⚠️', lang === 'en' ? 'connection lost' : 'החיבור נותק', true); stop(false); };
-  };
+  }
+  btn.onclick = () => startSync('');
+  if (caret) caret.onclick = (e) => { e.stopPropagation(); if (menu) menu.classList.toggle('open'); };
+  if (menu) menu.querySelectorAll('.sync-menu-item').forEach(it => { it.onclick = () => startSync(it.dataset.only || ''); });
+  document.addEventListener('click', (e) => { if (menu && !menu.contains(e.target) && e.target !== caret) menu.classList.remove('open'); });
   if (closeBtn) closeBtn.onclick = () => overlay.classList.add('hidden');
 }
 setupSync();

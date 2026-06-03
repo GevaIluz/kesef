@@ -18,11 +18,13 @@ export type SyncEvent =
   | { type: 'complete'; transactions: number; accounts: number }
   | { type: 'fatal'; message: string };
 
+export type SyncSource = 'beinleumi' | 'cal' | 'ibi';
+
 export interface SyncOptions {
   store: Store;
   now: string;                       // YYYY-MM-DD
   onEvent: (e: SyncEvent) => void;
-  includeIbi?: boolean;              // default true
+  sources?: SyncSource[];            // which sources to run; default = all
   ibiUrl?: string;
 }
 
@@ -36,11 +38,12 @@ const DEFAULT_IBI_URL = 'https://sparkibi.ordernet.co.il/#/auth';
 export async function runSync(opts: SyncOptions): Promise<void> {
   const { store, now, onEvent } = opts;
   const overrides = loadOverrides();
+  const want: SyncSource[] = opts.sources && opts.sources.length ? opts.sources : ['beinleumi', 'cal', 'ibi'];
   const banks = [
     { companyId: CompanyTypes.beinleumi, institution: 'beinleumi' as const, accountType: 'bank' as const, label: 'Beinleumi' },
     { companyId: CompanyTypes.visaCal, institution: 'cal' as const, accountType: 'credit_card' as const, label: 'Cal' },
-  ];
-  const includeIbi = opts.includeIbi !== false;
+  ].filter(b => want.includes(b.institution));
+  const includeIbi = want.includes('ibi');
   onEvent({ type: 'start', sources: [...banks.map(b => b.label), ...(includeIbi ? ['IBI'] : [])] });
 
   for (const t of banks) {

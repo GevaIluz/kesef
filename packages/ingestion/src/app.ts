@@ -6,7 +6,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } from '@kesef/core';
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
-import { runSync, type SyncEvent } from './syncRun.js';
+import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -139,15 +139,18 @@ const server = createServer(async (req, res) => {
         safeWrite(`data: ${JSON.stringify(e)}\n\n`);
       };
 
-      // Dry-run: scripted events to verify the UI without opening any browsers.
+      // Dry-run: scripted events to verify the UI without opening any browsers (honors ?only=).
       if (url.searchParams.get('dry') === '1') {
-        send({ type: 'start', sources: ['Beinleumi', 'Cal', 'IBI'] });
-        send({ type: 'source-start', source: 'Beinleumi', hint: '(dry run)' });
-        send({ type: 'source-done', source: 'Beinleumi', accounts: 1, transactions: 11 });
-        send({ type: 'source-start', source: 'Cal' });
-        send({ type: 'source-done', source: 'Cal', accounts: 1, transactions: 208 });
-        send({ type: 'source-start', source: 'IBI' });
-        send({ type: 'source-done', source: 'IBI', value: 312450 });
+        const labels: Record<string, string> = { beinleumi: 'Beinleumi', cal: 'Cal', ibi: 'IBI' };
+        const onlyDry = (url.searchParams.get('only') || '').split(',').map(s => s.trim()).filter(s => labels[s]);
+        const wantDry = onlyDry.length ? onlyDry : ['beinleumi', 'cal', 'ibi'];
+        send({ type: 'start', sources: wantDry.map(s => labels[s]) });
+        for (const s of wantDry) {
+          send({ type: 'source-start', source: labels[s], hint: '(dry run)' });
+          send(s === 'ibi'
+            ? { type: 'source-done', source: 'IBI', value: 312450 }
+            : { type: 'source-done', source: labels[s], accounts: 1, transactions: s === 'cal' ? 208 : 11 });
+        }
         send({ type: 'complete', transactions: 219, accounts: 5 });
         res.end();
         return;
@@ -161,7 +164,9 @@ const server = createServer(async (req, res) => {
       try {
         store = Store.open({ path: dbPath(), key: await getOrCreateDbKey() });
         const now = new Date().toISOString().slice(0, 10);
-        await runSync({ store, now, onEvent: send });
+        const valid: readonly string[] = ['beinleumi', 'cal', 'ibi'];
+        const only = (url.searchParams.get('only') || '').split(',').map(s => s.trim()).filter(s => valid.includes(s)) as SyncSource[];
+        await runSync({ store, now, onEvent: send, sources: only.length ? only : undefined });
       } catch (e) {
         send({ type: 'fatal', message: e instanceof Error ? e.message : 'sync failed' });
       } finally {
