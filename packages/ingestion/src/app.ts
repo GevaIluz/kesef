@@ -55,7 +55,7 @@ function sendJson(res: ServerResponse, code: number, obj: unknown): void {
   res.end(JSON.stringify(obj));
 }
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
   const path = url.pathname;
   const method = req.method ?? 'GET';
@@ -129,7 +129,12 @@ createServer(async (req, res) => {
     // --- sync (Server-Sent Events): runs all sources with live progress, no terminal ---
     if (path === '/api/sync' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', connection: 'keep-alive', 'x-accel-buffering': 'no' });
-      const send = (e: SyncEvent | { type: string; [k: string]: unknown }) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+      // A sync streams for many minutes across 3 interactive logins, with long silent gaps while
+      // the user logs in. Keep the socket alive and never let a timeout kill it mid-run.
+      req.socket.setKeepAlive(true);
+      req.socket.setTimeout(0);
+      const safeWrite = (s: string) => { if (!res.writableEnded && res.socket && !res.socket.destroyed) { try { res.write(s); } catch { /* client gone */ } } };
+      const send = (e: SyncEvent | { type: string; [k: string]: unknown }) => safeWrite(`data: ${JSON.stringify(e)}\n\n`);
 
       // Dry-run: scripted events to verify the UI without opening any browsers.
       if (url.searchParams.get('dry') === '1') {
@@ -147,6 +152,8 @@ createServer(async (req, res) => {
 
       if (syncing) { send({ type: 'fatal', message: 'a sync is already running' }); res.end(); return; }
       syncing = true;
+      const heartbeat = setInterval(() => safeWrite(': keepalive\n\n'), 15_000); // hold the connection during login gaps
+      req.on('close', () => clearInterval(heartbeat));
       let store: Store | undefined;
       try {
         store = Store.open({ path: dbPath(), key: await getOrCreateDbKey() });
@@ -155,9 +162,10 @@ createServer(async (req, res) => {
       } catch (e) {
         send({ type: 'fatal', message: e instanceof Error ? e.message : 'sync failed' });
       } finally {
+        clearInterval(heartbeat);
         store?.close();
         syncing = false;
-        res.end();
+        if (!res.writableEnded) res.end();
       }
       return;
     }
@@ -181,4 +189,9 @@ createServer(async (req, res) => {
   } catch (e) {
     sendJson(res, 500, { error: e instanceof Error ? e.message : 'error' });
   }
-}).listen(port, '127.0.0.1', () => console.log(`kesef dashboard → http://localhost:${port}  (Ctrl-C to stop)`));
+});
+// Long-running SSE syncs must not be killed by Node's default request/header/socket timeouts.
+server.requestTimeout = 0;
+server.headersTimeout = 0;
+server.timeout = 0;
+server.listen(port, '127.0.0.1', () => console.log(`kesef dashboard → http://localhost:${port}  (Ctrl-C to stop)`));
