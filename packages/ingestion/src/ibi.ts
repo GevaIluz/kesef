@@ -1,19 +1,20 @@
-import puppeteer from 'puppeteer';
+import puppeteer, { type Page } from 'puppeteer';
 
 /**
- * Interactive IBI reader. There is NO scraper library for Israeli investment houses, so we drive
- * a real browser: kesef opens IBI's portal, YOU log in yourself (no credentials are ever stored),
- * open the screen that shows your portfolio total, and press Enter. We then read the numbers off
- * that page and propose the most likely "total" for you to confirm. Everything stays on your machine.
+ * Interactive IBI reader. No scraper library covers Israeli investment houses, and trading
+ * screens (SPARK/OrderNet) are full of market figures — so we don't guess. You log in yourself
+ * (no credentials are ever stored), then CLICK your portfolio total once: kesef captures exactly
+ * that value and a selector for it, so next time it can read the number automatically. Everything
+ * stays on your machine.
  */
 
 /** Parse an Israeli-formatted money string (₪ / ש"ח, comma thousands, dot decimal) → number | null. */
 export function parseShekel(s: string): number | null {
   if (!s) return null;
   const normalized = s
-    .replace(/[−‒–—]/g, '-') // unicode minus / dashes → ASCII '-'
-    .replace(/[^\d.,\-]/g, '')                    // drop ₪, ש"ח, spaces, letters
-    .replace(/,/g, '');                           // comma = thousands separator
+    .replace(/[−‒–—]/g, '-')        // unicode minus / dashes → ASCII '-'
+    .replace(/[^\d.,\-]/g, '')      // drop ₪, ש"ח, spaces, letters
+    .replace(/,/g, '');             // comma = thousands separator
   if (!/\d/.test(normalized)) return null;
   const n = Number(normalized);
   return Number.isFinite(n) ? n : null;
@@ -21,7 +22,6 @@ export function parseShekel(s: string): number | null {
 
 export interface TotalCandidate { value: number; text: string; context: string; }
 
-// Words that, when near a number, suggest it's the portfolio total (he + en).
 const TOTAL_KEYWORDS = [
   'שווי תיק', 'שווי כולל', 'שווי נכסים', 'סה"כ', 'סהכ', 'שווי', 'יתרה', 'נכסים',
   'total', 'portfolio', 'balance', 'net worth', 'holdings value',
@@ -38,66 +38,108 @@ export function pickTotal(cands: TotalCandidate[]): TotalCandidate | null {
   return pool.reduce((best, c) => (c.value > best.value ? c : best));
 }
 
-export interface IbiScrapeDeps {
+export interface IbiReadDeps {
   url: string;
-  /** Resolves when the user signals (e.g. presses Enter) that the portfolio total is on screen. */
-  waitForUser: () => Promise<unknown>;
+  /** Resolves once the user has logged in and the portfolio screen is on display. */
+  waitForLogin: () => Promise<unknown>;
+  /** Tell the user to click their portfolio total in the browser (no await — the click resolves it). */
+  promptClick: () => void;
+  /** A selector taught on a previous run — try to read it automatically first. */
+  savedSelector?: string | undefined;
   navTimeoutMs?: number;
+  clickTimeoutMs?: number;
   headless?: boolean;
 }
 
-export interface IbiScrapeResult { candidates: TotalCandidate[]; best: TotalCandidate | null; }
+export interface IbiReadResult {
+  value: number | null;
+  selector: string | null;
+  rawText: string | null;
+  mode: 'auto' | 'taught' | 'none';
+}
 
-/** Open IBI, wait for the user to log in + navigate, then read currency figures off the page. */
-export async function scrapeIbiInteractive(deps: IbiScrapeDeps): Promise<IbiScrapeResult> {
+/** Open IBI; read the portfolio total automatically (saved selector) or by letting the user click it. */
+export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
   const browser = await puppeteer.launch({
     headless: deps.headless ?? false,
     defaultViewport: null,
     args: ['--start-maximized'],
   });
   try {
-    const pages = await browser.pages();
-    const page = pages[0] ?? await browser.newPage();
+    const page = (await browser.pages())[0] ?? await browser.newPage();
+    // esbuild/tsx wraps named functions with a __name() helper; that helper doesn't exist in the
+    // browser, so injected page functions throw "__name is not defined". Shim it on every document.
+    await page.evaluateOnNewDocument(() => { (globalThis as Record<string, unknown>)['__name'] ||= ((f: unknown) => f); });
     await page.goto(deps.url, { waitUntil: 'domcontentloaded', timeout: deps.navTimeoutMs ?? 60_000 });
 
-    await deps.waitForUser(); // human logs in + opens the portfolio screen, then continues
+    await deps.waitForLogin(); // human logs in + opens the portfolio screen
 
-    // Collect leaf elements whose visible text looks like money, plus nearby label text for context.
-    const raw = await page.evaluate(() => {
-      const results: { text: string; context: string }[] = [];
-      const moneyish = /[₪]|ש"ח|\d{1,3}(,\d{3})+(\.\d+)?|\d+\.\d{2}\b/;
-      for (const el of Array.from(document.querySelectorAll('body *'))) {
-        if (el.children.length) continue;                 // leaf nodes only
-        const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-        if (!text || text.length > 40) continue;
-        if (text.includes('%')) continue;                 // skip percentages / yields
-        if (!moneyish.test(text)) continue;
-        const parent = el.parentElement;
-        const context = [
-          el.getAttribute('aria-label') || '',
-          el.previousElementSibling?.textContent || '',
-          parent?.getAttribute('aria-label') || '',
-          parent?.textContent || '',
-        ].join(' | ').replace(/\s+/g, ' ').trim().slice(0, 140);
-        results.push({ text, context });
-      }
-      return results;
-    });
-
-    // Parse + rank in Node (so parseShekel/pickTotal stay unit-testable).
-    const seen = new Set<string>();
-    const candidates: TotalCandidate[] = [];
-    for (const r of raw) {
-      const value = parseShekel(r.text);
-      if (value === null) continue;
-      const key = `${value}|${r.text}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      candidates.push({ value, text: r.text, context: r.context });
+    // 1) Auto: try a previously-taught selector.
+    if (deps.savedSelector) {
+      const txt = await page.$eval(deps.savedSelector, el => (el.textContent || '').trim()).catch(() => null);
+      const v = txt ? parseShekel(txt) : null;
+      if (v !== null) return { value: v, selector: deps.savedSelector, rawText: txt, mode: 'auto' };
     }
-    candidates.sort((a, b) => b.value - a.value);
-    return { candidates, best: pickTotal(candidates) };
+
+    // 2) Teach: capture the element the user clicks.
+    const captured = await captureClick(page, deps.promptClick, deps.clickTimeoutMs ?? 180_000);
+    if (!captured) return { value: null, selector: null, rawText: null, mode: 'none' };
+    return { value: parseShekel(captured.text), selector: captured.selector, rawText: captured.text, mode: 'taught' };
   } finally {
     await browser.close();
   }
+}
+
+/** Wait for the user to click an element in the page; return its text + a best-effort CSS selector. */
+async function captureClick(
+  page: Page,
+  promptClick: () => void,
+  timeoutMs: number,
+): Promise<{ text: string; selector: string } | null> {
+  // Install a one-shot click listener that stashes the result on window; poll it from Node.
+  await page.evaluate(() => {
+    const w = window as unknown as { __kesefCaptured: { text: string; selector: string } | null };
+    w.__kesefCaptured = null;
+    const selectorFor = (el: Element): string => {
+      const parts: string[] = [];
+      let node: Element | null = el;
+      while (node && node.nodeType === 1 && parts.length < 6) {
+        const id = (node as HTMLElement).id;
+        if (id) { parts.unshift('#' + CSS.escape(id)); break; }
+        let part = node.tagName.toLowerCase();
+        const cls = typeof node.className === 'string'
+          ? node.className.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(c => '.' + CSS.escape(c)).join('')
+          : '';
+        if (cls) part += cls;
+        const parent: Element | null = node.parentElement;
+        if (parent) {
+          const sibs = Array.from(parent.children).filter(c => c.tagName === node!.tagName);
+          if (sibs.length > 1) part += `:nth-of-type(${sibs.indexOf(node) + 1})`;
+        }
+        parts.unshift(part);
+        node = node.parentElement;
+      }
+      return parts.join(' > ');
+    };
+    const handler = (e: Event) => {
+      const el = e.target as Element | null;
+      if (!el) return;
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+      document.removeEventListener('click', handler, true);
+      e.preventDefault(); e.stopPropagation();
+      w.__kesefCaptured = { text, selector: selectorFor(el) };
+    };
+    document.addEventListener('click', handler, true);
+  });
+
+  promptClick();
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const got = await page
+      .evaluate(() => (window as unknown as { __kesefCaptured: { text: string; selector: string } | null }).__kesefCaptured)
+      .catch(() => null);
+    if (got) return got;
+    await new Promise(r => { setTimeout(r, 300); });
+  }
+  return null;
 }

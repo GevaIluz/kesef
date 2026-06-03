@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { CompanyTypes } from 'israeli-bank-scrapers';
 import { KeyringVault, Store } from '@kesef/core';
 import { join } from 'node:path';
@@ -118,8 +119,20 @@ async function addBalance(): Promise<void> {
   store.close();
 }
 
-// Interactive IBI reader: open the IBI portal, you log in yourself (no creds stored), it reads your
-// portfolio total off the page and records it as the ibi:portfolio balance.
+// Remember which element holds your IBI total, per portal URL, so future runs read it automatically.
+const ibiConfigPath = () => join(kesefDir(), 'ibi.json');
+function loadIbiSelector(url: string): string | undefined {
+  try { const j = JSON.parse(readFileSync(ibiConfigPath(), 'utf8')); return typeof j?.[url] === 'string' ? j[url] : undefined; } catch { return undefined; }
+}
+function saveIbiSelector(url: string, selector: string): void {
+  let j: Record<string, string> = {};
+  try { j = JSON.parse(readFileSync(ibiConfigPath(), 'utf8')) || {}; } catch { /* first time */ }
+  j[url] = selector;
+  try { mkdirSync(kesefDir(), { recursive: true }); writeFileSync(ibiConfigPath(), JSON.stringify(j, null, 2)); } catch { /* non-fatal */ }
+}
+
+// Interactive IBI reader: you log in yourself (no creds stored), then CLICK your portfolio total once.
+// kesef captures that number + remembers where it is, so next time it reads it automatically.
 async function syncIbi(): Promise<void> {
   const choice = (await ask('IBI portal — [1] My Capital (managed)  [2] Capital Expert  [3] SPARK / Trade  [4] custom URL  (default 1): ')).trim();
   const url = choice === '2' ? 'https://capitalexpert.ibi.co.il/login'
@@ -127,32 +140,39 @@ async function syncIbi(): Promise<void> {
     : choice === '4' ? ((await ask('Portal URL: ')).trim() || 'https://mycapital.ibi.co.il')
     : (process.env.KESEF_IBI_URL || 'https://mycapital.ibi.co.il');
 
+  const saved = loadIbiSelector(url);
   console.log('\nA browser will open to IBI. Log in yourself — kesef never sees your credentials.');
-  console.log('Open the screen that shows your portfolio total, then come back to this terminal.');
-  const { scrapeIbiInteractive } = await import('./ibi.js');
-  const { candidates, best } = await scrapeIbiInteractive({
+  console.log('Open the screen that shows your portfolio total.');
+  if (saved) console.log('(I’ll try to read your saved total automatically first.)');
+
+  const { readIbiTotal } = await import('./ibi.js');
+  const res = await readIbiTotal({
     url,
-    waitForUser: () => ask('\n→ Press Enter once your portfolio total is on screen… '),
+    savedSelector: saved,
+    waitForLogin: () => ask('\n→ Logged in with your portfolio total on screen? Press Enter… '),
+    promptClick: () => console.log('→ Now CLICK your portfolio total in the browser (click right on the ₪ number).'),
   });
 
-  if (candidates.length === 0) {
-    console.log('\nNo currency figures were found on that page — try the screen that shows your total.');
+  let total = res.value;
+  if (total === null) {
+    const manual = (await ask('Didn’t capture a number. Type your IBI total in ₪ (blank = cancel): ')).replace(/[, ]/g, '');
+    if (!manual) { console.error('Cancelled — nothing recorded.'); process.exit(1); }
+    total = Number(manual);
+    if (!Number.isFinite(total)) { console.error('Not a number.'); process.exit(1); }
+  } else if (res.mode === 'auto') {
+    console.log(`\nRead automatically: ₪${total.toLocaleString('en-US')}`);
   } else {
-    if (best) console.log(`\nBest guess at your portfolio value: ₪${best.value.toLocaleString('en-US')}   (from "${best.text}")`);
-    console.log('Other numbers found on that page:');
-    candidates.slice(0, 8).forEach((c, i) => console.log(`  [${i + 1}] ₪${c.value.toLocaleString('en-US')}   ${c.context.slice(0, 70)}`));
+    console.log(`\nCaptured: ₪${total.toLocaleString('en-US')}  (from "${res.rawText}")`);
+    if (res.selector) { saveIbiSelector(url, res.selector); console.log('✓ Saved where it lives — next time it reads automatically, no clicking.'); }
   }
-  const ans = (await ask(`\nEnter the correct total in ₪${best ? ` (blank = ₪${best.value.toLocaleString('en-US')})` : ''}: `)).replace(/[, ]/g, '');
-  const value = ans ? Number(ans) : best?.value;
-  if (value === undefined || !Number.isFinite(value)) { console.error('No valid total — nothing recorded.'); process.exit(1); }
 
   const spec = manualAccountFor('ibi');
   const date = todayISO();
   const key = await getDbKey(true);
   const store = Store.open({ path: dbPath(), key });
   store.upsertAccount({ id: spec.id, institution: spec.institution, type: spec.type, displayName: spec.displayName, currency: 'ILS', shareable: false });
-  store.upsertBalanceSnapshot({ id: `${spec.id}@${date}`, accountId: spec.id, date, balance: value });
-  console.log(`✓ Recorded IBI portfolio: ₪${value.toLocaleString('en-US')} on ${date}`);
+  store.upsertBalanceSnapshot({ id: `${spec.id}@${date}`, accountId: spec.id, date, balance: total });
+  console.log(`✓ Recorded IBI portfolio: ₪${total.toLocaleString('en-US')} on ${date}`);
   store.close();
 }
 
