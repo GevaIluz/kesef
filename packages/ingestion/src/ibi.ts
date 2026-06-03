@@ -49,6 +49,7 @@ export interface IbiReadDeps {
   navTimeoutMs?: number;
   clickTimeoutMs?: number;
   autoTimeoutMs?: number;   // how long to poll for the saved selector (waits out login)
+  failureScreenshotPath?: string; // saved if no value is captured, for debugging
   headless?: boolean;
 }
 
@@ -89,7 +90,10 @@ export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
 
     // 2) Teach: capture the element the user clicks.
     const captured = await captureClick(page, deps.promptClick, deps.clickTimeoutMs ?? 180_000);
-    if (!captured) return { value: null, selector: null, rawText: null, mode: 'none' };
+    if (!captured) {
+      if (deps.failureScreenshotPath) await page.screenshot({ path: deps.failureScreenshotPath as `${string}.png` }).catch(() => {});
+      return { value: null, selector: null, rawText: null, mode: 'none' };
+    }
     return { value: parseShekel(captured.text), selector: captured.selector, rawText: captured.text, mode: 'taught' };
   } finally {
     await browser.close();
@@ -102,16 +106,15 @@ async function captureClick(
   promptClick: () => void,
   timeoutMs: number,
 ): Promise<{ text: string; selector: string } | null> {
-  // Install a one-shot click listener that stashes the result on window; poll it from Node.
-  await page.evaluate(() => {
-    const w = window as unknown as { __kesefCaptured: { text: string; selector: string } | null };
+  // Re-installable on EVERY document: the user logs in first, which navigates SPARK (Angular) to a
+  // new page — so we install via evaluateOnNewDocument (future docs) AND on the current doc. Each
+  // install adds a click listener that stashes the clicked element on window.__kesefCaptured, plus a
+  // banner. We then poll window.__kesefCaptured from Node across navigations.
+  const install = () => {
+    const w = window as unknown as { __kesefInstalled?: boolean; __kesefCaptured: { text: string; selector: string } | null };
+    if (w.__kesefInstalled) return;
+    w.__kesefInstalled = true;
     w.__kesefCaptured = null;
-    // Banner so the user knows to click their total — right in the IBI window (no terminal).
-    const banner = document.createElement('div');
-    banner.id = '__kesef_banner';
-    banner.textContent = '👆 kesef — click your portfolio total (the ₪ number)';
-    banner.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0C7A66;color:#fff;font:600 15px system-ui,sans-serif;padding:11px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)');
-    if (document.body) document.body.appendChild(banner);
     const selectorFor = (el: Element): string => {
       const parts: string[] = [];
       let node: Element | null = el;
@@ -133,17 +136,27 @@ async function captureClick(
       }
       return parts.join(' > ');
     };
-    const handler = (e: Event) => {
+    const onClick = (e: Event) => {
       const el = e.target as Element | null;
       if (!el || (el as HTMLElement).id === '__kesef_banner') return; // ignore clicks on our banner
       const text = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-      document.removeEventListener('click', handler, true);
       e.preventDefault(); e.stopPropagation();
-      banner.remove();
       w.__kesefCaptured = { text, selector: selectorFor(el) };
+      const b = document.getElementById('__kesef_banner'); if (b) b.remove();
     };
-    document.addEventListener('click', handler, true);
-  });
+    document.addEventListener('click', onClick, true);
+    const addBanner = () => {
+      if (!document.body || document.getElementById('__kesef_banner')) return;
+      const banner = document.createElement('div');
+      banner.id = '__kesef_banner';
+      banner.textContent = '👆 kesef — when your portfolio total is on screen, click it';
+      banner.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0C7A66;color:#fff;font:600 15px system-ui,sans-serif;padding:11px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.3)');
+      document.body.appendChild(banner);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addBanner); else addBanner();
+  };
+  await page.evaluateOnNewDocument(install);     // every future document (post-login portfolio page)
+  await page.evaluate(install).catch(() => {});  // and the current document
 
   promptClick();
   const deadline = Date.now() + timeoutMs;
@@ -152,7 +165,7 @@ async function captureClick(
       .evaluate(() => (window as unknown as { __kesefCaptured: { text: string; selector: string } | null }).__kesefCaptured)
       .catch(() => null);
     if (got) return got;
-    await new Promise(r => { setTimeout(r, 300); });
+    await new Promise(r => { setTimeout(r, 400); });
   }
   return null;
 }

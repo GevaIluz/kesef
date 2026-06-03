@@ -134,7 +134,10 @@ const server = createServer(async (req, res) => {
       req.socket.setKeepAlive(true);
       req.socket.setTimeout(0);
       const safeWrite = (s: string) => { if (!res.writableEnded && res.socket && !res.socket.destroyed) { try { res.write(s); } catch { /* client gone */ } } };
-      const send = (e: SyncEvent | { type: string; [k: string]: unknown }) => safeWrite(`data: ${JSON.stringify(e)}\n\n`);
+      const send = (e: SyncEvent | { type: string; [k: string]: unknown }) => {
+        if (e.type === 'source-error' || e.type === 'fatal') console.error('[sync]', JSON.stringify(e)); // also log to the server log
+        safeWrite(`data: ${JSON.stringify(e)}\n\n`);
+      };
 
       // Dry-run: scripted events to verify the UI without opening any browsers.
       if (url.searchParams.get('dry') === '1') {

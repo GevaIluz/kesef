@@ -75,6 +75,7 @@ export async function runSync(opts: SyncOptions): Promise<void> {
         savedSelector: cfg.selector,
         autoTimeoutMs: 180_000,
         clickTimeoutMs: 180_000,
+        failureScreenshotPath: join(kesefDir(), 'last-failure-ibi.png'),
         waitForLogin: async () => { /* no terminal gate in app mode */ },
         promptClick: () => { /* the in-page banner tells the user to click */ },
       });
