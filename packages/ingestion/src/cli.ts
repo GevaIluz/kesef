@@ -7,6 +7,7 @@ import { ask } from './prompt.js';
 import { scrapeInteractive } from './interactive.js';
 import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
+import { manualAccountFor } from './manualAccounts.js';
 
 const vault = new KeyringVault('kesef');
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -117,7 +118,45 @@ async function addBalance(): Promise<void> {
   store.close();
 }
 
+// Interactive IBI reader: open the IBI portal, you log in yourself (no creds stored), it reads your
+// portfolio total off the page and records it as the ibi:portfolio balance.
+async function syncIbi(): Promise<void> {
+  const choice = (await ask('IBI portal — [1] My Capital (managed)  [2] Capital Expert  [3] SPARK / Trade  [4] custom URL  (default 1): ')).trim();
+  const url = choice === '2' ? 'https://capitalexpert.ibi.co.il/login'
+    : choice === '3' ? 'https://sparkibi.ordernet.co.il/#/auth'
+    : choice === '4' ? ((await ask('Portal URL: ')).trim() || 'https://mycapital.ibi.co.il')
+    : (process.env.KESEF_IBI_URL || 'https://mycapital.ibi.co.il');
+
+  console.log('\nA browser will open to IBI. Log in yourself — kesef never sees your credentials.');
+  console.log('Open the screen that shows your portfolio total, then come back to this terminal.');
+  const { scrapeIbiInteractive } = await import('./ibi.js');
+  const { candidates, best } = await scrapeIbiInteractive({
+    url,
+    waitForUser: () => ask('\n→ Press Enter once your portfolio total is on screen… '),
+  });
+
+  if (candidates.length === 0) {
+    console.log('\nNo currency figures were found on that page — try the screen that shows your total.');
+  } else {
+    if (best) console.log(`\nBest guess at your portfolio value: ₪${best.value.toLocaleString('en-US')}   (from "${best.text}")`);
+    console.log('Other numbers found on that page:');
+    candidates.slice(0, 8).forEach((c, i) => console.log(`  [${i + 1}] ₪${c.value.toLocaleString('en-US')}   ${c.context.slice(0, 70)}`));
+  }
+  const ans = (await ask(`\nEnter the correct total in ₪${best ? ` (blank = ₪${best.value.toLocaleString('en-US')})` : ''}: `)).replace(/[, ]/g, '');
+  const value = ans ? Number(ans) : best?.value;
+  if (value === undefined || !Number.isFinite(value)) { console.error('No valid total — nothing recorded.'); process.exit(1); }
+
+  const spec = manualAccountFor('ibi');
+  const date = todayISO();
+  const key = await getDbKey(true);
+  const store = Store.open({ path: dbPath(), key });
+  store.upsertAccount({ id: spec.id, institution: spec.institution, type: spec.type, displayName: spec.displayName, currency: 'ILS', shareable: false });
+  store.upsertBalanceSnapshot({ id: `${spec.id}@${date}`, accountId: spec.id, date, balance: value });
+  console.log(`✓ Recorded IBI portfolio: ₪${value.toLocaleString('en-US')} on ${date}`);
+  store.close();
+}
+
 const cmd = process.argv[2];
-const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance, list };
-(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | status | categorize | add-balance | list'); process.exit(1); }))()
+const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance, 'sync-ibi': syncIbi, list };
+(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | sync-ibi | status | categorize | add-balance | list'); process.exit(1); }))()
   .catch(e => { console.error(e instanceof Error ? e.message : e); process.exit(1); });

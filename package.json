@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty",
     "connect": "tsx packages/ingestion/src/cli.ts connect",
     "sync": "tsx packages/ingestion/src/cli.ts sync",
+    "sync-ibi": "tsx packages/ingestion/src/cli.ts sync-ibi",
     "status": "tsx packages/ingestion/src/cli.ts status",
     "categorize": "tsx packages/ingestion/src/cli.ts categorize",
     "add-balance": "tsx packages/ingestion/src/cli.ts add-balance",
