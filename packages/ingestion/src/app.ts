@@ -7,6 +7,7 @@ import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } fro
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
+import { pairGenerate, pairJoin, unpair, syncWithPartner, buildMySummary } from './coupleSync.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -39,6 +40,12 @@ let syncing = false; // only one sync run at a time
 async function withStore<T>(fn: (s: Store) => T): Promise<T> {
   const s = Store.open({ path: dbPath(), key: await dbKey() });
   try { return fn(s); } finally { s.close(); }
+}
+
+/** Like withStore but AWAITS fn (for async work like couple sync) and creates the db key if missing. */
+async function withStoreRW<T>(fn: (s: Store) => Promise<T> | T): Promise<T> {
+  const s = Store.open({ path: dbPath(), key: await getOrCreateDbKey() });
+  try { return await fn(s); } finally { s.close(); }
 }
 
 function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -133,6 +140,53 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true });
     }
 
+    // --- couple sharing: per-item opt-in + zero-knowledge sync with a partner ---
+    if (path === '/api/couple/state' && method === 'GET') {
+      const p = await withStoreRW(s => s.getPairing());
+      return sendJson(res, 200, p
+        ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null, createdAt: p.createdAt }
+        : { paired: false });
+    }
+    if (path === '/api/couple/pair' && method === 'POST') {
+      const b = await readJson(req);
+      const relayUrl = typeof b['relayUrl'] === 'string' ? b['relayUrl'].trim() : '';
+      const partnerLabel = typeof b['partnerLabel'] === 'string' && b['partnerLabel'].trim() ? b['partnerLabel'].trim() : undefined;
+      if (!relayUrl) return sendJson(res, 400, { error: 'relayUrl required' });
+      const now = todayISO();
+      if (b['mode'] === 'join') {
+        const token = typeof b['token'] === 'string' ? b['token'].trim() : '';
+        if (!token) return sendJson(res, 400, { error: 'token required to join' });
+        try {
+          const pairing = await withStoreRW(s => pairJoin(s, vault, { token, relayUrl, partnerLabel, now }));
+          return sendJson(res, 200, { ok: true, role: pairing.role });
+        } catch (e) { return sendJson(res, 400, { error: e instanceof Error ? e.message : 'could not join' }); }
+      }
+      const { token } = await withStoreRW(s => pairGenerate(s, vault, { relayUrl, partnerLabel, now }));
+      return sendJson(res, 200, { ok: true, role: 'A', token });
+    }
+    if (path === '/api/couple/unpair' && method === 'POST') {
+      await withStoreRW(s => unpair(s, vault));
+      return sendJson(res, 200, { ok: true });
+    }
+    if (path === '/api/couple/share' && method === 'POST') {
+      const b = await readJson(req);
+      const kind = b['kind']; const id = typeof b['id'] === 'string' ? b['id'] : '';
+      const shareable = !!b['shareable'];
+      if ((kind !== 'account' && kind !== 'goal') || !id) return sendJson(res, 400, { error: 'kind (account|goal) + id required' });
+      await withStoreRW(s => kind === 'account' ? s.setAccountShareable(id, shareable) : s.setGoalShareable(id, shareable));
+      return sendJson(res, 200, { ok: true });
+    }
+    if (path === '/api/couple/preview' && method === 'GET') {
+      const summary = await withStoreRW(s => buildMySummary(s, todayISO()));
+      return sendJson(res, 200, summary);
+    }
+    if (path === '/api/couple/sync' && method === 'POST') {
+      try {
+        const result = await withStoreRW(s => syncWithPartner(s, vault, todayISO()));
+        return sendJson(res, 200, { model: result.model, mine: result.mine, partnerError: result.partnerError ?? null, partnerAsOf: result.partnerAsOf ?? null });
+      } catch (e) { return sendJson(res, 200, { model: null, error: e instanceof Error ? e.message : 'sync failed' }); }
+    }
+
     // --- sync (Server-Sent Events): runs all sources with live progress, no terminal ---
     if (path === '/api/sync' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', connection: 'keep-alive', 'x-accel-buffering': 'no' });
@@ -187,11 +241,17 @@ const server = createServer(async (req, res) => {
 
     // --- dashboard ---
     if (path === '/' && method === 'GET') {
-      const model = await withStore(s => buildDashboard(
-        s.listAccounts(), s.allTransactions(), s.allBalanceSnapshots(),
-        new Date().toISOString().slice(0, 10),
-        { goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules() },
-      ));
+      const model = await withStore(s => {
+        const p = s.getPairing();
+        return buildDashboard(
+          s.listAccounts(), s.allTransactions(), s.allBalanceSnapshots(),
+          new Date().toISOString().slice(0, 10),
+          {
+            goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules(),
+            couple: p ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null } : { paired: false },
+          },
+        );
+      });
       const json = JSON.stringify(model).replace(/</g, '\\u003c'); // can't break out of <script>
       const html = readFileSync(join(webDir, 'dashboard.html'), 'utf8').replace('/*__KESEF_DATA__*/ null', () => json);
       // never cache the dashboard — a plain refresh should always show the latest build + data

@@ -109,4 +109,16 @@ describe('buildDashboard', () => {
     });
     expect(d.transactions[0]!.category).toBe('health');  // per-txn override wins
   });
+
+  it('exposes each account shareable flag and the couple pairing state', () => {
+    const accs: Account[] = [{ id: 'a', institution: 'beinleumi', type: 'bank', displayName: 'X', currency: 'ILS', shareable: true }];
+    const d = buildDashboard(accs, [], [], '2026-06-15', { couple: { paired: true, role: 'A', partnerLabel: 'Partner' } });
+    expect(d.accounts[0]!.shareable).toBe(true);
+    expect(d.couple).toEqual({ paired: true, role: 'A', partnerLabel: 'Partner' });
+  });
+
+  it('defaults couple state to not-paired when not supplied', () => {
+    const d = buildDashboard([], [], [], '2026-06-15');
+    expect(d.couple).toEqual({ paired: false });
+  });
 });

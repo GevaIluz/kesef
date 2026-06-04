@@ -12,15 +12,25 @@ export interface ClientTxn {
   category: CategoryCode | null; rawCategory: string | null;
 }
 
+/** Couple pairing state surfaced to the dashboard (non-secret; drives the partner/couple view toggle). */
+export interface CoupleViewState {
+  paired: boolean;
+  role?: 'A' | 'B';
+  partnerLabel?: string | null;
+  relayUrl?: string | null;
+  partnerAsOf?: string | null;
+}
+
 export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
-  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; components: { name: string; value: number }[] | null; history: { date: string; balance: number }[] }[];
+  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; shareable: boolean; components: { name: string; value: number }[] | null; history: { date: string; balance: number }[] }[];
   recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
   transactions: ClientTxn[];
+  couple: CoupleViewState;
 }
 
 const RECENT_LIMIT = 12;
@@ -105,7 +115,7 @@ export function shiftDays(iso: string, days: number): string {
 
 export function buildDashboard(
   accounts: Account[], transactions: Transaction[], snapshots: BalanceSnapshot[], now: string,
-  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string> } = {},
+  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string>; couple?: CoupleViewState } = {},
 ): DashboardModel {
   const overrides = opts.overrides ?? new Map<string, string>();
   const merchantRules = opts.merchantRules ?? new Map<string, string>();
@@ -158,8 +168,9 @@ export function buildDashboard(
   return {
     generatedAt: now, netWorth,
     spending,
-    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
+    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, shareable: a.shareable, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
+    couple: opts.couple ?? { paired: false },
   };
 }
