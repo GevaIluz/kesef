@@ -1,6 +1,6 @@
 # Phase 8 (Plan's "Phase 4"): Per-item sharing + zero-knowledge couple sync
 
-> Status: DESIGN ONLY (no code). This is the concrete design for the couple-sharing /
+> Status: ✅ IMPLEMENTED on branch `feat/couple-sync` (P8-T1…T6). This is the concrete design for the couple-sharing /
 > partner-connection feature. It realizes **Phase 4** of the approved plan
 > (`~/.claude/plans/can-you-help-me-snug-lovelace.md`). The filename uses "phase8" only as the
 > doc ordinal in this folder; the feature is the plan's Phase 4 ("Per-item sharing + couple sync").
