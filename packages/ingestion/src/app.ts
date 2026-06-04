@@ -7,7 +7,7 @@ import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } fro
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
-import { pairGenerate, pairJoin, unpair, syncWithPartner, buildMySummary } from './coupleSync.js';
+import { pairGenerate, pairJoin, unpair, syncWithPartner, buildMySummary, localCoupleModel } from './coupleSync.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -179,6 +179,15 @@ const server = createServer(async (req, res) => {
     if (path === '/api/couple/preview' && method === 'GET') {
       const summary = await withStoreRW(s => buildMySummary(s, todayISO()));
       return sendJson(res, 200, summary);
+    }
+    // Instant couple view from LOCAL data only (no relay): my full side, partner empty. Always works,
+    // even unpaired — so I can always see my own money in the couple view.
+    if (path === '/api/couple/view' && method === 'GET') {
+      const out = await withStoreRW(s => {
+        const p = s.getPairing();
+        return { model: localCoupleModel(s, todayISO()), paired: !!p, partnerLabel: p?.partnerLabel ?? null };
+      });
+      return sendJson(res, 200, out);
     }
     if (path === '/api/couple/sync' && method === 'POST') {
       try {

@@ -26,6 +26,21 @@ describe('buildShareableSummary — what leaves the device', () => {
     ]);
   });
 
+  it('includeAll builds my FULL side — private accounts/goals/spending included (my own couple view)', () => {
+    const accounts = [
+      acct({ id: 'shared', type: 'bank', displayName: 'Shared', shareable: true }),
+      acct({ id: 'priv', type: 'bank', displayName: 'Private', shareable: false }),
+    ];
+    const snaps = [snap('shared', 1000, '2026-06-01'), snap('priv', 500, '2026-06-01')];
+    const goals: Goal[] = [{ id: 'g1', name: 'Secret', targetAmount: 10, currentAmount: 1, shareable: false }];
+    const txns: Transaction[] = [{ id: 't1', accountId: 'priv', date: '2026-06-02', amount: -90, description: 'x', category: 'dining' }];
+    const full = buildShareableSummary(accounts, txns, snaps, goals, '2026-06-04', { pairingId: 'p', includeAll: true });
+    expect(full.accounts.map(a => a.label).sort()).toEqual(['Private', 'Shared']);
+    expect(full.netWorth.total).toBe(1500);
+    expect(full.goals).toHaveLength(1);
+    expect(full.spending.thisMonth.byCategory).toEqual([{ category: 'dining', amount: 90 }]); // private-account spend counted
+  });
+
   it('stamps the envelope: schema, pairingId, author, currency, generatedAt', () => {
     const summary = buildShareableSummary([], [], [], [], '2026-06-04', { pairingId: 'p1', author: 'B' });
     expect(summary.schema).toBe('kesef.couple.summary/v1');
@@ -166,6 +181,20 @@ const summaryWith = (over: Partial<CoupleSummary>): CoupleSummary => ({
 });
 
 describe('buildCoupleModel — the merged couple view', () => {
+  it('works with no partner yet — shows just my side, partner contributes 0', () => {
+    const mine = summaryWith({
+      netWorth: { total: 100, byBucket: { liquid: 100, investment: 0, retirement: 0, liability: 0 } },
+      accounts: [{ type: 'bank', label: 'X', balance: 100, asOf: '2026-06-01' }],
+      spending: periods({ thisMonth: { spent: 200, byCategory: [{ category: 'dining', amount: 200 }] } }),
+      goals: [{ name: 'G', targetAmount: 10, currentAmount: 2 }],
+    });
+    const model = buildCoupleModel(mine, null);
+    expect(model.netWorth).toEqual({ total: 100, me: 100, partner: 0, byBucket: { liquid: 100, investment: 0, retirement: 0, liability: 0 } });
+    expect(model.accounts).toEqual([{ owner: 'me', type: 'bank', label: 'X', balance: 100, asOf: '2026-06-01' }]);
+    expect(model.goals).toEqual([{ owner: 'me', name: 'G', targetAmount: 10, currentAmount: 2 }]);
+    expect(model.spending.thisMonth).toEqual({ spent: 200, byCategory: [{ category: 'dining', amount: 200 }] });
+  });
+
   it('combines net worth across both partners (total, per-owner, and buckets)', () => {
     const mine = summaryWith({ netWorth: { total: 100, byBucket: { liquid: 60, investment: 40, retirement: 0, liability: 0 } } });
     const partner = summaryWith({ author: 'B', netWorth: { total: 250, byBucket: { liquid: 50, investment: 100, retirement: 120, liability: -20 } } });

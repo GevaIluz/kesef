@@ -656,6 +656,7 @@
             <p class="sub" id="cv-freshness"></p>
           </div>
           <div class="cv-bar-actions">
+            <button class="btn ghost" id="cv-connect-btn">🔗 Connect partner</button>
             <button class="btn ghost" id="cv-preview-btn" data-t="cv_preview">👁 Preview what you share</button>
             <button class="sync-btn" id="cv-sync-btn"><span class="sync-ic">🔄</span> <span data-t="cv_sync_partner">Sync with partner</span></button>
           </div>
@@ -850,6 +851,10 @@ const T = {
   cv_no_partner: { en: 'No partner data yet — ask them to sync too.', he: 'אין עדיין נתונים — בקשו מבן/בת הזוג לסנכרן.' },
   cv_preview:    { en: '👁 Preview what you share', he: '👁 תצוגה מקדימה של מה שמשותף' },
   cv_preview_none:{ en: 'You are not sharing anything yet. Flip a "Share" toggle on an account or goal.', he: 'עדיין לא משתפים כלום. הפעילו "שיתוף" על חשבון או יעד.' },
+  cv_connect:    { en: '🔗 Connect partner', he: '🔗 חברו בן/בת זוג' },
+  cv_manage:     { en: '⚙ Partner settings', he: '⚙ הגדרות שיתוף' },
+  cv_connect_hint:{ en: 'This is just you so far. Connect your partner to see both of you together.', he: 'בינתיים רק את/ה. חברו את בן/בת הזוג כדי לראות את שניכם יחד.' },
+  cv_waiting:    { en: 'Connected — waiting for your partner to share & sync.', he: 'מחוברים — ממתינים שבן/בת הזוג ישתף ויסנכרן.' },
   share_pill:    { en: 'Share', he: 'שיתוף' },
   shared_badge:  { en: 'shared', he: 'משותף' },
   pair_title:    { en: 'Connect your partner', he: 'חברו את בן/בת הזוג' },
@@ -2241,19 +2246,12 @@ async function api(path, method, body) {
 }
 
 // Enable the Partner/Couple buttons once paired; otherwise a tap opens the pairing modal.
-function setupCoupleButtons(M) {
-  const paired = !!(M && M.couple && M.couple.paired);
+function setupCoupleButtons() {
+  // Partner/Couple are ALWAYS available — they show YOUR money; the partner just fills in once connected.
   $$('[data-view-btn]').forEach(b => {
-    const v = b.dataset.viewBtn;
-    if (v === 'me') { b.removeAttribute('data-disabled'); }
-    else if (paired) { b.removeAttribute('data-disabled'); }
-    else { b.setAttribute('data-disabled', 'true'); }
-    b.onclick = () => {
-      if (v !== 'me' && !couplePaired()) { openPairing(); return; }
-      switchView(v);
-    };
+    b.removeAttribute('data-disabled');
+    b.onclick = () => switchView(b.dataset.viewBtn);
   });
-  setupDisabledButtons();
 }
 
 function switchView(v) {
@@ -2284,33 +2282,56 @@ function applyViewVisibility() {
   }
 }
 
-async function loadCoupleView() {
-  const loading = $('#cv-loading'), content = $('#cv-content');
-  if (loading) { loading.hidden = false; loading.textContent = t('cv_syncing'); }
-  const r = await api('/api/couple/sync', 'POST');
-  coupleData = r.data || {};
-  if (loading) loading.hidden = true;
+async function loadCoupleView(forceSync) {
+  // phase 1 — instant: my own side from LOCAL data (works even unpaired)
+  const local = await api('/api/couple/view', 'GET');
+  coupleData = local.data || {};
   renderCoupleView();
+  // phase 2 — if connected, sync to pull the partner's shared side
+  if (couplePaired() || forceSync) {
+    const sb = $('#cv-sync-btn'), ic = sb ? sb.querySelector('.sync-ic') : null;
+    if (ic) ic.classList.add('spin'); if (sb) sb.disabled = true;
+    const r = await api('/api/couple/sync', 'POST');
+    if (r.data && r.data.model) coupleData = r.data;
+    else if (r.data && r.data.error) coupleData.partnerError = r.data.error;
+    if (ic) ic.classList.remove('spin'); if (sb) sb.disabled = false;
+    renderCoupleView();
+  }
 }
 
 function renderCoupleView() {
   const d = coupleData || {};
   const mode = currentView; // 'partner' | 'couple'
   const model = d.model;
-  const content = $('#cv-content');
-  const fresh = $('#cv-freshness');
-  if (fresh) fresh.textContent = d.partnerAsOf ? (t('cv_as_of') + ' ' + d.partnerAsOf) : '';
+  const paired = couplePaired();
+  const content = $('#cv-content'), loading = $('#cv-loading');
   $('#cv-title').textContent = t(mode === 'couple' ? 'cv_together' : 'cv_partner');
 
-  // no partner blob yet
+  // header buttons: Connect always; Preview + Sync only matter once connected
+  const connectBtn = $('#cv-connect-btn'), syncBtn = $('#cv-sync-btn'), previewBtn = $('#cv-preview-btn');
+  if (connectBtn) connectBtn.textContent = paired ? t('cv_manage') : t('cv_connect');
+  if (syncBtn) syncBtn.style.display = paired ? '' : 'none';
+  if (previewBtn) previewBtn.style.display = paired ? '' : 'none';
+
+  // do we actually have partner data merged in yet?
+  const hasPartner = !!(model && (model.netWorth.partner !== 0 || (model.accounts || []).some(a => a.owner === 'partner') || (model.goals || []).some(g => g.owner === 'partner')));
+  const fresh = $('#cv-freshness');
+  if (fresh) {
+    fresh.textContent = !paired ? t('cv_connect_hint')
+      : d.partnerError ? d.partnerError
+      : hasPartner ? (d.partnerAsOf ? (t('cv_as_of') + ' ' + d.partnerAsOf) : '')
+      : t('cv_waiting');
+  }
+
+  // defensive only — the local view always returns a model (my own side), so this rarely fires
   if (!model) {
     if (content) content.hidden = true;
     ['cv-accounts-card','cv-spending-card','cv-goals-card'].forEach(id => { const e = document.getElementById(id); if (e) e.hidden = true; });
-    const body = $('#cv-body'); const loading = $('#cv-loading');
-    if (loading) { loading.hidden = false; loading.textContent = d.error ? d.error : t('cv_no_partner'); }
+    if (loading) { loading.hidden = false; loading.textContent = d.error || t('cv_no_partner'); }
     up($('#nw'), 0);
     return;
   }
+  if (loading) loading.hidden = true;
   if (content) content.hidden = false;
 
   // hero number: combined for couple, partner's for partner view
@@ -2338,7 +2359,7 @@ function renderCoupleView() {
 
   // accounts, owner-tagged
   const accCard = $('#cv-accounts-card'), accEl = $('#cv-accounts');
-  const accs = (model.accounts || []).filter(a => mode === 'couple' || a.owner === 'partner');
+  const accs = (model.accounts || []).filter(a => (mode === 'couple' || a.owner === 'partner') && a.balance !== 0); // hide empty cards
   if (accs.length && accEl) {
     accEl.innerHTML = accs.map(a => {
       const icon = ACCT_TYPE_ICON[a.type] || '🏦';
@@ -2450,7 +2471,9 @@ function setupPreview() {
   if (closeBtn) closeBtn.onclick = () => ov.classList.add('hidden');
   ov.onclick = (e) => { if (e.target === ov) ov.classList.add('hidden'); };
   const syncBtn = $('#cv-sync-btn');
-  if (syncBtn) syncBtn.onclick = () => loadCoupleView();
+  if (syncBtn) syncBtn.onclick = () => loadCoupleView(true);   // force a partner sync
+  const connectBtn = $('#cv-connect-btn');
+  if (connectBtn) connectBtn.onclick = () => openPairing();    // pairing is an action inside the view, not a gate
 }
 setupPreview();
 

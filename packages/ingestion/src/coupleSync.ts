@@ -84,7 +84,7 @@ export async function unpair(store: Store, vault: SecretVault): Promise<void> {
   store.clearPairing();
 }
 
-/** Build exactly what would leave this device — for a "what your partner will see" preview (no upload). */
+/** Build exactly what would leave this device — for a "what your partner will see" preview (shareable only). */
 export function buildMySummary(store: Store, now: string): CoupleSummary {
   const pairing = store.getPairing();
   return buildShareableSummary(
@@ -95,6 +95,26 @@ export function buildMySummary(store: Store, now: string): CoupleSummary {
       overrides: store.categoryOverrides(), merchantRules: store.merchantRules(),
     },
   );
+}
+
+/** My FULL side of the couple view — private items INCLUDED. Sharing only gates what the partner sees,
+ *  never what I see of my own money. This is what populates "me" in the couple/partner view. */
+export function buildMyCoupleSide(store: Store, now: string): CoupleSummary {
+  const pairing = store.getPairing();
+  return buildShareableSummary(
+    store.listAccounts(), store.allTransactions(), store.allBalanceSnapshots(), store.listGoals(), now,
+    {
+      pairingId: pairing?.pairingId ?? 'self',
+      author: pairing?.role ?? 'A',
+      overrides: store.categoryOverrides(), merchantRules: store.merchantRules(), includeAll: true,
+    },
+  );
+}
+
+/** Couple model from LOCAL data only (no relay, no pairing needed): my full side, partner empty.
+ *  Always available so the couple view shows my own data instantly, even before a partner connects. */
+export function localCoupleModel(store: Store, now: string): CoupleModel {
+  return buildCoupleModel(buildMyCoupleSide(store, now), null);
 }
 
 export interface CoupleSyncResult {
@@ -120,12 +140,13 @@ export async function syncWithPartner(store: Store, vault: SecretVault, now: str
   const mySlot = pairing.role;
   const partnerSlot: 'A' | 'B' = pairing.role === 'A' ? 'B' : 'A';
 
-  const mine = buildShareableSummary(
-    store.listAccounts(), store.allTransactions(), store.allBalanceSnapshots(), store.listGoals(), now,
-    { pairingId: pairing.pairingId, author: mySlot, overrides: store.categoryOverrides(), merchantRules: store.merchantRules() },
-  );
+  // Two summaries: what I UPLOAD (shareable only — privacy boundary) vs. MY view side (full).
+  const opts = { author: mySlot, overrides: store.categoryOverrides(), merchantRules: store.merchantRules() };
+  const accts = store.listAccounts(), txns = store.allTransactions(), snaps = store.allBalanceSnapshots(), goals = store.listGoals();
+  const mine = buildShareableSummary(accts, txns, snaps, goals, now, { ...opts, pairingId: pairing.pairingId });
+  const myFull = buildShareableSummary(accts, txns, snaps, goals, now, { ...opts, pairingId: pairing.pairingId, includeAll: true });
 
-  // seal + upload to my slot with the next monotonic seq
+  // seal + upload ONLY the shareable summary to my slot with the next monotonic seq
   const seq = pairing.localSeq + 1;
   const blob = sealCoupleBlob(mine, keys.dataKey, { pairingId: pairing.pairingId, slot: mySlot, seq });
   const put = await relayPut(relayUrl, pairing.pairingId, mySlot, seq, blob);
@@ -155,7 +176,8 @@ export async function syncWithPartner(store: Store, vault: SecretVault, now: str
     }
   }
 
-  const model = partner ? buildCoupleModel(mine, partner) : null;
+  // my full side is always shown; partner merges in when present (null → partner side just shows 0)
+  const model = buildCoupleModel(myFull, partner);
   const result: CoupleSyncResult = { mine, partner, model };
   if (partnerError) result.partnerError = partnerError;
   if (partnerAsOf) result.partnerAsOf = partnerAsOf;

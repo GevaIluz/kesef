@@ -72,19 +72,22 @@ describe('couple sync — two devices, zero-knowledge relay', () => {
     // B syncs: uploads its own, reads A's
     const b1 = await syncWithPartner(B, vaultB, '2026-06-04');
     expect(b1.partner).not.toBeNull();
-    expect(b1.model!.netWorth.me).toBe(54000);      // B's shared (pibi)
-    expect(b1.model!.netWorth.partner).toBe(42200); // A's shared (gbank)
+    // B sees its OWN full picture (pibi 54000 + its private bank 99999) + only A's SHARED side (gbank 42200)
+    expect(b1.model!.netWorth.me).toBe(153999);
+    expect(b1.model!.netWorth.partner).toBe(42200);
 
     // A syncs again: now reads B's blob
     const a2 = await syncWithPartner(A, vaultA, '2026-06-04');
     expect(a2.partner).not.toBeNull();
-    expect(a2.model!.netWorth).toMatchObject({ me: 42200, partner: 54000, total: 96200 });
+    // A's own full side = gbank 42200 − gcard 3000 = 39200; partner = B's shared (pibi 54000)
+    expect(a2.model!.netWorth).toMatchObject({ me: 39200, partner: 54000, total: 93200 });
 
     // owner-tagged accounts: both partners' holdings are distinct (same institutions, different savings)
     const labels = a2.model!.accounts.map(x => `${x.owner}:${x.label}`);
     expect(labels).toContain('me:Guy checking');
+    expect(labels).toContain('me:Guy card');   // A sees its OWN private card in its OWN view
     expect(labels).toContain('partner:IBI');
-    // partner's PRIVATE bank (₪99999) never crosses over
+    // but the PARTNER's private bank (₪99999) never crosses over to A
     expect(a2.model!.accounts.some(x => x.balance === 99999 || x.label === 'Her private bank')).toBe(false);
 
     // shared goals union, tagged by owner

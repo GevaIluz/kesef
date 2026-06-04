@@ -67,6 +67,10 @@ export interface BuildSummaryOpts {
   author?: 'A' | 'B';
   overrides?: Map<string, string>;       // per-transaction category overrides (same as dashboard)
   merchantRules?: Map<string, string>;   // learned merchant→category rules (same as dashboard)
+  // includeAll=true builds the owner's FULL picture (private items included). Used for MY OWN side of
+  // the couple view — sharing flags only gate what the PARTNER receives, never what I see of myself.
+  // The upload path always leaves this false so private data never leaves the device.
+  includeAll?: boolean;
 }
 
 /** Latest balance snapshot per account (by date). */
@@ -87,9 +91,10 @@ export function buildShareableSummary(
   now: string,
   opts: BuildSummaryOpts,
 ): CoupleSummary {
+  const all = opts.includeAll === true;
   const latest = latestSnap(snapshots);
   const shareAccounts: ShareAccount[] = accounts
-    .filter(a => a.shareable)
+    .filter(a => all || a.shareable)
     .map(a => {
       const l = latest.get(a.id);
       return { type: a.type, label: a.displayName, balance: l ? l.balance : 0, asOf: l ? l.date : null };
@@ -103,7 +108,7 @@ export function buildShareableSummary(
   const overrides = opts.overrides ?? new Map<string, string>();
   const merchantRules = opts.merchantRules ?? new Map<string, string>();
   const shareableTxns: Transaction[] = transactions
-    .filter(t => acctShareable.get(t.accountId) === true && t.shareable !== false)
+    .filter(t => all || (acctShareable.get(t.accountId) === true && t.shareable !== false))
     .map(t => {
       const byTxn = overrides.get(t.id) as CategoryCode | undefined;
       const byMerchant = merchantRules.get(normalizeMerchant(t.description)) as CategoryCode | undefined;
@@ -122,7 +127,7 @@ export function buildShareableSummary(
     year: period(inRange(shiftDays(now, -365))),
   };
   const shareGoals: ShareGoal[] = goals
-    .filter(g => g.shareable)
+    .filter(g => all || g.shareable)
     .map(g => {
       const sg: ShareGoal = { name: g.name, targetAmount: g.targetAmount, currentAmount: g.currentAmount };
       if (g.targetDate) sg.targetDate = g.targetDate;
@@ -172,33 +177,44 @@ function mergePeriod(a: SharePeriod, b: SharePeriod): SharePeriod {
   return { spent: a.spent + b.spent, byCategory };
 }
 
-export function buildCoupleModel(mine: CoupleSummary, partner: CoupleSummary): CoupleModel {
+/** A zero-valued summary — used as the partner stand-in before they've synced. */
+function emptySummary(): CoupleSummary {
+  return {
+    schema: SUMMARY_SCHEMA, pairingId: '', author: 'B', generatedAt: '', currency: 'ILS',
+    netWorth: { total: 0, byBucket: { liquid: 0, investment: 0, retirement: 0, liability: 0 } },
+    accounts: [], spending: { thisMonth: { spent: 0, byCategory: [] }, last30: { spent: 0, byCategory: [] }, last90: { spent: 0, byCategory: [] }, year: { spent: 0, byCategory: [] } }, goals: [],
+  };
+}
+
+// partner may be null/absent — the couple view always shows MY side; the partner fills in once synced.
+export function buildCoupleModel(mine: CoupleSummary, partner?: CoupleSummary | null): CoupleModel {
+  const p = partner ?? emptySummary();
   const byBucket: NetWorthBuckets = {
-    liquid: mine.netWorth.byBucket.liquid + partner.netWorth.byBucket.liquid,
-    investment: mine.netWorth.byBucket.investment + partner.netWorth.byBucket.investment,
-    retirement: mine.netWorth.byBucket.retirement + partner.netWorth.byBucket.retirement,
-    liability: mine.netWorth.byBucket.liability + partner.netWorth.byBucket.liability,
+    liquid: mine.netWorth.byBucket.liquid + p.netWorth.byBucket.liquid,
+    investment: mine.netWorth.byBucket.investment + p.netWorth.byBucket.investment,
+    retirement: mine.netWorth.byBucket.retirement + p.netWorth.byBucket.retirement,
+    liability: mine.netWorth.byBucket.liability + p.netWorth.byBucket.liability,
   };
   return {
     netWorth: {
-      total: mine.netWorth.total + partner.netWorth.total,
+      total: mine.netWorth.total + p.netWorth.total,
       me: mine.netWorth.total,
-      partner: partner.netWorth.total,
+      partner: p.netWorth.total,
       byBucket,
     },
     accounts: [
       ...mine.accounts.map((a): OwnedAccount => ({ owner: 'me', ...a })),
-      ...partner.accounts.map((a): OwnedAccount => ({ owner: 'partner', ...a })),
+      ...p.accounts.map((a): OwnedAccount => ({ owner: 'partner', ...a })),
     ],
     spending: {
-      thisMonth: mergePeriod(mine.spending.thisMonth, partner.spending.thisMonth),
-      last30: mergePeriod(mine.spending.last30, partner.spending.last30),
-      last90: mergePeriod(mine.spending.last90, partner.spending.last90),
-      year: mergePeriod(mine.spending.year, partner.spending.year),
+      thisMonth: mergePeriod(mine.spending.thisMonth, p.spending.thisMonth),
+      last30: mergePeriod(mine.spending.last30, p.spending.last30),
+      last90: mergePeriod(mine.spending.last90, p.spending.last90),
+      year: mergePeriod(mine.spending.year, p.spending.year),
     },
     goals: [
       ...mine.goals.map((g): OwnedGoal => ({ owner: 'me', ...g })),
-      ...partner.goals.map((g): OwnedGoal => ({ owner: 'partner', ...g })),
+      ...p.goals.map((g): OwnedGoal => ({ owner: 'partner', ...g })),
     ],
   };
 }
