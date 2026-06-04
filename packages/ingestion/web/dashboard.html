@@ -231,6 +231,15 @@
   /* ── ACCOUNTS & BALANCES (all your money) ──────────────────────────────── */
   .accounts-card .acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   .composition{margin-bottom:14px}
+  /* day-to-day vs long-term split */
+  .horizon-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+  @media(max-width:520px){.horizon-tiles{grid-template-columns:1fr}}
+  .horizon-tile{border:1.5px solid color-mix(in srgb,var(--hz) 32%,transparent);background:color-mix(in srgb,var(--hz) 9%,transparent);border-radius:18px;padding:15px 17px}
+  .horizon-tile .hz-k{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:7px}
+  .horizon-tile .hz-v{font-family:var(--round);font-size:27px;color:var(--ink);margin-top:5px;font-variant-numeric:tabular-nums}
+  .horizon-tile .hz-sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
+  .acc-group + .acc-group{margin-top:6px}
+  .acc-group-h{font-family:var(--round);font-size:12.5px;letter-spacing:.02em;color:var(--ink-soft);text-transform:uppercase;display:flex;align-items:center;gap:7px;margin:16px 0 2px}
   .comp-bar{display:flex;height:14px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--ink) 8%,transparent);margin-bottom:12px}
   .comp-seg{height:100%;transition:width .7s cubic-bezier(.2,.85,.25,1)}
   .comp-legend{display:flex;flex-wrap:wrap;gap:8px 18px}
@@ -696,7 +705,11 @@ const T = {
   goal_done:      { en: 'done!',              he: 'הושג!' },
   /* accounts & balances */
   accounts:       { en: 'Your money',         he: 'הכסף שלך' },
-  accounts_sub:   { en: 'everything you own — bank, cards, investments, pension', he: 'כל מה שיש לך — בנק, אשראי, השקעות, פנסיה' },
+  accounts_sub:   { en: 'split into day-to-day and long-term', he: 'מחולק לשוטף ולטווח ארוך' },
+  horizon_daily:     { en: 'Day-to-day',       he: 'שוטף' },
+  horizon_daily_sub: { en: 'spendable now',    he: 'זמין עכשיו' },
+  horizon_longterm:     { en: 'Long-term',     he: 'טווח ארוך' },
+  horizon_longterm_sub: { en: 'for 20–30 years', he: 'ל-20–30 שנה' },
   add_balance:    { en: 'Add / update balance', he: 'הוסף / עדכן יתרה' },
   new_balance:    { en: 'Add or update a balance', he: 'הוספה או עדכון יתרה' },
   balance_kind_lbl:{ en: 'What is it?',        he: 'מה זה?' },
@@ -963,11 +976,12 @@ function clearGoalForm() {
 
 // ─── accounts & balances (all your money) ───────────────────────────────────
 const ACCT_TYPE_ICON = { bank:'🏦', credit_card:'💳', investment:'📈', pension:'🌴' };
-const COMP_BUCKETS = [
-  { key: 'liquid',      types: ['bank'],       cssVar: '--cat-savings' },
-  { key: 'investments', types: ['investment'], cssVar: '--cat-investment' },
-  { key: 'retirement',  types: ['pension'],    cssVar: '--cat-transfer' },
-];
+// How soon you'll use the money: bank/cards = day-to-day; investments/pension = long-term (20–30y).
+const HORIZON_OF = { bank: 'daily', credit_card: 'daily', investment: 'longterm', pension: 'longterm' };
+const HORIZON = {
+  daily:    { icon: '💳', cssVar: '--gold',           lbl: 'horizon_daily',    sub: 'horizon_daily_sub' },
+  longterm: { icon: '🌱', cssVar: '--cat-investment', lbl: 'horizon_longterm', sub: 'horizon_longterm_sub' },
+};
 const acctTypeLabel = type => t('acct_type_' + type) || type;
 const isManualAcct = a => a.institution === 'manual' || a.institution === 'ibi';
 
@@ -977,35 +991,42 @@ function renderAccounts(M) {
   const compEl = $('#composition');
   if (!listEl || !compEl) return;
 
-  // composition: assets by bucket (positive balances); liabilities = negative balances, shown apart
-  let assetsTotal = 0, liabilities = 0;
-  const bucketTotals = {};
+  // split everything into day-to-day vs long-term; liabilities (negative balances) tracked apart
+  const totals = { daily: 0, longterm: 0 };
+  let liabilities = 0;
   for (const a of accounts) {
     const bal = (typeof a.balance === 'number') ? a.balance : 0;
-    if (bal < 0) { liabilities += -bal; continue; }
-    if (bal === 0) continue;
-    const bucket = COMP_BUCKETS.find(b => b.types.includes(a.type));
-    const key = bucket ? bucket.key : 'liquid';
-    bucketTotals[key] = (bucketTotals[key] || 0) + bal;
-    assetsTotal += bal;
+    const h = HORIZON_OF[a.type] || 'daily';
+    totals[h] += bal;
+    if (bal < 0) liabilities += -bal;
   }
-  if (assetsTotal > 0) {
-    const segs = COMP_BUCKETS.filter(b => (bucketTotals[b.key] || 0) > 0).map(b => ({ ...b, color: catColorVar(b.cssVar) }));
-    compEl.innerHTML =
-      `<div class="comp-bar">${segs.map(b => `<div class="comp-seg" style="width:${(bucketTotals[b.key]/assetsTotal*100).toFixed(1)}%;background:${b.color}" title="${t('comp_'+b.key)}"></div>`).join('')}</div>` +
-      `<div class="comp-legend">${segs.map(b => `<span class="comp-item"><span class="sw" style="background:${b.color}"></span><span class="ck">${t('comp_'+b.key)}</span> <span class="cv">₪${NF(bucketTotals[b.key])}</span></span>`).join('')}</div>` +
-      (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
-    compEl.style.display = '';
-  } else {
-    compEl.style.display = 'none';
-  }
+  const dailyShown = Math.max(0, totals.daily), longShown = Math.max(0, totals.longterm);
+  const grand = dailyShown + longShown;
+
+  const tile = (key) => {
+    const c = catColorVar(HORIZON[key].cssVar);
+    const v = key === 'daily' ? totals.daily : totals.longterm;
+    return `<div class="horizon-tile" style="--hz:${c}">
+      <div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div>
+      <div class="hz-v">₪${NF(v)}</div>
+      <div class="hz-sub">${t(HORIZON[key].sub)}</div>
+    </div>`;
+  };
+  compEl.innerHTML =
+    `<div class="horizon-tiles">${tile('daily')}${tile('longterm')}</div>` +
+    (grand > 0 ? `<div class="comp-bar">
+        <div class="comp-seg" style="width:${(dailyShown / grand * 100).toFixed(1)}%;background:${catColorVar('--gold')}" title="${t('horizon_daily')}"></div>
+        <div class="comp-seg" style="width:${(longShown / grand * 100).toFixed(1)}%;background:${catColorVar('--cat-investment')}" title="${t('horizon_longterm')}"></div>
+      </div>` : '') +
+    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
+  compEl.style.display = '';
 
   if (accounts.length === 0) {
     listEl.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:10px 0">${t('no_accounts')}</div>`;
     return;
   }
   const now = M.generatedAt ? new Date(M.generatedAt) : new Date();
-  listEl.innerHTML = accounts.map(a => {
+  const rowHtml = (a) => {
     const bal = (typeof a.balance === 'number') ? a.balance : null;
     const balStr = bal === null ? '—' : (bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal));
     const icon = ACCT_TYPE_ICON[a.type] || '🏦';
@@ -1024,7 +1045,13 @@ function renderAccounts(M) {
       <span class="acc-bal ${bal !== null && bal < 0 ? 'neg' : ''}">${balStr}</span>
       ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
     </div>`;
-  }).join('');
+  };
+  const group = (key) => {
+    const accs = accounts.filter(a => (HORIZON_OF[a.type] || 'daily') === key);
+    if (!accs.length) return '';
+    return `<div class="acc-group"><div class="acc-group-h">${HORIZON[key].icon} ${t(HORIZON[key].lbl)}</div>${accs.map(rowHtml).join('')}</div>`;
+  };
+  listEl.innerHTML = group('daily') + group('longterm');
 
   $$('#accounts-list .acc-del').forEach(btn => {
     btn.onclick = async () => {
