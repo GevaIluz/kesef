@@ -411,6 +411,58 @@
 
   /* transfers summary */
   .transfers-total{font-family:var(--round);font-size:15px;color:var(--ink-soft);margin-bottom:12px}
+
+  /* ─── couple view ─── */
+  .owner-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;letter-spacing:.02em;vertical-align:middle}
+  .owner-badge.me{background:color-mix(in srgb,var(--teal) 20%,transparent);color:var(--teal-ink)}
+  .owner-badge.partner{background:color-mix(in srgb,var(--coral) 22%,transparent);color:var(--neg)}
+  .cv-split{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .cv-split .cv-who{flex:1;min-width:130px;background:color-mix(in srgb,var(--ink) 5%,transparent);border-radius:14px;padding:12px 15px}
+  .cv-who .cv-who-k{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);margin-bottom:4px}
+  .cv-who .cv-who-v{font-family:var(--round);font-weight:800;font-size:20px;color:var(--ink)}
+  .cv-acc{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .cv-acc:last-child{border-bottom:none}
+  .cv-acc .cv-acc-ic{font-size:19px;width:26px;text-align:center}
+  .cv-acc .cv-acc-main{flex:1;min-width:0}
+  .cv-acc .cv-acc-name{font-weight:650;font-size:14.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .cv-acc .cv-acc-meta{font-size:12px;color:var(--ink-soft);margin-top:1px}
+  .cv-acc .cv-acc-bal{font-family:var(--round);font-weight:750;font-size:15px;color:var(--ink)}
+  .cv-bars{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+  .cv-bar-row{display:flex;align-items:center;gap:10px;font-size:13px}
+  .cv-bar-lbl{width:104px;flex:0 0 auto;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cv-bar-track{flex:1;height:9px;border-radius:999px;background:color-mix(in srgb,var(--ink) 8%,transparent);overflow:hidden}
+  .cv-bar-fill{height:100%;border-radius:999px;background:var(--coral)}
+  .cv-bar-amt{font-family:var(--round);font-weight:650;color:var(--ink);white-space:nowrap}
+  .cv-freshness{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+  .cv-empty{color:var(--ink-soft);font-size:14px;padding:14px 0}
+  .cv-bar-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+
+  /* share toggle on a card (me view) */
+  .share-pill{margin-inline-start:auto}
+  .share-pill.on{background:color-mix(in srgb,var(--teal) 18%,transparent);color:var(--teal-ink)}
+
+  /* modal (pairing / preview) */
+  .modal-overlay{position:fixed;inset:0;background:color-mix(in srgb,#000 46%,transparent);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:60;padding:18px}
+  .modal-overlay.hidden{display:none}
+  .modal-card{background:var(--paper);color:var(--ink);border-radius:20px;max-width:540px;width:100%;padding:26px 26px 22px;box-shadow:0 24px 70px rgba(0,0,0,.32);max-height:90vh;overflow:auto}
+  .modal-card h2{font-family:var(--round);font-size:21px;margin:0 0 6px}
+  .modal-card p.modal-intro{font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:0 0 16px}
+  .modal-field{margin-bottom:14px}
+  .modal-field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px}
+  .modal-field input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:10px 13px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none}
+  .modal-field input:focus{border-color:var(--teal)}
+  .modal-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .btn{border:none;border-radius:12px;padding:10px 17px;font-family:var(--round);font-weight:700;font-size:14px;cursor:pointer;transition:.18s}
+  .btn.primary{background:var(--teal);color:#fff}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
+  .btn.danger{background:color-mix(in srgb,var(--coral) 18%,transparent);color:var(--neg)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .invite-code{font-family:var(--mono,monospace);font-size:12px;word-break:break-all;background:var(--paper-2);border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;margin:8px 0;line-height:1.5}
+  .modal-err{color:var(--neg);font-size:13px;margin-top:8px;min-height:1em}
+  .modal-or{text-align:center;color:var(--ink-soft);font-size:12px;margin:18px 0 14px;position:relative}
+  .modal-or::before,.modal-or::after{content:'';position:absolute;top:50%;width:38%;height:1px;background:var(--line)}
+  .modal-or::before{inset-inline-start:0}.modal-or::after{inset-inline-end:0}
 </style>
 </head>
 <body>
@@ -468,6 +520,7 @@
     </div>
   </section>
 
+  <div id="me-view">
   <div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div class="seg" role="group" aria-label="period" id="period-seg">
       <button data-period-btn="thisMonth" aria-pressed="false" data-t="period_thisMonth">This month</button>
@@ -591,6 +644,47 @@
     <p class="sub" data-t="recent_sub" style="margin:-2px 0 4px">auto-sorted</p>
     <div id="txs"></div>
   </section>
+  </div><!-- /#me-view -->
+
+  <!-- Couple / partner view (shown when paired) -->
+  <section id="couple-view" hidden>
+    <div class="cards">
+      <section class="card" style="grid-column:1/-1">
+        <div class="acc-head">
+          <div>
+            <h3 id="cv-title" data-t="cv_together">Together</h3>
+            <p class="sub" id="cv-freshness"></p>
+          </div>
+          <div class="cv-bar-actions">
+            <button class="btn ghost" id="cv-preview-btn" data-t="cv_preview">👁 Preview what you share</button>
+            <button class="sync-btn" id="cv-sync-btn"><span class="sync-ic">🔄</span> <span data-t="cv_sync_partner">Sync with partner</span></button>
+          </div>
+        </div>
+        <div id="cv-body">
+          <div class="cv-empty" id="cv-loading" hidden></div>
+          <div id="cv-content" hidden>
+            <div id="cv-composition"></div>
+            <div class="cv-split" id="cv-split"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column:1/-1" id="cv-accounts-card" hidden>
+        <div class="acc-head"><h3 data-t="cv_accounts">What you each hold</h3></div>
+        <div id="cv-accounts"></div>
+      </section>
+
+      <section class="card" id="cv-spending-card" hidden>
+        <div class="acc-head"><h3 data-t="cv_spending">What you spend together</h3></div>
+        <div class="cv-bars" id="cv-spending"></div>
+      </section>
+
+      <section class="card" id="cv-goals-card" hidden>
+        <div class="acc-head"><h3 data-t="cv_goals">Shared goals</h3></div>
+        <div id="cv-goals"></div>
+      </section>
+    </div>
+  </section>
 
   <!-- View-all panel -->
   <div id="viewall-panel" class="drawer hidden">
@@ -619,6 +713,55 @@
       <p class="sub" data-t="sync_hint" style="margin-bottom:16px">A browser opens for each account — just log in there. Nothing is typed here.</p>
       <div id="sync-steps"></div>
       <button class="gf-cancel" id="sync-close" style="display:none;margin-top:16px" data-t="close">Close</button>
+    </div>
+  </div>
+
+  <!-- Pairing modal -->
+  <div class="modal-overlay hidden" id="pair-overlay">
+    <div class="modal-card">
+      <h2 data-t="pair_title">Connect your partner</h2>
+      <p class="modal-intro" data-t="pair_intro"></p>
+      <div class="modal-field">
+        <label data-t="pair_relay">Relay address</label>
+        <input id="pair-relay" type="text" placeholder="https://relay.example.com" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="modal-field">
+        <label data-t="pair_partner_label">Partner's name (optional)</label>
+        <input id="pair-label" type="text" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="btn primary" id="pair-create-btn" data-t="pair_create">Create an invite</button>
+      </div>
+      <div class="modal-or"></div>
+      <div class="modal-field">
+        <label data-t="pair_code">Invite code</label>
+        <input id="pair-code" type="text" placeholder="kesef-pair:v1:…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="pair-join-btn" data-t="pair_join">I have an invite code</button>
+      </div>
+      <div id="pair-invite" hidden>
+        <p class="modal-intro" data-t="pair_show_invite" style="margin-top:16px"></p>
+        <div class="invite-code" id="pair-invite-code"></div>
+        <div class="modal-actions">
+          <button class="btn primary" id="pair-copy-btn" data-t="pair_copy">Copy</button>
+        </div>
+      </div>
+      <div class="modal-err" id="pair-err"></div>
+      <div class="modal-actions" style="margin-top:16px;justify-content:space-between">
+        <button class="btn ghost" id="pair-close-btn" data-t="close">Close</button>
+        <button class="btn danger" id="pair-unpair-btn" data-t="pair_unpair" hidden>Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "What you share" preview modal -->
+  <div class="modal-overlay hidden" id="preview-overlay">
+    <div class="modal-card">
+      <h2 data-t="cv_preview">Preview what you share</h2>
+      <p class="modal-intro" data-t="cv_preview_intro"></p>
+      <div id="preview-body"></div>
+      <div class="modal-actions" style="margin-top:8px"><button class="btn ghost" id="preview-close-btn" data-t="close">Close</button></div>
     </div>
   </div>
 
@@ -693,7 +836,35 @@ const T = {
                 he: 'התחזית זקוקה לעוד נתונים — המשיכו לסנכרן.' },
   of_income: { en: '% of income',    he: '% מההכנסה' },
   last_paycheck: { en: 'last paycheck', he: 'משכורת אחרונה' },
-  partner_disabled: { en: 'Arrives with couple-sync', he: 'יגיע עם סנכרון זוגי' },
+  partner_disabled: { en: 'Tap to connect your partner', he: 'הקישו לחיבור בן/בת הזוג' },
+  cv_together:   { en: 'Together',        he: 'ביחד' },
+  cv_you:        { en: 'You',             he: 'את/ה' },
+  cv_partner:    { en: 'Partner',         he: 'בן/בת זוג' },
+  cv_combined_nw:{ en: 'Combined net worth', he: 'שווי נקי משותף' },
+  cv_accounts:   { en: 'What you each hold', he: 'מה לכל אחד' },
+  cv_spending:   { en: 'What you spend together', he: 'מה אתם מוציאים יחד' },
+  cv_goals:      { en: 'Shared goals',    he: 'יעדים משותפים' },
+  cv_as_of:      { en: "partner's data as of", he: 'נתוני בן/בת הזוג נכון ל' },
+  cv_sync_partner: { en: 'Sync with partner', he: 'סנכרן עם בן/בת הזוג' },
+  cv_syncing:    { en: 'Syncing…',        he: 'מסנכרן…' },
+  cv_no_partner: { en: 'No partner data yet — ask them to sync too.', he: 'אין עדיין נתונים — בקשו מבן/בת הזוג לסנכרן.' },
+  cv_preview:    { en: '👁 Preview what you share', he: '👁 תצוגה מקדימה של מה שמשותף' },
+  cv_preview_none:{ en: 'You are not sharing anything yet. Flip a "Share" toggle on an account or goal.', he: 'עדיין לא משתפים כלום. הפעילו "שיתוף" על חשבון או יעד.' },
+  share_pill:    { en: 'Share', he: 'שיתוף' },
+  shared_badge:  { en: 'shared', he: 'משותף' },
+  pair_title:    { en: 'Connect your partner', he: 'חברו את בן/בת הזוג' },
+  pair_intro:    { en: 'You each run kesef on your own machine. Nothing private is ever shared — only items you toggle "Share". Data is end-to-end encrypted; the relay only sees ciphertext.', he: 'כל אחד מריץ kesef במחשב שלו. שום דבר פרטי לא משותף — רק מה שמסמנים "שיתוף". הנתונים מוצפנים מקצה לקצה; השרת רואה רק טקסט מוצפן.' },
+  pair_relay:    { en: 'Relay address (you both use the same one)', he: 'כתובת השרת (שניכם משתמשים באותה)' },
+  pair_create:   { en: 'Create an invite', he: 'צור הזמנה' },
+  pair_join:     { en: 'I have an invite code', he: 'יש לי קוד הזמנה' },
+  pair_code:     { en: 'Invite code', he: 'קוד הזמנה' },
+  pair_show_invite: { en: 'Send this code to your partner (it carries the secret key — share it privately):', he: 'שלחו את הקוד לבן/בת הזוג (הוא מכיל את המפתח — שתפו בערוץ פרטי):' },
+  pair_copy:     { en: 'Copy', he: 'העתק' },
+  pair_copied:   { en: 'Copied ✓', he: 'הועתק ✓' },
+  pair_done:     { en: 'Done', he: 'סיום' },
+  pair_unpair:   { en: 'Disconnect', he: 'נתק' },
+  pair_partner_label: { en: "Partner's name (optional)", he: 'שם בן/בת הזוג (לא חובה)' },
+  cv_preview_intro: { en: 'This is exactly what crosses to your partner — aggregates only, never individual transactions.', he: 'זה בדיוק מה שעובר לבן/בת הזוג — רק סיכומים, אף פעם לא תנועות בודדות.' },
   more_cats: { en: 'more categories', he: 'קטגוריות נוספות' },
   zoom_hint: { en: '👆 tap any slice or row to zoom in', he: '👆 הקישו על פלח או שורה כדי להתמקד' },
   top_merchants:      { en: 'Top merchants',               he: 'בתי עסק מובילים' },
@@ -907,11 +1078,13 @@ function renderGoals(goals, generatedAt) {
     return;
   }
   const R = 25, C = 2 * Math.PI * R;
+  const paired = !!(window.__KESEF__ && window.__KESEF__.couple && window.__KESEF__.couple.paired);
   container.innerHTML = goals.map(g => {
     const cur = g.currentAmount || g.current || 0;
     const tgt = g.targetAmount || g.target || 1;
     const pc = Math.min(1, cur / tgt);
     const done = pc >= 1;
+    const shareHtml = paired ? `<label class="toggle-pill share-pill ${g.shareable ? 'on' : ''}"><input type="checkbox" data-share-goal="${esc(String(g.id || ''))}" ${g.shareable ? 'checked' : ''}> <span>${g.shareable ? '✓ ' + t('shared_badge') : t('share_pill')}</span></label>` : '';
     const dueLabel = g.targetDate
       ? `${t('by_date')} ${g.targetDate}`
       : '';
@@ -943,6 +1116,7 @@ function renderGoals(goals, generatedAt) {
         <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
       </div>
       ${projHtml}
+      ${shareHtml ? `<div style="display:flex;justify-content:flex-end;margin-top:8px">${shareHtml}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -973,6 +1147,14 @@ function renderGoals(goals, generatedAt) {
       } catch(e) {
         btn.disabled = false; btn.textContent = '×';
       }
+    };
+  });
+
+  $$('#goals [data-share-goal]').forEach(cb => {
+    cb.onchange = async () => {
+      const on = cb.checked, lbl = cb.closest('.share-pill');
+      await api('/api/couple/share', 'POST', { kind: 'goal', id: cb.dataset.shareGoal, shareable: on });
+      if (lbl) { lbl.classList.toggle('on', on); const s = lbl.querySelector('span'); if (s) s.textContent = on ? '✓ ' + t('shared_badge') : t('share_pill'); }
     };
   });
 }
@@ -1102,8 +1284,10 @@ function renderAccounts(M) {
     return;
   }
   const now = M.generatedAt ? new Date(M.generatedAt) : new Date();
+  const paired = !!(M.couple && M.couple.paired);
   const rowHtml = (a) => {
     const bal = (typeof a.balance === 'number') ? a.balance : null;
+    const shareHtml = paired ? `<label class="toggle-pill share-pill ${a.shareable ? 'on' : ''}"><input type="checkbox" data-share-acct="${esc(a.id)}" ${a.shareable ? 'checked' : ''}> <span>${a.shareable ? '✓ ' + t('shared_badge') : t('share_pill')}</span></label>` : '';
     const balStr = bal === null ? '—' : (bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal));
     const icon = ACCT_TYPE_ICON[a.type] || '🏦';
     let asof = '';
@@ -1135,6 +1319,7 @@ function renderAccounts(M) {
       </div>
       ${compHtml}
       ${histHtml}
+      ${shareHtml ? `<div style="display:flex;justify-content:flex-end;margin-top:8px">${shareHtml}</div>` : ''}
     </div>`;
   };
   const group = (key) => {
@@ -1153,6 +1338,14 @@ function renderAccounts(M) {
         const res = await fetch(`/api/balance?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
         if (res.ok) location.reload(); else { btn.disabled = false; btn.textContent = '×'; }
       } catch (e) { btn.disabled = false; btn.textContent = '×'; }
+    };
+  });
+
+  $$('#accounts-list [data-share-acct]').forEach(cb => {
+    cb.onchange = async () => {
+      const on = cb.checked, lbl = cb.closest('.share-pill');
+      await api('/api/couple/share', 'POST', { kind: 'account', id: cb.dataset.shareAcct, shareable: on });
+      if (lbl) { lbl.classList.toggle('on', on); const s = lbl.querySelector('span'); if (s) s.textContent = on ? '✓ ' + t('shared_badge') : t('share_pill'); }
     };
   });
 }
@@ -1960,7 +2153,8 @@ function render() {
   renderTxs(M.recent);
   setupGoalForm(M.generatedAt);
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
-  $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === 'me' ? 'true' : 'false'));
+  setupCoupleButtons(M);
+  applyViewVisibility();
 }
 
 // ─── period toggle ────────────────────────────────────────────────────────────
@@ -2035,12 +2229,230 @@ if (viewallSearch) {
 // ─── language toggle ──────────────────────────────────────────────────────────
 $$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; render(); });
 
-// Partner/Couple buttons are disabled
-$$('[data-view-btn]').forEach(b => {
-  if (b.dataset.viewBtn === 'me') {
-    b.onclick = () => render();
+// ─── couple view: pairing, sharing, partner/couple modes ───────────────────────
+let currentView = 'me';        // 'me' | 'partner' | 'couple'
+let coupleData = null;         // last { model, partnerError, partnerAsOf } from /api/couple/sync
+
+const couplePaired = () => !!(window.__KESEF__ && window.__KESEF__.couple && window.__KESEF__.couple.paired);
+async function api(path, method, body) {
+  const res = await fetch(path, { method: method || 'GET', headers: body ? { 'content-type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+  let data = null; try { data = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, data: data || {} };
+}
+
+// Enable the Partner/Couple buttons once paired; otherwise a tap opens the pairing modal.
+function setupCoupleButtons(M) {
+  const paired = !!(M && M.couple && M.couple.paired);
+  $$('[data-view-btn]').forEach(b => {
+    const v = b.dataset.viewBtn;
+    if (v === 'me') { b.removeAttribute('data-disabled'); }
+    else if (paired) { b.removeAttribute('data-disabled'); }
+    else { b.setAttribute('data-disabled', 'true'); }
+    b.onclick = () => {
+      if (v !== 'me' && !couplePaired()) { openPairing(); return; }
+      switchView(v);
+    };
+  });
+  setupDisabledButtons();
+}
+
+function switchView(v) {
+  currentView = v;
+  $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === v ? 'true' : 'false'));
+  applyViewVisibility();
+}
+
+// Toggle the personal vs couple panels and adjust the hero for the active view.
+function applyViewVisibility() {
+  const M = window.__KESEF__;
+  $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === currentView ? 'true' : 'false'));
+  const meView = $('#me-view'), coupleView = $('#couple-view'), privacy = $('#privacy'), chart = $('#chart-area');
+  const isMe = currentView === 'me';
+  if (meView) meView.hidden = !isMe;
+  if (coupleView) coupleView.hidden = isMe;
+  if (privacy) privacy.hidden = isMe;
+  if (chart) chart.style.visibility = isMe ? '' : 'hidden';
+  const deltaChip = $('#delta-chip');
+  if (deltaChip) deltaChip.style.display = isMe ? '' : 'none';   // personal trend chip — irrelevant in couple view
+  const eyebrow = $('.eyebrow');
+  if (isMe) {
+    if (M) up($('#nw'), M.netWorth);
+    if (eyebrow) eyebrow.innerHTML = '👋 <span>' + t('hello') + '</span>';
+  } else {
+    if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '🤝 ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
+    if (coupleData) renderCoupleView(); else loadCoupleView();
   }
-});
+}
+
+async function loadCoupleView() {
+  const loading = $('#cv-loading'), content = $('#cv-content');
+  if (loading) { loading.hidden = false; loading.textContent = t('cv_syncing'); }
+  const r = await api('/api/couple/sync', 'POST');
+  coupleData = r.data || {};
+  if (loading) loading.hidden = true;
+  renderCoupleView();
+}
+
+function renderCoupleView() {
+  const d = coupleData || {};
+  const mode = currentView; // 'partner' | 'couple'
+  const model = d.model;
+  const content = $('#cv-content');
+  const fresh = $('#cv-freshness');
+  if (fresh) fresh.textContent = d.partnerAsOf ? (t('cv_as_of') + ' ' + d.partnerAsOf) : '';
+  $('#cv-title').textContent = t(mode === 'couple' ? 'cv_together' : 'cv_partner');
+
+  // no partner blob yet
+  if (!model) {
+    if (content) content.hidden = true;
+    ['cv-accounts-card','cv-spending-card','cv-goals-card'].forEach(id => { const e = document.getElementById(id); if (e) e.hidden = true; });
+    const body = $('#cv-body'); const loading = $('#cv-loading');
+    if (loading) { loading.hidden = false; loading.textContent = d.error ? d.error : t('cv_no_partner'); }
+    up($('#nw'), 0);
+    return;
+  }
+  if (content) content.hidden = false;
+
+  // hero number: combined for couple, partner's for partner view
+  up($('#nw'), mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
+
+  // composition (day-to-day vs long-term) from combined buckets, partner-only for partner view
+  const bb = model.netWorth.byBucket;
+  const daily = bb.liquid, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
+  // (partner view: recompute from partner-only is not in the merged buckets; couple view sums both. For
+  //  partner view we still show the combined buckets' partner share via the split below.)
+  const grand = Math.max(0, daily) + Math.max(0, longterm);
+  $('#cv-composition').innerHTML =
+    `<div class="horizon-tiles">
+       <div class="horizon-tile" style="--hz:${catColorVar('--gold')}"><div class="hz-k">${HORIZON.daily.icon} <span>${t(HORIZON.daily.lbl)}</span></div><div class="hz-v">₪${NF(daily)}</div><div class="hz-sub">${t(HORIZON.daily.sub)}</div></div>
+       <div class="horizon-tile" style="--hz:${catColorVar('--cat-investment')}"><div class="hz-k">${HORIZON.longterm.icon} <span>${t(HORIZON.longterm.lbl)}</span></div><div class="hz-v">₪${NF(longterm)}</div><div class="hz-sub">${t(HORIZON.longterm.sub)}</div></div>
+     </div>` +
+    (grand > 0 ? `<div class="comp-bar"><div class="comp-seg" style="width:${(Math.max(0,daily)/grand*100).toFixed(1)}%;background:${catColorVar('--gold')}"></div><div class="comp-seg" style="width:${(Math.max(0,longterm)/grand*100).toFixed(1)}%;background:${catColorVar('--cat-investment')}"></div></div>` : '') +
+    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
+
+  // you / partner split
+  $('#cv-split').innerHTML = mode === 'couple'
+    ? `<div class="cv-who"><div class="cv-who-k">🧑 ${t('cv_you')}</div><div class="cv-who-v">₪${NF(model.netWorth.me)}</div></div>
+       <div class="cv-who"><div class="cv-who-k">❤️ ${esc(partnerName())}</div><div class="cv-who-v">₪${NF(model.netWorth.partner)}</div></div>`
+    : '';
+
+  // accounts, owner-tagged
+  const accCard = $('#cv-accounts-card'), accEl = $('#cv-accounts');
+  const accs = (model.accounts || []).filter(a => mode === 'couple' || a.owner === 'partner');
+  if (accs.length && accEl) {
+    accEl.innerHTML = accs.map(a => {
+      const icon = ACCT_TYPE_ICON[a.type] || '🏦';
+      const bal = (typeof a.balance === 'number') ? a.balance : 0;
+      const balStr = bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal);
+      const who = a.owner === 'me' ? `<span class="owner-badge me">${t('cv_you')}</span>` : `<span class="owner-badge partner">${esc(partnerName())}</span>`;
+      return `<div class="cv-acc"><span class="cv-acc-ic">${icon}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)} ${who}</div><div class="cv-acc-meta">${acctTypeLabel(a.type)}${a.asOf ? ' · ' + t('as_of') + ' ' + a.asOf : ''}</div></div><span class="cv-acc-bal">${balStr}</span></div>`;
+    }).join('');
+    accCard.hidden = false;
+  } else if (accCard) accCard.hidden = true;
+
+  // combined spending (this-month category totals)
+  const spCard = $('#cv-spending-card'), spEl = $('#cv-spending');
+  const per = model.spending && model.spending.thisMonth;
+  const cats = (per && per.byCategory) ? per.byCategory.slice(0, 8) : [];
+  if (cats.length && spEl) {
+    const max = Math.max(...cats.map(c => c.amount), 1);
+    spEl.innerHTML = cats.map(c => {
+      const lbl = (T.cat[c.category] && T.cat[c.category][lang]) || c.category;
+      return `<div class="cv-bar-row"><span class="cv-bar-lbl" title="${esc(lbl)}">${esc(lbl)}</span><span class="cv-bar-track"><span class="cv-bar-fill" style="width:${(c.amount/max*100).toFixed(0)}%;background:${catColor(c.category)}"></span></span><span class="cv-bar-amt">₪${NF(c.amount)}</span></div>`;
+    }).join('');
+    spCard.hidden = false;
+  } else if (spCard) spCard.hidden = true;
+
+  // shared goals, owner-tagged
+  const gCard = $('#cv-goals-card'), gEl = $('#cv-goals');
+  const goals = (model.goals || []).filter(g => mode === 'couple' || g.owner === 'partner');
+  if (goals.length && gEl) {
+    gEl.innerHTML = goals.map(g => {
+      const pc = Math.min(1, (g.currentAmount||0) / (g.targetAmount||1));
+      const who = g.owner === 'me' ? `<span class="owner-badge me">${t('cv_you')}</span>` : `<span class="owner-badge partner">${esc(partnerName())}</span>`;
+      return `<div style="padding:11px 2px;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div class="cv-acc-name">${esc(g.name)} ${who}</div><div class="ga" style="text-align:end">₪${NF(g.currentAmount||0)}<small>${lang==='en'?'of':'מתוך'} ₪${NF(g.targetAmount||0)}</small></div></div><div class="cv-bar-track" style="margin-top:7px"><span class="cv-bar-fill" style="width:${(pc*100).toFixed(0)}%;background:${catColorVar('--teal')}"></span></div></div>`;
+    }).join('');
+    gCard.hidden = false;
+  } else if (gCard) gCard.hidden = true;
+}
+
+function partnerName() {
+  const c = window.__KESEF__ && window.__KESEF__.couple;
+  return (c && c.partnerLabel) ? c.partnerLabel : t('cv_partner');
+}
+
+// ─── pairing modal ──────────────────────────────────────────────────────────────
+function openPairing() {
+  const ov = $('#pair-overlay'); if (!ov) return;
+  const c = window.__KESEF__ && window.__KESEF__.couple;
+  const relay = $('#pair-relay'), label = $('#pair-label'), err = $('#pair-err'), invite = $('#pair-invite'), unpairBtn = $('#pair-unpair-btn');
+  if (err) err.textContent = '';
+  if (invite) invite.hidden = true;
+  if (c && c.paired) {
+    if (relay) relay.value = c.relayUrl || '';
+    if (label) label.value = c.partnerLabel || '';
+    if (unpairBtn) unpairBtn.hidden = false;
+  } else {
+    if (unpairBtn) unpairBtn.hidden = true;
+  }
+  ov.classList.remove('hidden');
+}
+function setupPairing() {
+  const ov = $('#pair-overlay'); if (!ov) return;
+  const relay = $('#pair-relay'), label = $('#pair-label'), code = $('#pair-code'), err = $('#pair-err');
+  const createBtn = $('#pair-create-btn'), joinBtn = $('#pair-join-btn'), closeBtn = $('#pair-close-btn');
+  const invite = $('#pair-invite'), inviteCode = $('#pair-invite-code'), copyBtn = $('#pair-copy-btn'), unpairBtn = $('#pair-unpair-btn');
+  const fail = (m) => { if (err) err.textContent = m; };
+  createBtn.onclick = async () => {
+    if (!relay.value.trim()) return fail(t('pair_relay'));
+    createBtn.disabled = true; fail('');
+    const r = await api('/api/couple/pair', 'POST', { mode: 'generate', relayUrl: relay.value.trim(), partnerLabel: label.value.trim() || undefined });
+    createBtn.disabled = false;
+    if (!r.ok) return fail(r.data.error || 'error');
+    if (inviteCode) inviteCode.textContent = r.data.token;
+    if (invite) invite.hidden = false;
+  };
+  joinBtn.onclick = async () => {
+    if (!relay.value.trim()) return fail(t('pair_relay'));
+    if (!code.value.trim()) return fail(t('pair_code'));
+    joinBtn.disabled = true; fail('');
+    const r = await api('/api/couple/pair', 'POST', { mode: 'join', relayUrl: relay.value.trim(), token: code.value.trim(), partnerLabel: label.value.trim() || undefined });
+    joinBtn.disabled = false;
+    if (!r.ok) return fail(r.data.error || 'error');
+    location.reload();
+  };
+  if (copyBtn) copyBtn.onclick = async () => { try { await navigator.clipboard.writeText(inviteCode.textContent); copyBtn.textContent = t('pair_copied'); } catch {} };
+  if (unpairBtn) unpairBtn.onclick = async () => { unpairBtn.disabled = true; await api('/api/couple/unpair', 'POST'); location.reload(); };
+  if (closeBtn) closeBtn.onclick = () => { ov.classList.add('hidden'); if ($('#pair-invite') && !$('#pair-invite').hidden) location.reload(); };
+  ov.onclick = (e) => { if (e.target === ov) closeBtn.onclick(); };
+}
+setupPairing();
+
+// ─── "what you share" preview ────────────────────────────────────────────────────
+function setupPreview() {
+  const ov = $('#preview-overlay'); if (!ov) return;
+  const body = $('#preview-body'), closeBtn = $('#preview-close-btn'), openBtn = $('#cv-preview-btn');
+  if (openBtn) openBtn.onclick = async () => {
+    const r = await api('/api/couple/preview', 'GET');
+    const s = r.data || {};
+    const accts = s.accounts || [], goals = s.goals || [];
+    const nw = s.netWorth ? s.netWorth.total : 0;
+    if (!accts.length && !goals.length) {
+      body.innerHTML = `<div class="cv-empty">${t('cv_preview_none')}</div>`;
+    } else {
+      body.innerHTML =
+        `<div class="cv-who" style="margin-bottom:12px"><div class="cv-who-k">${t('cv_combined_nw')}</div><div class="cv-who-v">₪${NF(nw)}</div></div>` +
+        (accts.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 4px">${t('cv_accounts')}</div>` + accts.map(a => `<div class="cv-acc"><span class="cv-acc-ic">${ACCT_TYPE_ICON[a.type]||'🏦'}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)}</div></div><span class="cv-acc-bal">₪${NF(a.balance)}</span></div>`).join('') : '') +
+        (goals.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:12px 0 4px">${t('cv_goals')}</div>` + goals.map(g => `<div class="cv-acc"><span class="cv-acc-ic">🎯</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(g.name)}</div></div><span class="cv-acc-bal">₪${NF(g.currentAmount)}</span></div>`).join('') : '');
+    }
+    ov.classList.remove('hidden');
+  };
+  if (closeBtn) closeBtn.onclick = () => ov.classList.add('hidden');
+  ov.onclick = (e) => { if (e.target === ov) ov.classList.add('hidden'); };
+  const syncBtn = $('#cv-sync-btn');
+  if (syncBtn) syncBtn.onclick = () => loadCoupleView();
+}
+setupPreview();
 
 // ─── Sync button (live SSE progress; all sources; no terminal) ──────────────────
 function setupSync() {
