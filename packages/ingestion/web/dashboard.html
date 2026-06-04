@@ -545,7 +545,7 @@
 
   <div class="cards">
     <!-- Your money: every account (incl. pension / gemel / keren / IBI) + composition -->
-    <section class="card accounts-card" style="grid-column:1/-1;animation-delay:.12s">
+    <section class="card accounts-card" style="grid-column:1/-1;order:3;animation-delay:.24s">
       <div class="acc-head">
         <div>
           <h3 data-t="accounts">Your money</h3>
@@ -582,7 +582,7 @@
       </div>
     </section>
 
-    <section class="card" style="animation-delay:.2s">
+    <section class="card" style="order:1;animation-delay:.1s">
       <h3 data-t="spend">Where it goes</h3>
       <p class="sub" id="spend-sub">this month</p>
       <div class="donut-row">
@@ -596,7 +596,7 @@
       <div class="insight" id="insight-box">💡 <span id="insight-text"></span></div>
     </section>
 
-    <section class="card" style="animation-delay:.25s">
+    <section class="card" style="order:2;animation-delay:.17s">
       <h3 data-t="goals">Your goals</h3>
       <p class="sub" data-t="goals_sub">the fun part 🎉</p>
       <div id="goals"></div>
@@ -620,7 +620,7 @@
     </section>
 
     <!-- Top Merchants full-width card -->
-    <section class="card merchants-card" style="animation-delay:.3s" id="merchants-card">
+    <section class="card merchants-card" style="order:4;animation-delay:.3s" id="merchants-card">
       <h3 data-t="top_merchants">Top merchants</h3>
       <p class="sub" id="merchants-sub">this period</p>
       <div id="merchants-list"></div>
@@ -2277,7 +2277,7 @@ function applyViewVisibility() {
     if (M) up($('#nw'), M.netWorth);
     if (eyebrow) eyebrow.innerHTML = '👋 <span>' + t('hello') + '</span>';
   } else {
-    if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '🤝 ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
+    if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '❤️ ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
     if (coupleData) renderCoupleView(); else loadCoupleView();
   }
 }
