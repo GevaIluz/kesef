@@ -161,6 +161,16 @@ export class Store {
 
   deleteGoal(id: string): void { this.db.prepare('DELETE FROM goals WHERE id = ?').run(id); }
 
+  /** Flip an account's couple-share flag in place (couple sharing is per-item, default off). */
+  setAccountShareable(id: string, shareable: boolean): void {
+    this.db.prepare('UPDATE accounts SET shareable = ? WHERE id = ?').run(shareable ? 1 : 0, id);
+  }
+
+  /** Flip a goal's couple-share flag in place. */
+  setGoalShareable(id: string, shareable: boolean): void {
+    this.db.prepare('UPDATE goals SET shareable = ? WHERE id = ?').run(shareable ? 1 : 0, id);
+  }
+
   /** Remove an account and everything that references it (snapshots, transactions) in one transaction. */
   deleteAccount(id: string): void {
     const run = this.db.transaction((accountId: string) => {

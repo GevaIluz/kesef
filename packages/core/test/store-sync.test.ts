@@ -100,6 +100,19 @@ describe('Store sync helpers', () => {
     s.close();
   });
 
+  it('setAccountShareable / setGoalShareable flip the per-item share flag in place', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount(a); // shareable: false
+    s.setAccountShareable('a1', true);
+    expect(s.listAccounts().find(x => x.id === 'a1')!.shareable).toBe(true);
+    s.setAccountShareable('a1', false);
+    expect(s.listAccounts().find(x => x.id === 'a1')!.shareable).toBe(false);
+    s.upsertGoal({ id: 'g1', name: 'x', targetAmount: 1, currentAmount: 0, shareable: false });
+    s.setGoalShareable('g1', true);
+    expect(s.listGoals().find(x => x.id === 'g1')!.shareable).toBe(true);
+    s.close();
+  });
+
   it('couple pairing: setPairing/getPairing round-trips; null when unpaired', () => {
     const s = Store.open({ path: newDb(), key: 'pw' });
     expect(s.getPairing()).toBeNull();
