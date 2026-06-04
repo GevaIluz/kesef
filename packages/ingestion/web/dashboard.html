@@ -668,6 +668,7 @@ const T = {
   no_forecast:{ en: 'Forecast needs a little more history — keep syncing.',
                 he: 'התחזית זקוקה לעוד נתונים — המשיכו לסנכרן.' },
   of_income: { en: '% of income',    he: '% מההכנסה' },
+  last_paycheck: { en: 'last paycheck', he: 'משכורת אחרונה' },
   partner_disabled: { en: 'Arrives with couple-sync', he: 'יגיע עם סנכרון זוגי' },
   more_cats: { en: 'more categories', he: 'קטגוריות נוספות' },
   zoom_hint: { en: '👆 tap any slice or row to zoom in', he: '👆 הקישו על פלח או שורה כדי להתמקד' },
@@ -1574,6 +1575,15 @@ function renderPeriodSpending(M) {
     p = { ...srv, savedInvested: srv.savedInvested || 0 };
   }
 
+  // "This month" income: salaries land at the end of the prior month, so early in the month no new
+  // paycheck has arrived — show the most recent paycheck (the salary funding this month), not ₪0.
+  let incomeIsLastPay = false;
+  if (selectedPeriod === 'thisMonth' && !p.income && M.transactions) {
+    const lastPay = (M.transactions.filter(t => t.category === 'income' && t.amount > 0)
+      .sort((a, b) => b.date.localeCompare(a.date)))[0];
+    if (lastPay) { p = { ...p, income: lastPay.amount, saved: lastPay.amount - p.spent }; incomeIsLastPay = true; }
+  }
+
   const periodLabel = t('period_' + selectedPeriod);
   up($('#s-in'),   p.income, '₪');
   up($('#s-out'),  p.spent,  '₪');
@@ -1587,7 +1597,7 @@ function renderPeriodSpending(M) {
   if (siPill) siPill.textContent = periodLabel;
   if (siStat) siStat.style.display = '';
 
-  $('#s-in-pill').textContent  = periodLabel;
+  $('#s-in-pill').textContent  = incomeIsLastPay ? t('last_paycheck') : periodLabel;
   $('#s-out-pill').textContent = periodLabel;
   renderSavingsRate(p.income, p.saved);
   $('#spend-sub').textContent = periodLabel;
