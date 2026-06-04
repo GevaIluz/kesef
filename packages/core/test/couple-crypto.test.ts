@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { encrypt, decrypt } from '../src/crypto';
-import { deriveCoupleKeys, sealCoupleBlob, openCoupleBlob, buildShareableSummary } from '../src/couple';
+import { deriveCoupleKeys, sealCoupleBlob, openCoupleBlob, buildShareableSummary, newPairing, makePairingToken, parsePairingToken } from '../src/couple';
 
 describe('encrypt/decrypt with associated data (AAD)', () => {
   it('round-trips with matching AAD and throws on any AAD mismatch', () => {
@@ -68,5 +68,32 @@ describe('sealCoupleBlob / openCoupleBlob — encrypted, context-bound summary b
     const a = sealCoupleBlob(summary, dataKey, ctx);
     const b = sealCoupleBlob(summary, dataKey, ctx);
     expect(a.iv).not.toBe(b.iv);
+  });
+});
+
+describe('pairing token — the QR/text payload that links two devices', () => {
+  it('newPairing generates a 16-byte hex id and a 32-byte secret; each call is unique', () => {
+    const a = newPairing();
+    const b = newPairing();
+    expect(a.pairingId).toMatch(/^[0-9a-f]{32}$/);
+    expect(a.sPair.length).toBe(32);
+    expect(a.pairingId).not.toBe(b.pairingId);
+    expect(a.sPair.equals(b.sPair)).toBe(false);
+  });
+
+  it('make/parse round-trips so both devices hold the same pairingId + S_pair', () => {
+    const p = newPairing();
+    const token = makePairingToken(p);
+    expect(token.startsWith('kesef-pair:v1:')).toBe(true);
+    const parsed = parsePairingToken(token);
+    expect(parsed.pairingId).toBe(p.pairingId);
+    expect(parsed.sPair.equals(p.sPair)).toBe(true);
+  });
+
+  it('rejects a malformed or wrong-version token', () => {
+    expect(() => parsePairingToken('https://example.com')).toThrow();
+    expect(() => parsePairingToken('kesef-pair:v2:abc:def')).toThrow();
+    expect(() => parsePairingToken('kesef-pair:v1:onlyid')).toThrow();          // no secret
+    expect(() => parsePairingToken('kesef-pair:v1:id:c2hvcnQ=')).toThrow();      // secret not 32 bytes
   });
 });

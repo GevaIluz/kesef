@@ -47,3 +47,16 @@ CREATE TABLE IF NOT EXISTS merchant_rules (
   merchant TEXT PRIMARY KEY,
   category TEXT NOT NULL
 );
+
+-- Couple pairing: NON-secret metadata only. The pairing secret (S_pair) lives in
+-- the OS keychain, never here. local_seq/partner_seq track the monotonic blob
+-- sequence in each relay slot. v1 holds at most one pairing.
+CREATE TABLE IF NOT EXISTS couple_pairing (
+  pairing_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL,
+  partner_label TEXT,
+  relay_url TEXT,
+  created_at TEXT NOT NULL,
+  local_seq INTEGER NOT NULL DEFAULT 0,
+  partner_seq INTEGER NOT NULL DEFAULT 0
+);

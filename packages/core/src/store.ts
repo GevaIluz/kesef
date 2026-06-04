@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, Transaction, BalanceSnapshot, Goal } from './types';
+import type { Account, Transaction, BalanceSnapshot, Goal, CouplePairing } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -170,6 +170,40 @@ export class Store {
     });
     run(id);
   }
+
+  /** Save (upsert) the couple pairing metadata. Secret S_pair is NOT stored here. */
+  setPairing(p: CouplePairing): void {
+    this.db.prepare(
+      `INSERT INTO couple_pairing (pairing_id, role, partner_label, relay_url, created_at, local_seq, partner_seq)
+       VALUES (@pairingId, @role, @partnerLabel, @relayUrl, @createdAt, @localSeq, @partnerSeq)
+       ON CONFLICT(pairing_id) DO UPDATE SET
+         role=@role, partner_label=@partnerLabel, relay_url=@relayUrl,
+         created_at=@createdAt, local_seq=@localSeq, partner_seq=@partnerSeq`
+    ).run({
+      pairingId: p.pairingId, role: p.role,
+      partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null,
+      createdAt: p.createdAt, localSeq: p.localSeq, partnerSeq: p.partnerSeq,
+    });
+  }
+
+  /** The current pairing (most recent), or null if not paired. v1 keeps at most one. */
+  getPairing(): CouplePairing | null {
+    const r = this.db.prepare('SELECT * FROM couple_pairing ORDER BY created_at DESC LIMIT 1').get() as Record<string, unknown> | undefined;
+    if (!r) return null;
+    const p: CouplePairing = {
+      pairingId: r['pairing_id'] as string,
+      role: r['role'] as CouplePairing['role'],
+      createdAt: r['created_at'] as string,
+      localSeq: r['local_seq'] as number,
+      partnerSeq: r['partner_seq'] as number,
+    };
+    if (r['partner_label'] != null) p.partnerLabel = r['partner_label'] as string;
+    if (r['relay_url'] != null) p.relayUrl = r['relay_url'] as string;
+    return p;
+  }
+
+  /** Disconnect: forget the pairing locally (caller also clears the keychain secret + tells the relay). */
+  clearPairing(): void { this.db.prepare('DELETE FROM couple_pairing').run(); }
 
   close(): void { this.db.close(); }
 }

@@ -99,4 +99,23 @@ describe('Store sync helpers', () => {
     expect(got.targetDate).toBeUndefined();
     s.close();
   });
+
+  it('couple pairing: setPairing/getPairing round-trips; null when unpaired', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    expect(s.getPairing()).toBeNull();
+    s.setPairing({ pairingId: 'abc', role: 'A', partnerLabel: 'Partner', relayUrl: 'https://relay.example', createdAt: '2026-06-04', localSeq: 0, partnerSeq: 0 });
+    expect(s.getPairing()).toEqual({ pairingId: 'abc', role: 'A', partnerLabel: 'Partner', relayUrl: 'https://relay.example', createdAt: '2026-06-04', localSeq: 0, partnerSeq: 0 });
+    s.close();
+  });
+
+  it('couple pairing: setPairing upserts (bump seq) and clearPairing disconnects', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.setPairing({ pairingId: 'abc', role: 'A', createdAt: '2026-06-04', localSeq: 0, partnerSeq: 0 });
+    s.setPairing({ pairingId: 'abc', role: 'A', createdAt: '2026-06-04', localSeq: 7, partnerSeq: 3 });
+    expect(s.getPairing()!.localSeq).toBe(7);
+    expect(s.getPairing()!.partnerSeq).toBe(3);
+    s.clearPairing();
+    expect(s.getPairing()).toBeNull();
+    s.close();
+  });
 });

@@ -50,6 +50,17 @@ export interface Goal {
   shareable: boolean;
 }
 
+/** Couple pairing record — NON-secret metadata. The secret S_pair lives in the OS keychain. */
+export interface CouplePairing {
+  pairingId: string;
+  role: 'A' | 'B';            // which relay slot this device owns
+  partnerLabel?: string;      // local nickname for the partner (display only)
+  relayUrl?: string;          // where the encrypted blobs are exchanged
+  createdAt: string;          // ISO date
+  localSeq: number;           // last seq this device uploaded (monotonic)
+  partnerSeq: number;         // highest partner seq this device has accepted
+}
+
 export function isExpense(tx: Transaction): boolean {
   return tx.amount < 0;
 }

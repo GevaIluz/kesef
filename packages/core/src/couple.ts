@@ -2,7 +2,7 @@
 // Invariant (load-bearing): no raw transaction (description/merchant/id/per-tx amount) appears here.
 // Everything is filtered to effectively-shareable items, then aggregated.
 
-import { hkdfSync } from 'node:crypto';
+import { hkdfSync, randomBytes } from 'node:crypto';
 import type { Account, BalanceSnapshot, Goal, Transaction, CategoryCode } from './types';
 import { summarize, shiftDays } from './analytics';
 import { normalizeMerchant } from './merchant';
@@ -250,4 +250,35 @@ export function sealCoupleBlob(summary: CoupleSummary, dataKey: Buffer, ctx: Blo
 /** Decrypt + parse a summary. Throws if the key is wrong, the blob was tampered, or the context (pairingId/slot/seq) doesn't match. */
 export function openCoupleBlob(blob: EncryptedBlob, dataKey: Buffer, ctx: BlobContext): CoupleSummary {
   return JSON.parse(decrypt(blob, dataKey, blobAad(ctx))) as CoupleSummary;
+}
+
+// ---------------------------------------------------------------------------
+// Pairing token: the one-time QR/text payload that gives both devices the same
+// high-entropy secret. The secret is transferred out-of-band (shown as a QR,
+// scanned by the partner) — we never invent a key-exchange protocol.
+// ---------------------------------------------------------------------------
+
+export const PAIRING_PREFIX = 'kesef-pair:v1:';
+export interface Pairing { pairingId: string; sPair: Buffer }
+
+/** Generate a fresh pairing: a random 128-bit id and a random 256-bit secret. */
+export function newPairing(): Pairing {
+  return { pairingId: randomBytes(16).toString('hex'), sPair: randomBytes(32) };
+}
+
+/** Encode a pairing as the QR/text payload: `kesef-pair:v1:<pairingId>:<base64url S_pair>`. */
+export function makePairingToken(p: Pairing): string {
+  return `${PAIRING_PREFIX}${p.pairingId}:${p.sPair.toString('base64url')}`;
+}
+
+/** Decode a pairing token. Throws on a wrong-version or malformed token. */
+export function parsePairingToken(token: string): Pairing {
+  if (!token.startsWith(PAIRING_PREFIX)) throw new Error('not a kesef v1 pairing token');
+  const rest = token.slice(PAIRING_PREFIX.length);
+  const sep = rest.indexOf(':');
+  if (sep < 0) throw new Error('malformed pairing token (missing secret)');
+  const pairingId = rest.slice(0, sep);
+  const sPair = Buffer.from(rest.slice(sep + 1), 'base64url');
+  if (!pairingId || sPair.length !== 32) throw new Error('malformed pairing token');
+  return { pairingId, sPair };
 }
