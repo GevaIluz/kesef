@@ -165,6 +165,8 @@
   .card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
   .card h3{font-family:var(--round);font-size:19px;margin:0 0 3px}
   .card .sub{font-size:13px;color:var(--ink-soft);margin:0 0 18px}
+  /* headlines in Title Case (each word capitalised); Hebrew is unaffected by text-transform */
+  .card h3, .recent h3, .drawer-head h4, .sync-card h3, .stat .k, .acc-group-h{text-transform:capitalize}
 
   /* ── SVG DONUT ─────────────────────────────────────────────────────────── */
   .donut-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
@@ -179,6 +181,10 @@
   .legend .sw{width:13px;height:13px;border-radius:5px;flex:0 0 auto}
   .legend .lv{margin-inline-start:auto;font-family:var(--round);color:var(--ink-soft)}
   .legend .more{font-size:12.5px;color:var(--ink-soft)}
+  .legend .more[role="button"]{cursor:pointer;border-radius:8px;padding:3px 6px;margin:-3px -6px;transition:.15s}
+  .legend .more[role="button"]:hover{color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 10%,transparent)}
+  .legend .lg-extra{display:none}
+  .legend.show-all .lg-extra{display:flex}
   .legend .lv-arrow{margin-inline-start:8px;color:var(--ink-soft);opacity:.45;font-family:var(--round);transition:transform .18s,opacity .18s}
   .legend .row:hover .lv-arrow{opacity:.9;transform:translateX(2px)}
   html[dir=rtl] .legend .row:hover .lv-arrow{transform:translateX(-2px)}
@@ -345,7 +351,7 @@
     opacity:0;transform:translateY(10px);animation:rise .35s forwards;overflow:hidden}
   .drawer.hidden{display:none}
   .drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-  .drawer-head h4{font-family:var(--round);font-size:17px;margin:0}
+  .drawer-head h4{font-family:var(--round);font-size:17px;margin:0;word-break:break-word;min-width:0}
   .drawer-close{font-size:20px;line-height:1;background:none;border:0;cursor:pointer;color:var(--ink-soft);padding:4px 8px;border-radius:8px;transition:.18s}
   .drawer-close:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
 
@@ -356,7 +362,7 @@
   .sub-row:first-of-type{border-top:0;padding-top:0}
   .sub-row .sub-bar-wrap{flex:1;min-width:40px;height:5px;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:3px;overflow:hidden}
   .sub-row .sub-bar{height:100%;border-radius:3px;background:var(--teal);transition:width .6s cubic-bezier(.2,.85,.25,1)}
-  .sub-row .sub-label{flex:0 0 130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+  .sub-row .sub-label{flex:0 1 190px;min-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
   .sub-row .sub-amt{margin-inline-start:auto;font-family:var(--round);font-size:13px;color:var(--ink-soft);white-space:nowrap;flex:0 0 auto}
   .sub-row .sub-cnt{font-size:11px;color:var(--ink-soft);opacity:.75;white-space:nowrap;flex:0 0 auto;margin-inline-start:6px}
 
@@ -1047,7 +1053,8 @@ function renderAccounts(M) {
     </div>`;
   };
   const group = (key) => {
-    const accs = accounts.filter(a => (HORIZON_OF[a.type] || 'daily') === key);
+    // only show accounts that actually have a balance (hide e.g. the empty credit-card rows)
+    const accs = accounts.filter(a => (HORIZON_OF[a.type] || 'daily') === key && a.balance != null);
     if (!accs.length) return '';
     return `<div class="acc-group"><div class="acc-group-h">${HORIZON[key].icon} ${t(HORIZON[key].lbl)}</div>${accs.map(rowHtml).join('')}</div>`;
   };
@@ -1506,19 +1513,20 @@ function renderDonut(byCategory, txns) {
     };
   });
 
-  // legend: top items + "+N more" if needed — ALL rows clickable
-  const top = sorted.slice(0, 5);
+  // legend: every category is a clickable row; rows past the 5th are hidden behind a "+N more" toggle
   const extra = sorted.length - 5;
-  $('#legend').innerHTML = top.map(item =>
-    `<div class="row" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
+  $('#legend').innerHTML = sorted.map((item, i) =>
+    `<div class="row ${i >= 5 ? 'lg-extra' : ''}" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
       <span class="sw" style="background:${catColor(item.category)}"></span>
       ${cl(item.category)}
       <span class="lv">₪${NF(item.amount)}</span>
       <span class="lv-arrow" aria-hidden="true">›</span>
     </div>`
   ).join('') + (extra > 0
-    ? `<div class="more">+ ${extra} ${t('more_cats')}</div>`
+    ? `<div class="more" id="legend-more" role="button" tabindex="0">+ ${extra} ${t('more_cats')}</div>`
     : '');
+  const moreEl = $('#legend-more');
+  if (moreEl) moreEl.onclick = () => { $('#legend').classList.add('show-all'); moreEl.style.display = 'none'; };
 
   $$('#legend .row').forEach(row => {
     row.onclick = () => {
@@ -1744,7 +1752,7 @@ function renderMerchants(txns) {
   const maxAmt = entries[0][1].total || 1;
   ml.innerHTML = entries.map(([merch, info]) => {
     const cat = info.txns[0]?.category || 'other';
-    return `<div class="sub-row merch-row" data-merch="${esc(merch)}">
+    return `<div class="sub-row merch-row" data-merch="${esc(merch)}" title="${esc(merch)}">
       <span class="sub-label">${esc(merch)}</span>
       <div class="sub-bar-wrap"><div class="sub-bar" style="width:${(info.total/maxAmt*100).toFixed(1)}%;background:${catColor(cat)}"></div></div>
       <span class="sub-amt">₪${NF(info.total)}</span>
