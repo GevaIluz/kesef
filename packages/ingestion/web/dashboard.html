@@ -221,6 +221,8 @@
 
   /* monthly savings advice */
   .goal-hint{font-size:11px;color:var(--teal-ink);font-family:var(--round);margin-top:2px}
+  .goal-item + .goal-item{border-top:1px solid var(--line)}
+  .goal-item .acc-spark{margin:6px 0 10px}
 
   /* ── ADD GOAL FORM ──────────────────────────────────────────────────────── */
   .add-goal-btn{display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-family:var(--round);font-size:13px;
@@ -279,6 +281,9 @@
   .acc-comp-row:first-child{border-top:0}
   .acc-comp-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .acc-comp-v{font-family:var(--round);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .acc-spark{width:100%;height:42px;display:block;margin:8px 0 0}
+  .acc-spark-lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);margin-top:1px;font-family:var(--round)}
+  .acc-spark-hint{font-size:11.5px;color:var(--ink-soft);opacity:.85;margin-top:8px}
   .bf-select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;transition:.2s}
   .bf-select:focus{border-color:var(--teal)}
 
@@ -728,6 +733,7 @@ const T = {
   goal_err_date:  { en: 'Please pick a future date.',      he: 'נא לבחור תאריך עתידי.' },
   goal_err_save:  { en: 'Failed to save goal — try again.',he: 'שגיאה בשמירת היעד.' },
   by_date:        { en: 'by',                 he: 'עד' },
+  goal_today:     { en: 'today',              he: 'היום' },
   goal_done:      { en: 'done!',              he: 'הושג!' },
   /* accounts & balances */
   accounts:       { en: 'Your money',         he: 'הכסף שלך' },
@@ -736,6 +742,7 @@ const T = {
   horizon_daily_sub: { en: 'spendable now',    he: 'זמין עכשיו' },
   horizon_longterm:     { en: 'Long-term',     he: 'טווח ארוך' },
   horizon_longterm_sub: { en: 'for 20–30 years', he: 'ל-20–30 שנה' },
+  graph_builds: { en: 'This graph fills in each time you sync.', he: 'הגרף מתעדכן עם כל סנכרון.' },
   add_balance:    { en: 'Add / update balance', he: 'הוסף / עדכן יתרה' },
   new_balance:    { en: 'Add or update a balance', he: 'הוספה או עדכון יתרה' },
   balance_kind_lbl:{ en: 'What is it?',        he: 'מה זה?' },
@@ -917,18 +924,25 @@ function renderGoals(goals, generatedAt) {
         hintHtml = `<div class="goal-hint">₪${NF(needed)}${t('goal_per_month')}</div>`;
       }
     }
-    return `<div class="goal">
-      <svg class="ring ${done ? 'done' : ''}" viewBox="0 0 58 58">
-        <circle class="bg" cx="29" cy="29" r="${R}"/>
-        <circle class="fg" cx="29" cy="29" r="${R}" style="--c:${C.toFixed(1)}"/>
-      </svg>
-      <div style="flex:1;min-width:0">
-        <div class="gn">${esc(g.name)}</div>
-        <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + t('goal_done') : (dueLabel ? ' · ' + dueLabel : '')}</div>
-        ${hintHtml}
+    // projection graph: the path from where you are now to the target by the deadline (dashed = plan)
+    const projHtml = (g.targetDate && !done)
+      ? `${miniSparkSvg([{ date: generatedAt || '', balance: cur }, { date: g.targetDate, balance: tgt }], '--teal-ink', true)}<div class="acc-spark-lbl"><span>${t('goal_today')} · ₪${NF(cur)}</span><span>${t('by_date')} ${g.targetDate} · ₪${NF(tgt)}</span></div>`
+      : '';
+    return `<div class="goal-item">
+      <div class="goal">
+        <svg class="ring ${done ? 'done' : ''}" viewBox="0 0 58 58">
+          <circle class="bg" cx="29" cy="29" r="${R}"/>
+          <circle class="fg" cx="29" cy="29" r="${R}" style="--c:${C.toFixed(1)}"/>
+        </svg>
+        <div style="flex:1;min-width:0">
+          <div class="gn">${esc(g.name)}</div>
+          <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + t('goal_done') : (dueLabel ? ' · ' + dueLabel : '')}</div>
+          ${hintHtml}
+        </div>
+        <div class="ga">₪${NF(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ₪${NF(tgt)}</small></div>
+        <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
       </div>
-      <div class="ga">₪${NF(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ₪${NF(tgt)}</small></div>
-      <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
+      ${projHtml}
     </div>`;
   }).join('');
 
@@ -1102,6 +1116,13 @@ function renderAccounts(M) {
     const compHtml = comps.length
       ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span class="acc-comp-v">₪${NF(c.value)}</span></div>`).join('')}</div>`
       : '';
+    // long-term accounts get a balance-over-time graph (fills in as you sync)
+    const isLong = (HORIZON_OF[a.type] || 'daily') === 'longterm';
+    const hist = Array.isArray(a.history) ? a.history : [];
+    const histHtml = !isLong ? ''
+      : hist.length >= 2
+        ? `${miniSparkSvg(hist, '--cat-investment')}<div class="acc-spark-lbl"><span>${fmtSparkDate(hist[0].date)}</span><span>₪${NF(hist[hist.length - 1].balance)}</span></div>`
+        : `<div class="acc-spark-hint">📈 ${t('graph_builds')}</div>`;
     return `<div class="acc-item">
       <div class="acc-row">
         <span class="acc-ic">${icon}</span>
@@ -1113,6 +1134,7 @@ function renderAccounts(M) {
         ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
       </div>
       ${compHtml}
+      ${histHtml}
     </div>`;
   };
   const group = (key) => {
@@ -1138,6 +1160,25 @@ function renderAccounts(M) {
 // resolve a CSS custom property to a concrete color (composition segments)
 function catColorVar(v) {
   return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#9E8A70';
+}
+
+// small area sparkline of a balance series over time; dashed=true marks a projection (not actual data)
+function miniSparkSvg(history, colorVar, dashed) {
+  if (!history || history.length < 2) return '';
+  const w = 260, h = 42, p = 4;
+  const vals = history.map(s => s.balance);
+  const mn = Math.min(...vals), mx = Math.max(...vals), r = (mx - mn) || 1;
+  const x = i => p + i * ((w - 2 * p) / (history.length - 1));
+  const y = v => h - p - ((v - mn) / r) * (h - 2 * p);
+  let d = 'M' + x(0).toFixed(1) + ',' + y(vals[0]).toFixed(1);
+  for (let i = 1; i < history.length; i++) d += ' L' + x(i).toFixed(1) + ',' + y(vals[i]).toFixed(1);
+  const col = catColorVar(colorVar);
+  const last = history.length - 1;
+  return `<svg class="acc-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <path d="${d} L${x(last).toFixed(1)},${h} L${x(0).toFixed(1)},${h} Z" fill="${col}" opacity="0.13"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"${dashed ? ' stroke-dasharray="5 4"' : ''}/>
+    <circle cx="${x(last).toFixed(1)}" cy="${y(vals[last]).toFixed(1)}" r="2.6" fill="${col}"/>
+  </svg>`;
 }
 
 function setupBalanceForm(M) {

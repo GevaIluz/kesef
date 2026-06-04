@@ -16,7 +16,7 @@ export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
-  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; components: { name: string; value: number }[] | null }[];
+  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; components: { name: string; value: number }[] | null; history: { date: string; balance: number }[] }[];
   recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
@@ -25,6 +25,16 @@ export interface DashboardModel {
 
 const RECENT_LIMIT = 12;
 const NON_SPEND = new Set<string>(['transfer', 'savings', 'investment']);
+
+/** Per-account balance history (snapshots over time), ascending by date — for per-account trend graphs. */
+function historyByAccount(snaps: BalanceSnapshot[]): Map<string, { date: string; balance: number }[]> {
+  const m = new Map<string, { date: string; balance: number }[]>();
+  for (const s of [...snaps].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (!m.has(s.accountId)) m.set(s.accountId, []);
+    m.get(s.accountId)!.push({ date: s.date, balance: s.balance });
+  }
+  return m;
+}
 
 function latestBalanceByAccount(snaps: BalanceSnapshot[]): { bal: Map<string, number>; asOf: Map<string, string> } {
   const asOf = new Map<string, string>(); const bal = new Map<string, number>();
@@ -117,6 +127,7 @@ export function buildDashboard(
   };
 
   const { bal: latest, asOf } = latestBalanceByAccount(snapshots);
+  const histByAccount = historyByAccount(snapshots);
   const netWorth = [...latest.values()].reduce((a, b) => a + b, 0);
 
   // Net-worth trend: reconstruct from transactions when we have them (true history back to the first txn);
@@ -147,7 +158,7 @@ export function buildDashboard(
   return {
     generatedAt: now, netWorth,
     spending,
-    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, components: a.components ?? null })),
+    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
   };
