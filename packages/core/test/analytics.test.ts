@@ -40,8 +40,9 @@ describe('buildDashboard', () => {
     expect(d.recent[0]!.description).toBe('תן ביס');
     expect(d.recent.length).toBeLessThanOrEqual(12);
   });
-  it('net-worth series is one total per date, ascending', () => {
-    expect(d.netWorthSeries).toEqual([{ date: '2026-05-01', balance: 1000 }, { date: '2026-06-01', balance: 1200 }]);
+  it('net-worth series is one total per date, ascending (reconstructed from txns)', () => {
+    // beinleumi:1 balance 1200, salary +9000 on 06-02 → startBal -7800; ends at 1200 today
+    expect(d.netWorthSeries).toEqual([{ date: '2026-06-02', balance: 1200 }, { date: '2026-06-15', balance: 1200 }]);
   });
   it('no goals when none passed', () => { expect(d.goals).toEqual([]); });
   it('includes the full transaction list with normalized merchant', () => {
@@ -85,6 +86,20 @@ describe('buildDashboard', () => {
     ] as any;
     const d = buildDashboard([], lime, [], '2026-06-15', { merchantRules: new Map([['Lime', 'fees']]) });
     expect(d.transactions.map(t => t.category)).toEqual(['fees', 'fees']);  // both Lime → fees
+  });
+  it('reconstructs the net-worth series backward from current balance + transactions', () => {
+    const accts = [{ id: 'beinleumi:1', institution: 'beinleumi', type: 'bank', displayName: 'b', currency: 'ILS', shareable: false }] as any;
+    const txns2 = [
+      { id: 'n1', accountId: 'beinleumi:1', date: '2025-11-10', amount: 10000, description: 'salary', shareable: false },
+      { id: 'n2', accountId: 'beinleumi:1', date: '2025-12-10', amount: -3000, description: 'rent', shareable: false },
+    ] as any;
+    const snaps2 = [{ id: 'beinleumi:1@2026-06-03', accountId: 'beinleumi:1', date: '2026-06-03', balance: 7000 }] as any;
+    const d = buildDashboard(accts, txns2, snaps2, '2026-06-03');
+    expect(d.netWorth).toBe(7000);
+    const s = d.netWorthSeries;                       // current 7000, sumAll 7000 → startBal 0
+    expect(s[0]).toEqual({ date: '2025-11-10', balance: 10000 });          // after salary
+    expect(s.find(p => p.date === '2025-12-10')!.balance).toBe(7000);      // after rent
+    expect(s[s.length - 1]!.balance).toBe(7000);                           // ends at today's balance
   });
   it('per-transaction override beats a merchant rule', () => {
     const lime = [{ id: 'l1', accountId: 'a', date: '2026-06-10', amount: -15, description: 'LIME*5 RIDES', category: 'transport', shareable: false }] as any;
