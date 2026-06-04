@@ -25,10 +25,14 @@ export function deriveKey(passphrase: string, salt: Buffer): Buffer {
   return scryptSync(passphrase, salt, KEY_BYTES, SCRYPT_PARAMS);
 }
 
-export function encrypt(plaintext: string, key: Buffer): EncryptedBlob {
+// Optional `aad` (associated data) is authenticated but NOT encrypted: it binds non-secret context
+// (e.g. pairingId|slot|seq) to the ciphertext, so a blob can't be moved/replayed and still verify.
+// Omitting `aad` is byte-for-byte the prior behavior.
+export function encrypt(plaintext: string, key: Buffer, aad?: Buffer): EncryptedBlob {
   assertKey(key);
-  const iv = randomBytes(12); // 96-bit nonce, recommended for GCM
+  const iv = randomBytes(12); // 96-bit nonce, recommended for GCM; fresh per call
   const cipher = createCipheriv('aes-256-gcm', key, iv);
+  if (aad) cipher.setAAD(aad);
   const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   return {
     iv: iv.toString('base64'),
@@ -37,13 +41,14 @@ export function encrypt(plaintext: string, key: Buffer): EncryptedBlob {
   };
 }
 
-export function decrypt(blob: EncryptedBlob, key: Buffer): string {
+export function decrypt(blob: EncryptedBlob, key: Buffer, aad?: Buffer): string {
   assertKey(key);
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(blob.iv, 'base64'));
+  if (aad) decipher.setAAD(aad);
   decipher.setAuthTag(Buffer.from(blob.tag, 'base64'));
   const pt = Buffer.concat([
     decipher.update(Buffer.from(blob.ciphertext, 'base64')),
-    decipher.final(), // throws on auth-tag mismatch (wrong key / tampering)
+    decipher.final(), // throws on auth-tag/AAD mismatch (wrong key, tampering, or wrong context)
   ]);
   return pt.toString('utf8');
 }

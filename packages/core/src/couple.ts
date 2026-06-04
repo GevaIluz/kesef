@@ -2,9 +2,11 @@
 // Invariant (load-bearing): no raw transaction (description/merchant/id/per-tx amount) appears here.
 // Everything is filtered to effectively-shareable items, then aggregated.
 
+import { hkdfSync } from 'node:crypto';
 import type { Account, BalanceSnapshot, Goal, Transaction, CategoryCode } from './types';
 import { summarize, shiftDays } from './analytics';
 import { normalizeMerchant } from './merchant';
+import { encrypt, decrypt, type EncryptedBlob } from './crypto';
 
 export interface ShareAccount {
   type: Account['type'];
@@ -199,4 +201,53 @@ export function buildCoupleModel(mine: CoupleSummary, partner: CoupleSummary): C
       ...partner.goals.map((g): OwnedGoal => ({ owner: 'partner', ...g })),
     ],
   };
+}
+
+// ---------------------------------------------------------------------------
+// Couple crypto: derive purpose-separated keys from the single pairing secret
+// (S_pair) and seal/open the encrypted summary blobs. Built on the existing
+// AES-256-GCM helpers in crypto.ts plus Node's HKDF — no new primitives, no
+// hardcoded keys. S_pair is the only secret; it lives in the OS keychain.
+// ---------------------------------------------------------------------------
+
+export interface CoupleKeys {
+  dataKey: Buffer;   // AES-256-GCM key for the summary blobs
+  authKey: Buffer;   // client→relay request HMAC (optional MAC-gated writes)
+  relayKey: Buffer;  // value the relay may verify without ever seeing the data key
+}
+
+// Distinct `info` strings give HKDF domain separation: one secret, three keys, no role overlap.
+const KDF = { data: 'kesef/couple/data/v1', auth: 'kesef/couple/auth/v1', relay: 'kesef/couple/relay/v1' } as const;
+const KDF_SALT = Buffer.alloc(0); // no salt (S_pair is already high-entropy); see crypto §4
+
+function hkdf32(ikm: Buffer, info: string): Buffer {
+  return Buffer.from(hkdfSync('sha256', ikm, KDF_SALT, Buffer.from(info, 'utf8'), 32));
+}
+
+/** Derive the {data, auth, relay} key tree from the 32-byte pairing secret. */
+export function deriveCoupleKeys(sPair: Buffer): CoupleKeys {
+  return {
+    dataKey: hkdf32(sPair, KDF.data),
+    authKey: hkdf32(sPair, KDF.auth),
+    relayKey: hkdf32(sPair, KDF.relay),
+  };
+}
+
+export const COUPLE_BLOB_SCHEMA = 'kesef.couple.blob/v1';
+
+/** Non-secret context bound into the blob's AAD so it can't be moved or replayed. */
+export interface BlobContext { pairingId: string; slot: 'A' | 'B'; seq: number }
+
+function blobAad(ctx: BlobContext): Buffer {
+  return Buffer.from(`${COUPLE_BLOB_SCHEMA}|${ctx.pairingId}|${ctx.slot}|${ctx.seq}`, 'utf8');
+}
+
+/** Encrypt a summary for upload. A fresh nonce is used every call; context is authenticated via AAD. */
+export function sealCoupleBlob(summary: CoupleSummary, dataKey: Buffer, ctx: BlobContext): EncryptedBlob {
+  return encrypt(JSON.stringify(summary), dataKey, blobAad(ctx));
+}
+
+/** Decrypt + parse a summary. Throws if the key is wrong, the blob was tampered, or the context (pairingId/slot/seq) doesn't match. */
+export function openCoupleBlob(blob: EncryptedBlob, dataKey: Buffer, ctx: BlobContext): CoupleSummary {
+  return JSON.parse(decrypt(blob, dataKey, blobAad(ctx))) as CoupleSummary;
 }
