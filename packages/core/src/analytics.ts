@@ -16,7 +16,7 @@ export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
-  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null }[];
+  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; components: { name: string; value: number }[] | null }[];
   recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
@@ -147,7 +147,7 @@ export function buildDashboard(
   return {
     generatedAt: now, netWorth,
     spending,
-    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null })),
+    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, components: a.components ?? null })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
   };

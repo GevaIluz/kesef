@@ -10,6 +10,9 @@ export type CategoryCode =
   | 'health' | 'shopping' | 'entertainment' | 'income' | 'transfer'
   | 'savings' | 'investment' | 'fees' | 'other';
 
+/** Optional breakdown of an account's value (e.g. MVS products, fund holdings). */
+export interface AccountComponent { name: string; value: number }
+
 export interface Account {
   id: string;
   institution: 'beinleumi' | 'cal' | 'ibi' | 'manual';
@@ -17,6 +20,7 @@ export interface Account {
   displayName: string;        // user-entered; shown as-is in either language
   currency: Currency;
   shareable: boolean;         // per-item couple-sharing flag (default false)
+  components?: AccountComponent[]; // optional sub-breakdown of the balance
 }
 
 export interface Transaction {

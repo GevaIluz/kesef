@@ -30,6 +30,7 @@ export class Store {
       db.exec('SELECT count(*) FROM sqlite_master;'); // throws on wrong key
       db.pragma('foreign_keys = ON'); // per-connection; establish before any DML
       db.exec(SCHEMA);
+      try { db.exec('ALTER TABLE accounts ADD COLUMN components TEXT'); } catch { /* migration: column already exists */ }
     } catch (cause) {
       db.close(); // never leak the native handle on the (expected) wrong-key path
       // Sanitized: the message must never carry the passphrase or raw SQL (could reach logs).
@@ -40,12 +41,13 @@ export class Store {
 
   upsertAccount(a: Account): void {
     this.db.prepare(
-      `INSERT INTO accounts (id, institution, type, display_name, currency, shareable)
-       VALUES (@id, @institution, @type, @displayName, @currency, @shareable)
+      `INSERT INTO accounts (id, institution, type, display_name, currency, shareable, components)
+       VALUES (@id, @institution, @type, @displayName, @currency, @shareable, @components)
        ON CONFLICT(id) DO UPDATE SET
          institution=@institution, type=@type, display_name=@displayName,
-         currency=@currency, shareable=@shareable`
-    ).run({ ...a, shareable: a.shareable ? 1 : 0 });
+         currency=@currency, shareable=@shareable,
+         components=COALESCE(@components, components)` // don't wipe components when caller omits them
+    ).run({ ...a, shareable: a.shareable ? 1 : 0, components: a.components ? JSON.stringify(a.components) : null });
   }
 
   listAccounts(): Account[] {
@@ -173,7 +175,7 @@ export class Store {
 }
 
 function rowToAccount(r: Record<string, unknown>): Account {
-  return {
+  const a: Account = {
     id: r['id'] as string,
     institution: r['institution'] as Account['institution'],
     type: r['type'] as Account['type'],
@@ -181,6 +183,8 @@ function rowToAccount(r: Record<string, unknown>): Account {
     currency: r['currency'] as Account['currency'],
     shareable: !!(r['shareable'] as number),
   };
+  if (r['components']) { try { a.components = JSON.parse(r['components'] as string); } catch { /* ignore bad json */ } }
+  return a;
 }
 
 function rowToTransaction(r: Record<string, unknown>): Transaction {

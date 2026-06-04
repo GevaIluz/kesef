@@ -265,6 +265,11 @@
   .acc-row .acc-del{background:none;border:0;cursor:pointer;font-size:15px;color:var(--ink-soft);opacity:.5;padding:2px 6px;border-radius:8px;transition:.18s;flex:0 0 auto}
   .acc-row .acc-del:hover{opacity:1;background:color-mix(in srgb,var(--neg) 14%,transparent);color:var(--neg)}
   .acc-stale{color:var(--gold)}
+  .acc-components{padding:2px 0 8px 46px}
+  .acc-comp-row{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;color:var(--ink-soft);padding:3px 0;border-top:1px dashed color-mix(in srgb,var(--ink) 8%,transparent)}
+  .acc-comp-row:first-child{border-top:0}
+  .acc-comp-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acc-comp-v{font-family:var(--round);flex:0 0 auto;font-variant-numeric:tabular-nums}
   .bf-select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;font-family:var(--body);font-size:14px;background:var(--paper-2);color:var(--ink);outline:none;transition:.2s}
   .bf-select:focus{border-color:var(--teal)}
 
@@ -1043,14 +1048,21 @@ function renderAccounts(M) {
       const stale = isManualAcct(a) && days > 45;
       asof = ` · ${t('as_of')} ${a.asOf}${stale ? ' <span class="acct-stale" title="stale">⚠︎</span>' : ''}`;
     }
-    return `<div class="acc-row">
-      <span class="acc-ic">${icon}</span>
-      <div class="acc-main">
-        <div class="acc-name">${esc(a.name || a.id)}</div>
-        <div class="acc-meta">${acctTypeLabel(a.type)}${asof}</div>
+    const comps = Array.isArray(a.components) ? a.components : [];
+    const compHtml = comps.length
+      ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span class="acc-comp-v">₪${NF(c.value)}</span></div>`).join('')}</div>`
+      : '';
+    return `<div class="acc-item">
+      <div class="acc-row">
+        <span class="acc-ic">${icon}</span>
+        <div class="acc-main">
+          <div class="acc-name">${esc(a.name || a.id)}</div>
+          <div class="acc-meta">${acctTypeLabel(a.type)}${asof}</div>
+        </div>
+        <span class="acc-bal ${bal !== null && bal < 0 ? 'neg' : ''}">${balStr}</span>
+        ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
       </div>
-      <span class="acc-bal ${bal !== null && bal < 0 ? 'neg' : ''}">${balStr}</span>
-      ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
+      ${compHtml}
     </div>`;
   };
   const group = (key) => {

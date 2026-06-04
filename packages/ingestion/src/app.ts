@@ -112,9 +112,16 @@ const server = createServer(async (req, res) => {
       }
       const name = typeof b['name'] === 'string' ? b['name'] : undefined;
       const date = (typeof b['date'] === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b['date'])) ? b['date'] : todayISO();
+      // optional breakdown of what the balance is composed of (e.g. MVS products)
+      const components = Array.isArray(b['components'])
+        ? (b['components'] as unknown[])
+            .map(c => (c && typeof c === 'object') ? c as { name?: unknown; value?: unknown } : {})
+            .filter(c => typeof c.name === 'string' && typeof c.value === 'number')
+            .map(c => ({ name: c.name as string, value: c.value as number }))
+        : undefined;
       const spec = manualAccountFor(kind, name);
       await withStore(s => {
-        s.upsertAccount({ id: spec.id, institution: spec.institution, type: spec.type, displayName: spec.displayName, currency: 'ILS', shareable: false });
+        s.upsertAccount({ id: spec.id, institution: spec.institution, type: spec.type, displayName: spec.displayName, currency: 'ILS', shareable: false, ...(components && components.length ? { components } : {}) });
         s.upsertBalanceSnapshot({ id: `${spec.id}@${date}`, accountId: spec.id, date, balance: value });
       });
       return sendJson(res, 200, { ok: true, account: spec, date, value });

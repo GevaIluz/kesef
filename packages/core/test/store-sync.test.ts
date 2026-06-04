@@ -72,6 +72,14 @@ describe('Store sync helpers', () => {
     expect(s.listGoals()).toHaveLength(0);
     s.close();
   });
+  it('account components round-trip and survive a value-only re-upsert', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount({ ...a, id: 'm1', components: [{ name: 'גמל', value: 100 }, { name: 'פנסיה', value: 50 }] });
+    expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([{ name: 'גמל', value: 100 }, { name: 'פנסיה', value: 50 }]);
+    s.upsertAccount({ ...a, id: 'm1' }); // re-upsert without components must NOT wipe them
+    expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([{ name: 'גמל', value: 100 }, { name: 'פנסיה', value: 50 }]);
+    s.close();
+  });
   it('deleteAccount removes the account and its snapshots/transactions', () => {
     const s = Store.open({ path: newDb(), key: 'pw' });
     s.upsertAccount(a);
