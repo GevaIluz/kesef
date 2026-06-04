@@ -144,6 +144,15 @@
   .chart .lbl{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;opacity:.8;font-family:var(--round)}
   #line{fill:none;stroke:#fff;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 6px 12px rgba(0,0,0,.28))}
   #dotlast{fill:#fff;opacity:0;animation:pop .4s 1.1s forwards}
+  #spark-guide{stroke:rgba(255,255,255,.45);stroke-width:1;stroke-dasharray:3 4;opacity:0;pointer-events:none;vector-effect:non-scaling-stroke}
+  #spark-hover{fill:#fff;opacity:0;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))}
+  .chart.hovering #spark-guide,.chart.hovering #spark-hover{opacity:1}
+  #chart-area{cursor:crosshair}
+  #spark-tip{position:fixed;z-index:9999;background:var(--card);color:var(--ink);border-radius:12px;padding:8px 12px;
+    font-family:var(--round);box-shadow:0 8px 28px -6px rgba(0,0,0,.32);pointer-events:none;display:none;white-space:nowrap;border:1.5px solid var(--line);text-align:center;
+    transform:translate(-50%,-120%)}
+  #spark-tip .stip-amt{font-size:15px;font-variant-numeric:tabular-nums}
+  #spark-tip .stip-date{font-size:11px;color:var(--ink-soft);margin-top:1px}
   #area{opacity:0;animation:fade 1s .3s forwards}
 
   /* STAT STRIP */
@@ -402,6 +411,8 @@
 <body>
 <!-- Donut tooltip -->
 <div id="donut-tip"><div class="tip-amt"></div><div class="tip-cat"></div></div>
+<!-- Net-worth trend tooltip -->
+<div id="spark-tip"><div class="stip-amt"></div><div class="stip-date"></div></div>
 
 <div class="wrap">
   <header>
@@ -441,9 +452,12 @@
       <div class="chart" id="chart-area">
         <svg id="spark" viewBox="0 0 520 170" preserveAspectRatio="none" aria-label="net worth trend">
           <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".34"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-          <path id="area" fill="url(#g)"></path><path id="line"></path><circle id="dotlast" r="6"></circle>
+          <path id="area" fill="url(#g)"></path><path id="line"></path>
+          <line id="spark-guide" x1="0" y1="0" x2="0" y2="170"></line>
+          <circle id="dotlast" r="6"></circle>
+          <circle id="spark-hover" r="5"></circle>
         </svg>
-        <div class="lbl"><span id="lbl-start"></span><span data-t="m_end">now</span></div>
+        <div class="lbl" id="spark-months"></div>
         <div class="spark-note" id="spark-note" hidden></div>
       </div>
     </div>
@@ -784,31 +798,34 @@ function renderNoData() {
     </div>`;
 }
 
-// ─── sparkline ────────────────────────────────────────────────────────────────
-function spark(series) {
+// ─── sparkline (interactive net-worth trend) ───────────────────────────────────
+let _sparkPts = [];        // [{xv,yv,date,balance}] in viewBox coords, for hover
+let _sparkWired = false;
+function spark(series) {    // series = [{date, balance}]
+  const svg = $('#spark');
   if (!series || series.length < 2) {
-    $('#spark').hidden = true;
-    const note = $('#spark-note');
-    note.textContent = t('no_spark');
-    note.hidden = false;
+    svg.hidden = true;
+    const note = $('#spark-note'); note.textContent = t('no_spark'); note.hidden = false;
+    _sparkPts = [];
     return;
   }
-  $('#spark').hidden = false;
-  $('#spark-note').hidden = true;
+  svg.hidden = false; $('#spark-note').hidden = true;
+  const vals = series.map(s => s.balance);
   const w = 520, h = 170, p = 10;
-  const mn = Math.min(...series), mx = Math.max(...series), r = (mx - mn) || 1;
+  const mn = Math.min(...vals), mx = Math.max(...vals), r = (mx - mn) || 1;
   const x = i => p + i * ((w - 2 * p) / (series.length - 1));
   const y = v => h - p - ((v - mn) / r) * (h - 2 * p);
-  let d = 'M' + x(0) + ',' + y(series[0]);
+  _sparkPts = series.map((s, i) => ({ xv: x(i), yv: y(s.balance), date: s.date, balance: s.balance }));
+  let d = 'M' + x(0) + ',' + y(vals[0]);
   for (let i = 1; i < series.length; i++) {
-    const px = x(i - 1), py = y(series[i - 1]), cx = x(i), cy = y(series[i]), m = (px + cx) / 2;
+    const px = x(i - 1), py = y(vals[i - 1]), cx = x(i), cy = y(vals[i]), m = (px + cx) / 2;
     d += ` C${m},${py} ${m},${cy} ${cx},${cy}`;
   }
   $('#line').setAttribute('d', d);
   $('#area').setAttribute('d', d + ` L${x(series.length - 1)},${h} L${x(0)},${h} Z`);
   const dl = $('#dotlast');
   dl.setAttribute('cx', x(series.length - 1));
-  dl.setAttribute('cy', y(series[series.length - 1]));
+  dl.setAttribute('cy', y(vals[series.length - 1]));
   const L = $('#line'), len = L.getTotalLength();
   L.style.transition = 'none';
   L.style.strokeDasharray = len;
@@ -817,6 +834,39 @@ function spark(series) {
     L.style.transition = 'stroke-dashoffset 1.3s cubic-bezier(.3,.8,.2,1) .25s';
     L.style.strokeDashoffset = 0;
   });
+  setupSparkHover();
+}
+
+function fmtSparkDate(d) {
+  try { return new Date(d).toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US', { day: 'numeric', month: 'short', year: '2-digit' }); }
+  catch { return d; }
+}
+
+// Hover/drag along the trend to read the value + date at that point.
+function setupSparkHover() {
+  if (_sparkWired) return;
+  _sparkWired = true;
+  const area = $('#chart-area'), svg = $('#spark'), guide = $('#spark-guide'), hover = $('#spark-hover'), tip = $('#spark-tip');
+  const chart = svg.closest('.chart');
+  const move = (clientX) => {
+    if (!_sparkPts.length) return;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const pt = _sparkPts[Math.round(frac * (_sparkPts.length - 1))];
+    guide.setAttribute('x1', pt.xv); guide.setAttribute('x2', pt.xv);
+    hover.setAttribute('cx', pt.xv); hover.setAttribute('cy', pt.yv);
+    chart.classList.add('hovering');
+    tip.querySelector('.stip-amt').textContent = '₪' + NF(pt.balance);
+    tip.querySelector('.stip-date').textContent = fmtSparkDate(pt.date);
+    tip.style.display = 'block';
+    tip.style.left = clientX + 'px';
+    tip.style.top = rect.top + 'px';
+  };
+  const end = () => { chart.classList.remove('hovering'); tip.style.display = 'none'; };
+  area.addEventListener('pointermove', e => move(e.clientX));
+  area.addEventListener('pointerdown', e => move(e.clientX));   // tap / drag on touch
+  area.addEventListener('pointerleave', end);
 }
 
 // ─── count-up animation ───────────────────────────────────────────────────────
@@ -1317,19 +1367,20 @@ function renderDelta(series) {
 
 // ─── sparkline labels ─────────────────────────────────────────────────────────
 function renderSparkLabels(series) {
-  if (!series || series.length < 2) {
-    $('#lbl-start').textContent = '';
-    return;
+  const el = $('#spark-months');
+  if (!el) return;
+  if (!series || series.length < 2) { el.innerHTML = ''; return; }
+  // one label per distinct month in the series; the flex row (space-between) spreads them across
+  const seen = new Set(), months = [];
+  for (const s of series) {
+    const ym = (s.date || '').slice(0, 7);
+    if (ym && !seen.has(ym)) { seen.add(ym); months.push(ym); }
   }
-  const first = series[0].date;
-  if (first) {
-    try {
-      const d = new Date(first);
-      $('#lbl-start').textContent = d.toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US', { month: 'short', year: '2-digit' });
-    } catch (e) {
-      $('#lbl-start').textContent = first.slice(0, 7);
-    }
-  }
+  el.innerHTML = months.map(ym => {
+    let label = ym.slice(5);
+    try { label = new Date(ym + '-01').toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US', { month: 'short' }); } catch (e) { /* keep MM */ }
+    return `<span>${label}</span>`;
+  }).join('');
 }
 
 // ─── savings rate pill ────────────────────────────────────────────────────────
@@ -1859,8 +1910,7 @@ function render() {
   setupDisabledButtons();
   up($('#nw'), M.netWorth);
   renderDelta(M.netWorthSeries);
-  const balances = (M.netWorthSeries || []).map(p => p.balance);
-  spark(balances);
+  spark(M.netWorthSeries || []);
   renderSparkLabels(M.netWorthSeries);
   renderPeriodSpending(M);
   renderAccounts(M);
