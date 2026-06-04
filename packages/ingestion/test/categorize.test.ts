@@ -18,6 +18,13 @@ describe('categorize', () => {
   it('falls back to other for unknown merchants', () => {
     expect(categorize('סתם משהו לא מוכר')).toBe('other');
   });
+  it('treats a credit-card bill payment as a transfer (avoids double-counting)', () => {
+    expect(categorize('7191 - כרטיסי אשראי לי')).toBe('transfer');
+    expect(categorize('כרטיס אשראי')).toBe('transfer');
+  });
+  it('treats a rent transfer as housing', () => {
+    expect(categorize('העברת שכר דירה')).toBe('housing');
+  });
   it('applies user overrides with precedence', () => {
     expect(categorize('CORNER SHOP', { 'corner shop': 'groceries' })).toBe('groceries');
     expect(categorize('שופרסל', { 'שופרסל': 'shopping' })).toBe('shopping');

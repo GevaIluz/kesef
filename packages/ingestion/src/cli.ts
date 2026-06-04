@@ -90,7 +90,7 @@ async function recategorize(): Promise<void> {
   const txns = store.allTransactions();
   const counts: Record<string, number> = {};
   for (const t of txns) {
-    t.category = categorize(t.description, overrides);
+    t.category = assignCategory(t, overrides); // honors card rawCategory + description rules
     store.upsertTransaction(t);
     counts[t.category] = (counts[t.category] ?? 0) + 1;
   }

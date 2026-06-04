@@ -5,8 +5,10 @@ import { mapCardCategory } from './cardCategory.js';
 // Seeded with common Israeli merchants (Hebrew + English). Extend freely.
 const RULES: ReadonlyArray<readonly [CategoryCode, readonly string[]]> = [
   ['income',        ['משכורת', 'salary', 'קצבה']],
-  ['transfer',      ['העברה', 'bit', 'ביט', 'paybox', 'פייבוקס', 'transfer']],
-  ['housing',       ['שכירות', 'משכנתא', 'mortgage', 'rent', 'ארנונה', 'ועד בית']],
+  // credit-card bill payments from the bank are settlements of already-itemized card purchases —
+  // treat as transfers so they don't double-count against the per-purchase spend on the card.
+  ['transfer',      ['העברה', 'bit', 'ביט', 'paybox', 'פייבוקס', 'transfer', 'כרטיסי אשראי', 'כרטיס אשראי']],
+  ['housing',       ['שכירות', 'שכר דירה', 'משכנתא', 'mortgage', 'rent', 'ארנונה', 'ועד בית']],
   ['utilities',     ['חברת חשמל', 'חשמל', 'מים', 'בזק', 'bezeq', 'hot', 'הוט', 'פרטנר', 'partner', 'סלקום', 'cellcom', 'yes', 'גולן', 'אינטרנט']],
   ['groceries',     ['שופרסל', 'shufersal', 'רמי לוי', 'rami levy', 'ויקטורי', 'יינות ביתן', 'אושר עד', 'טיב טעם', 'tiv taam', 'מגה', 'יוחננוף', 'סופרמרקט']],
   ['dining',        ['קפה', 'cafe', 'מסעד', 'restaurant', 'וולט', 'wolt', 'מקדונלד', 'mcdonald', 'burger', 'בורגר', 'פיצה', 'pizza', 'ארומה', 'aroma', 'גולדה', 'רולדין']],

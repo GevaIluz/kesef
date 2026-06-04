@@ -2,6 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "kesef",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "app"],
+      "autoPort": true,
+      "port": 8750
+    },
+    {
       "name": "kesef-mockup",
       "runtimeExecutable": "node",
       "runtimeArgs": ["mockups/serve.mjs"],
