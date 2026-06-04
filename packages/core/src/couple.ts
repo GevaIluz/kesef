@@ -141,3 +141,62 @@ export function buildShareableSummary(
     goals: shareGoals,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Couple view: merge MY summary with my PARTNER's into one model the dashboard
+// renders. Each item is tagged by owner ('me' | 'partner') so two partners on
+// the SAME institutions (e.g. both at IBI) with DIFFERENT balances stay
+// distinct — and also roll up into combined totals.
+// ---------------------------------------------------------------------------
+
+export type Owner = 'me' | 'partner';
+export type OwnedAccount = ShareAccount & { owner: Owner };
+export type OwnedGoal = ShareGoal & { owner: Owner };
+
+export interface CoupleModel {
+  netWorth: { total: number; me: number; partner: number; byBucket: NetWorthBuckets };
+  accounts: OwnedAccount[];
+  spending: ShareSpending;
+  goals: OwnedGoal[];
+}
+
+/** Merge two periods: sum spend, sum per-category totals, sort categories by amount desc. */
+function mergePeriod(a: SharePeriod, b: SharePeriod): SharePeriod {
+  const cat = new Map<string, number>();
+  for (const c of [...a.byCategory, ...b.byCategory]) cat.set(c.category, (cat.get(c.category) ?? 0) + c.amount);
+  const byCategory = [...cat.entries()]
+    .map(([category, amount]) => ({ category: category as SharePeriod['byCategory'][number]['category'], amount }))
+    .sort((x, y) => y.amount - x.amount);
+  return { spent: a.spent + b.spent, byCategory };
+}
+
+export function buildCoupleModel(mine: CoupleSummary, partner: CoupleSummary): CoupleModel {
+  const byBucket: NetWorthBuckets = {
+    liquid: mine.netWorth.byBucket.liquid + partner.netWorth.byBucket.liquid,
+    investment: mine.netWorth.byBucket.investment + partner.netWorth.byBucket.investment,
+    retirement: mine.netWorth.byBucket.retirement + partner.netWorth.byBucket.retirement,
+    liability: mine.netWorth.byBucket.liability + partner.netWorth.byBucket.liability,
+  };
+  return {
+    netWorth: {
+      total: mine.netWorth.total + partner.netWorth.total,
+      me: mine.netWorth.total,
+      partner: partner.netWorth.total,
+      byBucket,
+    },
+    accounts: [
+      ...mine.accounts.map((a): OwnedAccount => ({ owner: 'me', ...a })),
+      ...partner.accounts.map((a): OwnedAccount => ({ owner: 'partner', ...a })),
+    ],
+    spending: {
+      thisMonth: mergePeriod(mine.spending.thisMonth, partner.spending.thisMonth),
+      last30: mergePeriod(mine.spending.last30, partner.spending.last30),
+      last90: mergePeriod(mine.spending.last90, partner.spending.last90),
+      year: mergePeriod(mine.spending.year, partner.spending.year),
+    },
+    goals: [
+      ...mine.goals.map((g): OwnedGoal => ({ owner: 'me', ...g })),
+      ...partner.goals.map((g): OwnedGoal => ({ owner: 'partner', ...g })),
+    ],
+  };
+}

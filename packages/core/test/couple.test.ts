@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildShareableSummary } from '../src/couple';
+import { buildShareableSummary, buildCoupleModel } from '../src/couple';
 import { normalizeMerchant } from '../src/index';
 import type { Account, BalanceSnapshot, Goal, Transaction } from '../src/index';
+import type { CoupleSummary, SharePeriod, ShareSpending } from '../src/couple';
 
 const acct = (over: Partial<Account>): Account => ({
   id: 'a', institution: 'beinleumi', type: 'bank', displayName: 'A', currency: 'ILS', shareable: false, ...over,
@@ -151,6 +152,61 @@ describe('buildShareableSummary — what leaves the device', () => {
     expect(summary.spending.thisMonth.byCategory).toEqual([
       { category: 'transport', amount: 300 },
       { category: 'groceries', amount: 50 },
+    ]);
+  });
+});
+
+const emptyPeriod: SharePeriod = { spent: 0, byCategory: [] };
+const periods = (over: Partial<ShareSpending>): ShareSpending =>
+  ({ thisMonth: emptyPeriod, last30: emptyPeriod, last90: emptyPeriod, year: emptyPeriod, ...over });
+const summaryWith = (over: Partial<CoupleSummary>): CoupleSummary => ({
+  schema: 'kesef.couple.summary/v1', pairingId: 'p', author: 'A', generatedAt: '2026-06-04', currency: 'ILS',
+  netWorth: { total: 0, byBucket: { liquid: 0, investment: 0, retirement: 0, liability: 0 } },
+  accounts: [], spending: periods({}), goals: [], ...over,
+});
+
+describe('buildCoupleModel — the merged couple view', () => {
+  it('combines net worth across both partners (total, per-owner, and buckets)', () => {
+    const mine = summaryWith({ netWorth: { total: 100, byBucket: { liquid: 60, investment: 40, retirement: 0, liability: 0 } } });
+    const partner = summaryWith({ author: 'B', netWorth: { total: 250, byBucket: { liquid: 50, investment: 100, retirement: 120, liability: -20 } } });
+    const model = buildCoupleModel(mine, partner);
+    expect(model.netWorth).toEqual({
+      total: 350, me: 100, partner: 250,
+      byBucket: { liquid: 110, investment: 140, retirement: 120, liability: -20 },
+    });
+  });
+
+  it('tags each account by owner so both partners on the SAME institution stay distinct', () => {
+    // Guy and his partner both hold an IBI portfolio — different balances. The couple view must
+    // show two distinct, owner-tagged entries, never collapse them into one.
+    const mine = summaryWith({ accounts: [{ type: 'investment', label: 'IBI', balance: 19260, asOf: '2026-06-01' }] });
+    const partner = summaryWith({ author: 'B', accounts: [{ type: 'investment', label: 'IBI', balance: 54000, asOf: '2026-06-02' }] });
+    const model = buildCoupleModel(mine, partner);
+    expect(model.accounts).toEqual([
+      { owner: 'me', type: 'investment', label: 'IBI', balance: 19260, asOf: '2026-06-01' },
+      { owner: 'partner', type: 'investment', label: 'IBI', balance: 54000, asOf: '2026-06-02' },
+    ]);
+  });
+
+  it('sums spending per period and merges category totals across both partners (sorted desc)', () => {
+    const mine = summaryWith({ spending: periods({ thisMonth: { spent: 4000, byCategory: [{ category: 'groceries', amount: 2600 }, { category: 'dining', amount: 1400 }] } }) });
+    const partner = summaryWith({ author: 'B', spending: periods({ thisMonth: { spent: 1500, byCategory: [{ category: 'groceries', amount: 1000 }, { category: 'transport', amount: 500 }] } }) });
+    const model = buildCoupleModel(mine, partner);
+    expect(model.spending.thisMonth.spent).toBe(5500);
+    expect(model.spending.thisMonth.byCategory).toEqual([
+      { category: 'groceries', amount: 3600 },
+      { category: 'dining', amount: 1400 },
+      { category: 'transport', amount: 500 },
+    ]);
+  });
+
+  it('unions goals tagged by owner', () => {
+    const mine = summaryWith({ goals: [{ name: 'Japan', targetAmount: 40000, currentAmount: 12500, targetDate: '2027-01-01' }] });
+    const partner = summaryWith({ author: 'B', goals: [{ name: 'Camera', targetAmount: 8000, currentAmount: 3000 }] });
+    const model = buildCoupleModel(mine, partner);
+    expect(model.goals).toEqual([
+      { owner: 'me', name: 'Japan', targetAmount: 40000, currentAmount: 12500, targetDate: '2027-01-01' },
+      { owner: 'partner', name: 'Camera', targetAmount: 8000, currentAmount: 3000 },
     ]);
   });
 });
