@@ -45,7 +45,7 @@ function latestBalanceByAccount(snaps: BalanceSnapshot[]): { bal: Map<string, nu
   return { bal, asOf };
 }
 
-function summarize(txns: Transaction[]): PeriodSummary {
+export function summarize(txns: Transaction[]): PeriodSummary {
   let income = 0, spent = 0, savedInvested = 0;
   const cat = new Map<string, number>();
   for (const t of txns) {
@@ -99,7 +99,7 @@ function reconstructNetWorthSeries(
   });
 }
 
-function shiftDays(iso: string, days: number): string {
+export function shiftDays(iso: string, days: number): string {
   const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
 }
 

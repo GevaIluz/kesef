@@ -5,3 +5,4 @@ export * from './vault';
 export * from './store';
 export * from './analytics';
 export * from './merchant';
+export * from './couple';

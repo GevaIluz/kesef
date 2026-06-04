@@ -1,0 +1,143 @@
+// Couple-sharing: build the "shareable summary" — the ONLY thing that ever leaves a device.
+// Invariant (load-bearing): no raw transaction (description/merchant/id/per-tx amount) appears here.
+// Everything is filtered to effectively-shareable items, then aggregated.
+
+import type { Account, BalanceSnapshot, Goal, Transaction, CategoryCode } from './types';
+import { summarize, shiftDays } from './analytics';
+import { normalizeMerchant } from './merchant';
+
+export interface ShareAccount {
+  type: Account['type'];
+  label: string;          // the owner's display name for the account (they chose what it reveals)
+  balance: number;
+  asOf: string | null;    // date of the latest balance snapshot, or null if none
+}
+
+export const SUMMARY_SCHEMA = 'kesef.couple.summary/v1';
+
+export interface ShareGoal {
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate?: string;
+}
+
+/** Net-worth split that drives the "day-to-day vs long-term" framing (liquid = spendable, investment+retirement = long-term). */
+export interface NetWorthBuckets { liquid: number; investment: number; retirement: number; liability: number }
+export interface NetWorth { total: number; byBucket: NetWorthBuckets }
+
+/** Map an account type to its net-worth bucket. */
+function bucketOf(type: Account['type']): keyof NetWorthBuckets {
+  switch (type) {
+    case 'bank': return 'liquid';
+    case 'investment': return 'investment';
+    case 'pension': return 'retirement';
+    case 'credit_card': return 'liability';
+  }
+}
+
+/** Category TOTALS for one period — never line items. */
+export interface SharePeriod {
+  spent: number;
+  byCategory: { category: CategoryCode | 'other'; amount: number }[];
+}
+export interface ShareSpending {
+  thisMonth: SharePeriod;
+  last30: SharePeriod;
+  last90: SharePeriod;
+  year: SharePeriod;
+}
+
+export interface CoupleSummary {
+  schema: typeof SUMMARY_SCHEMA;
+  pairingId: string;
+  author: 'A' | 'B';      // stable per-device role label, NOT a real identity
+  generatedAt: string;    // ISO date (coarse on purpose — no finer time)
+  currency: 'ILS';
+  netWorth: NetWorth;
+  accounts: ShareAccount[];
+  spending: ShareSpending;
+  goals: ShareGoal[];
+}
+
+export interface BuildSummaryOpts {
+  pairingId: string;
+  author?: 'A' | 'B';
+  overrides?: Map<string, string>;       // per-transaction category overrides (same as dashboard)
+  merchantRules?: Map<string, string>;   // learned merchant→category rules (same as dashboard)
+}
+
+/** Latest balance snapshot per account (by date). */
+function latestSnap(snaps: BalanceSnapshot[]): Map<string, { balance: number; date: string }> {
+  const m = new Map<string, { balance: number; date: string }>();
+  for (const s of snaps) {
+    const prev = m.get(s.accountId);
+    if (!prev || s.date > prev.date) m.set(s.accountId, { balance: s.balance, date: s.date });
+  }
+  return m;
+}
+
+export function buildShareableSummary(
+  accounts: Account[],
+  transactions: Transaction[],
+  snapshots: BalanceSnapshot[],
+  goals: Goal[],
+  now: string,
+  opts: BuildSummaryOpts,
+): CoupleSummary {
+  const latest = latestSnap(snapshots);
+  const shareAccounts: ShareAccount[] = accounts
+    .filter(a => a.shareable)
+    .map(a => {
+      const l = latest.get(a.id);
+      return { type: a.type, label: a.displayName, balance: l ? l.balance : 0, asOf: l ? l.date : null };
+    });
+
+  // Spending = category TOTALS over the effectively-shareable transactions only.
+  // Effective-shareable rule (privacy-dominant): the ACCOUNT must be shareable; within it a
+  // transaction may opt out with shareable===false. A private account is fully private — a flagged
+  // tx inside it never leaks. Category resolution mirrors the dashboard (override → merchant → assigned).
+  const acctShareable = new Map(accounts.map(a => [a.id, a.shareable]));
+  const overrides = opts.overrides ?? new Map<string, string>();
+  const merchantRules = opts.merchantRules ?? new Map<string, string>();
+  const shareableTxns: Transaction[] = transactions
+    .filter(t => acctShareable.get(t.accountId) === true && t.shareable !== false)
+    .map(t => {
+      const byTxn = overrides.get(t.id) as CategoryCode | undefined;
+      const byMerchant = merchantRules.get(normalizeMerchant(t.description)) as CategoryCode | undefined;
+      return { ...t, category: byTxn ?? byMerchant ?? t.category };
+    });
+  const month = now.slice(0, 7);
+  const inRange = (from: string) => shareableTxns.filter(t => t.date >= from && t.date <= now);
+  const period = (txns: Transaction[]): SharePeriod => {
+    const s = summarize(txns);
+    return { spent: s.spent, byCategory: s.byCategory };
+  };
+  const spending: ShareSpending = {
+    thisMonth: period(shareableTxns.filter(t => t.date.slice(0, 7) === month)),
+    last30: period(inRange(shiftDays(now, -30))),
+    last90: period(inRange(shiftDays(now, -90))),
+    year: period(inRange(shiftDays(now, -365))),
+  };
+  const shareGoals: ShareGoal[] = goals
+    .filter(g => g.shareable)
+    .map(g => {
+      const sg: ShareGoal = { name: g.name, targetAmount: g.targetAmount, currentAmount: g.currentAmount };
+      if (g.targetDate) sg.targetDate = g.targetDate;
+      return sg;
+    });
+  const byBucket: NetWorthBuckets = { liquid: 0, investment: 0, retirement: 0, liability: 0 };
+  for (const a of shareAccounts) byBucket[bucketOf(a.type)] += a.balance;
+  const total = byBucket.liquid + byBucket.investment + byBucket.retirement + byBucket.liability;
+  return {
+    schema: SUMMARY_SCHEMA,
+    pairingId: opts.pairingId,
+    author: opts.author ?? 'A',
+    generatedAt: now,
+    currency: 'ILS',
+    netWorth: { total, byBucket },
+    accounts: shareAccounts,
+    spending,
+    goals: shareGoals,
+  };
+}
