@@ -17,7 +17,8 @@
     "add-balance": "tsx packages/ingestion/src/cli.ts add-balance",
     "list": "tsx packages/ingestion/src/cli.ts list",
     "app": "tsx packages/ingestion/src/app.ts",
-    "relay": "tsx packages/couple-relay/src/server.ts"
+    "relay": "tsx packages/couple-relay/src/server.ts",
+    "update": "git pull --ff-only && npm install"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
