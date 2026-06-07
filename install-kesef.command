@@ -60,8 +60,27 @@ cd "$DEST" || { echo "✗  Couldn't open $DEST"; exit 1; }
 echo ""
 echo "→  Installing dependencies — first time takes a few minutes (~150 MB)…"
 if ! npm install; then
-  echo "✗  Dependency install failed. Check internet and run the line again."
-  exit 1
+  # Most common failure: a half-finished puppeteer browser download in the
+  # per-user cache (~/.cache/puppeteer) that never re-heals on retry. Clear it
+  # and try once more before giving up.
+  echo "→  First attempt failed — clearing the browser cache and retrying once…"
+  rm -rf "$HOME/.cache/puppeteer"
+  if ! npm install; then
+    echo "✗  Dependency install failed. Check internet/disk space and run the line again."
+    exit 1
+  fi
+fi
+
+# ── Verify browser binaries are intact ────────────────────────────────────────
+# A download can succeed at the zip level yet leave a corrupt extraction in the
+# puppeteer cache. Detect the two required executables and re-download if either
+# is missing.
+CHROME_EXE=$(find "$HOME/.cache/puppeteer/chrome" -name "Google Chrome for Testing" -type f 2>/dev/null | head -1)
+HEADLESS_EXE=$(find "$HOME/.cache/puppeteer/chrome-headless-shell" -name "chrome-headless-shell" -type f 2>/dev/null | head -1)
+if [ -z "$CHROME_EXE" ] || [ -z "$HEADLESS_EXE" ]; then
+  echo "→  Browser binaries incomplete — clearing cache and re-downloading…"
+  rm -rf "$HOME/.cache/puppeteer"
+  node node_modules/puppeteer/install.mjs || { echo "✗  Browser download failed. Check internet/disk space."; exit 1; }
 fi
 
 # ── Open kesef ────────────────────────────────────────────────────────────────
