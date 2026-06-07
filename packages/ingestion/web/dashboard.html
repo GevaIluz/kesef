@@ -221,6 +221,9 @@
 
   /* monthly savings advice */
   .goal-hint{font-size:11px;color:var(--teal-ink);font-family:var(--round);margin-top:2px}
+  /* per-goal monthly savings plan pill */
+  .goal-monthly{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;font-family:var(--round);color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 16%,transparent);border-radius:999px;padding:3px 11px;margin-top:6px}
+  .goal-monthly.muted{color:var(--ink-soft);background:color-mix(in srgb,var(--ink) 7%,transparent);font-weight:500}
   .goal-item + .goal-item{border-top:1px solid var(--line)}
   .goal-item .acc-spark{margin:6px 0 10px}
 
@@ -903,7 +906,8 @@ const T = {
   goal_current_lbl:{ en: 'Current amount (₪, optional)', he: 'סכום נוכחי (₪, אופציונלי)' },
   goal_save:      { en: 'Save',               he: 'שמור' },
   goal_cancel:    { en: 'Cancel',             he: 'ביטול' },
-  goal_per_month: { en: '/month to hit it',   he: '/חודש להשגתו' },
+  goal_per_month: { en: '/mo to reach it',     he: '/חודש להשגתו' },
+  goal_need_date: { en: 'add a target date to plan monthly', he: 'הוסיפו תאריך יעד לתכנון חודשי' },
   goal_err_name:  { en: 'Please enter a name.',            he: 'נא להזין שם.' },
   goal_err_amt:   { en: 'Please enter a positive amount.', he: 'נא להזין סכום חיובי.' },
   goal_err_date:  { en: 'Please pick a future date.',      he: 'נא לבחור תאריך עתידי.' },
@@ -1093,13 +1097,14 @@ function renderGoals(goals, generatedAt) {
     const dueLabel = g.targetDate
       ? `${t('by_date')} ${g.targetDate}`
       : '';
-    // monthly savings advice
+    // per-goal monthly plan: how much to set aside each month to reach it by its target date
     let hintHtml = '';
-    if (!done && g.targetDate) {
-      const months = monthsUntil(g.targetDate, generatedAt);
-      const needed = Math.ceil((tgt - cur) / months);
-      if (needed > 0) {
-        hintHtml = `<div class="goal-hint">₪${NF(needed)}${t('goal_per_month')}</div>`;
+    if (!done) {
+      if (g.targetDate) {
+        const needed = Math.ceil((tgt - cur) / monthsUntil(g.targetDate, generatedAt));
+        if (needed > 0) hintHtml = `<div class="goal-monthly">🐷 ₪${NF(needed)}${t('goal_per_month')}</div>`;
+      } else {
+        hintHtml = `<div class="goal-monthly muted">📅 ${t('goal_need_date')}</div>`;
       }
     }
     // projection graph: the path from where you are now to the target by the deadline (dashed = plan)
