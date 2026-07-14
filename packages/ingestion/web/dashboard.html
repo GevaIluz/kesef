@@ -8,6 +8,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#16A78C">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="kesef">
 <title>kesef · money, made friendly</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,7 +98,7 @@
   .brand .mark{font-family:var(--round);font-size:30px;color:var(--teal-ink);letter-spacing:.01em}
   .brand .mark b{color:var(--coral)}
   .brand .tag{font-size:12.5px;color:var(--ink-soft)}
-  .seg{display:inline-flex;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:4px;gap:2px}
+  .seg{display:inline-flex;flex-wrap:wrap;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:4px;gap:2px}
   .seg button{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:8px 15px;border-radius:999px;cursor:pointer;transition:.25s;white-space:nowrap}
   .seg button[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:var(--shadow-sm)}
   .icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-size:17px;box-shadow:var(--shadow-sm);transition:.25s}
@@ -485,6 +491,7 @@
         <div class="sync-menu-item" data-only="beinleumi" role="menuitem">Beinleumi</div>
         <div class="sync-menu-item" data-only="cal" role="menuitem">Cal</div>
         <div class="sync-menu-item" data-only="ibi" role="menuitem">IBI</div>
+        <div class="sync-menu-item" data-only="mvs" role="menuitem">Mivtach Simon</div>
       </div>
     </div>
     <div class="seg" role="group" aria-label="view">
@@ -827,8 +834,8 @@ const T = {
   privacy:   { en: 'Couple view adds only what you each chose to share. Personal stuff stays private.',
                he: 'התצוגה הזוגית מוסיפה רק מה שכל אחד בחר לשתף. הפרטי נשאר פרטי.' },
   footer:    { en: 'kesef · local-first · ', he: 'כסף · מקומי · ' },
-  no_data:   { en: "Run <code>npm run sync</code> to load your data",
-               he: "הריצו <code>npm run sync</code> כדי לטעון את הנתונים" },
+  no_data:   { en: "No data yet — press Sync and log in to your accounts in the windows that open.",
+               he: "אין נתונים עדיין — לחצו סנכרון והתחברו לחשבונות בחלונות שנפתחים." },
   period_thisMonth: { en: 'This month', he: 'החודש' },
   period_last30:    { en: 'Last 30 days', he: '30 ימים' },
   period_last90:    { en: 'Last 3 months', he: '3 חודשים' },
@@ -974,15 +981,32 @@ let selectedPeriod = 'last30';
 const cl = key => (T.cat[key] || { en: key, he: key })[lang];
 const t = key => (T[key] || { en: key, he: key })[lang];
 
-// ─── no-data screen ───────────────────────────────────────────────────────────
+// ─── no-data screen (first run: sync from here, no terminal needed) ──────────
 function renderNoData() {
   document.body.innerHTML = `
     <div class="no-data">
       <div class="inner">
         <div class="logo">ke<b>$</b>ef</div>
         <div class="msg">${T.no_data[lang]}</div>
+        <button class="sync-btn" id="nodata-sync" style="margin-top:22px"><span class="sync-ic">🔄</span> ${t('sync')}</button>
+        <div class="msg" id="nodata-status" style="font-size:13.5px;margin-top:14px"></div>
       </div>
     </div>`;
+  const btn = $('#nodata-sync'), status = $('#nodata-status');
+  btn.onclick = () => {
+    btn.disabled = true;
+    status.textContent = t('sync_hint');
+    const es = new EventSource('/api/sync');
+    es.onmessage = m => {
+      let e; try { e = JSON.parse(m.data); } catch { return; }
+      if (e.type === 'source-start') status.textContent = e.source + '…';
+      else if (e.type === 'source-done') status.textContent = e.source + ' ✓';
+      else if (e.type === 'source-error') status.textContent = e.source + ' ⚠️ ' + (e.message || '');
+      else if (e.type === 'complete') { es.close(); location.reload(); }
+      else if (e.type === 'fatal') { es.close(); btn.disabled = false; status.textContent = '⚠️ ' + (e.message || 'sync failed'); }
+    };
+    es.onerror = () => { es.close(); btn.disabled = false; status.textContent = '⚠️ ' + (lang === 'en' ? 'connection lost' : 'החיבור נותק'); };
+  };
 }
 
 // ─── sparkline (interactive net-worth trend) ───────────────────────────────────
@@ -1304,7 +1328,7 @@ function renderAccounts(M) {
     if (a.asOf) {
       const days = Math.floor((now - new Date(a.asOf)) / 86400000);
       const stale = isManualAcct(a) && days > 45;
-      asof = ` · ${t('as_of')} ${a.asOf}${stale ? ' <span class="acct-stale" title="stale">⚠︎</span>' : ''}`;
+      asof = ` · ${t('as_of')} ${a.asOf}${stale ? ' <span class="acc-stale" title="stale">⚠︎</span>' : ''}`;
     }
     const comps = Array.isArray(a.components) ? a.components : [];
     const compHtml = comps.length
@@ -1652,25 +1676,26 @@ function setupDisabledButtons() {
 let countTransfers = false;
 
 // ─── filter transactions to a period ─────────────────────────────────────────
+function shiftDaysStr(iso, days) {
+  const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
+}
+// Same boundary rule as the server (analytics inRange): plain string compares on YYYY-MM-DD.
 function txnsInPeriod(txns, period, generatedAt) {
   if (!txns || txns.length === 0) return [];
-  const now = generatedAt ? new Date(generatedAt) : new Date();
-  const nowMs = now.getTime();
-  const todayYYYYMM = now.toISOString().slice(0, 7);
-  return txns.filter(tx => {
-    if (!tx.date) return false;
-    const d = tx.date.slice(0, 10);
-    if (period === 'thisMonth') return d.slice(0, 7) === todayYYYYMM;
-    const txMs = new Date(d + 'T12:00:00Z').getTime();
-    const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
-    return txMs >= nowMs - days * 86400000;
-  });
+  const now = (generatedAt || new Date().toISOString()).slice(0, 10);
+  if (period === 'thisMonth') { const ym = now.slice(0, 7); return txns.filter(tx => tx.date && tx.date.slice(0, 7) === ym); }
+  const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
+  const from = shiftDaysStr(now, -days);
+  return txns.filter(tx => tx.date && tx.date.slice(0, 10) >= from && tx.date.slice(0, 10) <= now);
 }
 
 // ─── compute spending stats from transaction list ─────────────────────────────
 function computeSpending(txns) {
+  // Mirrors core summarize(): savings/investment outflows are money KEPT (the 💎 stat), never "spent";
+  // transfers count as spending only when the toggle says so.
   const spending = txns.filter(tx =>
-    tx.amount < 0 && (countTransfers || tx.category !== 'transfer')
+    tx.amount < 0 && tx.category !== 'savings' && tx.category !== 'investment'
+    && (countTransfers || tx.category !== 'transfer')
   );
   const incomeList = txns.filter(tx => tx.amount > 0 && tx.category !== 'transfer');
   const income = incomeList.reduce((s, tx) => s + tx.amount, 0);
@@ -2342,11 +2367,16 @@ function renderCoupleView() {
   // hero number: combined for couple, partner's for partner view
   up($('#nw'), mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
 
-  // composition (day-to-day vs long-term) from combined buckets, partner-only for partner view
-  const bb = model.netWorth.byBucket;
+  // composition (day-to-day vs long-term): combined buckets in couple view, partner-only in partner view
+  let bb = model.netWorth.byBucket;
+  if (mode === 'partner') {
+    const BUCKET_OF_TYPE = { bank: 'liquid', investment: 'investment', pension: 'retirement', credit_card: 'liability' };
+    bb = { liquid: 0, investment: 0, retirement: 0, liability: 0 };
+    for (const a of (model.accounts || [])) {
+      if (a.owner === 'partner') bb[BUCKET_OF_TYPE[a.type] || 'liquid'] += (typeof a.balance === 'number' ? a.balance : 0);
+    }
+  }
   const daily = bb.liquid, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
-  // (partner view: recompute from partner-only is not in the merged buckets; couple view sums both. For
-  //  partner view we still show the combined buckets' partner share via the split below.)
   const grand = Math.max(0, daily) + Math.max(0, longterm);
   $('#cv-composition').innerHTML =
     `<div class="horizon-tiles">

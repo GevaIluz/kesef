@@ -16,6 +16,13 @@ const vault = new KeyringVault('kesef');
 const webDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'web');
 const port = Number(process.env.PORT) || 8750;
 
+const STATIC_FILES: Record<string, string> = {
+  '/manifest.webmanifest': 'application/manifest+json',
+  '/icon-192.png': 'image/png',
+  '/icon-512.png': 'image/png',
+  '/apple-touch-icon.png': 'image/png',
+};
+
 const CATEGORIES = new Set<string>([
   'groceries', 'dining', 'transport', 'housing', 'utilities', 'health', 'shopping',
   'entertainment', 'income', 'transfer', 'savings', 'investment', 'fees', 'other',
@@ -211,14 +218,14 @@ const server = createServer(async (req, res) => {
 
       // Dry-run: scripted events to verify the UI without opening any browsers (honors ?only=).
       if (url.searchParams.get('dry') === '1') {
-        const labels: Record<string, string> = { beinleumi: 'Beinleumi', cal: 'Cal', ibi: 'IBI' };
+        const labels: Record<string, string> = { beinleumi: 'Beinleumi', cal: 'Cal', ibi: 'IBI', mvs: 'Mivtach Simon' };
         const onlyDry = (url.searchParams.get('only') || '').split(',').map(s => s.trim()).filter(s => labels[s]);
-        const wantDry = onlyDry.length ? onlyDry : ['beinleumi', 'cal', 'ibi'];
+        const wantDry = onlyDry.length ? onlyDry : ['beinleumi', 'cal', 'ibi', 'mvs'];
         send({ type: 'start', sources: wantDry.map(s => labels[s]) });
         for (const s of wantDry) {
           send({ type: 'source-start', source: labels[s], hint: '(dry run)' });
-          send(s === 'ibi'
-            ? { type: 'source-done', source: 'IBI', value: 312450 }
+          send(s === 'ibi' || s === 'mvs'
+            ? { type: 'source-done', source: labels[s], value: s === 'ibi' ? 312450 : 164407 }
             : { type: 'source-done', source: labels[s], accounts: 1, transactions: s === 'cal' ? 208 : 11 });
         }
         send({ type: 'complete', transactions: 219, accounts: 5 });
@@ -234,7 +241,7 @@ const server = createServer(async (req, res) => {
       try {
         store = Store.open({ path: dbPath(), key: await getOrCreateDbKey() });
         const now = new Date().toISOString().slice(0, 10);
-        const valid: readonly string[] = ['beinleumi', 'cal', 'ibi'];
+        const valid: readonly string[] = ['beinleumi', 'cal', 'ibi', 'mvs'];
         const only = (url.searchParams.get('only') || '').split(',').map(s => s.trim()).filter(s => valid.includes(s)) as SyncSource[];
         await runSync({ store, now, onEvent: send, sources: only.length ? only : undefined });
       } catch (e) {
@@ -244,6 +251,19 @@ const server = createServer(async (req, res) => {
         store?.close();
         syncing = false;
         if (!res.writableEnded) res.end();
+      }
+      return;
+    }
+
+    // --- PWA assets (fixed whitelist — no path traversal possible) ---
+    const staticType = STATIC_FILES[path];
+    if (staticType && method === 'GET') {
+      try {
+        const buf = readFileSync(join(webDir, path.slice(1)));
+        res.writeHead(200, { 'content-type': staticType, 'cache-control': 'public, max-age=86400' });
+        res.end(buf);
+      } catch {
+        res.writeHead(404); res.end('not found');
       }
       return;
     }
