@@ -8,6 +8,7 @@ import { loadOverrides } from './overrides.js';
 import { readPortalTotal } from './portal.js';
 import { manualAccountFor } from './manualAccounts.js';
 import { loadPortalConfig, savePortalConfig } from './portalConfig.js';
+import { loginUrlFor } from './loginConfig.js';
 
 /** Progress events streamed to the UI during a sync run. */
 export type SyncEvent =
@@ -54,11 +55,12 @@ export async function runSync(opts: SyncOptions): Promise<void> {
   onEvent({ type: 'start', sources: [...banks.map(b => b.label), ...portals.map(p => p.label)] });
 
   for (const t of banks) {
-    onEvent({ type: 'source-start', source: t.label, hint: 'log in in the window that just opened' });
+    const loginUrl = loginUrlFor(t.institution);
+    onEvent({ type: 'source-start', source: t.label, hint: loginUrl ? 'scan the QR / approve in your bank app' : 'log in in the window that just opened — password or your bank app' });
     try {
       const res = await scrapeInteractive(
         { companyId: t.companyId, institution: t.institution, accountType: t.accountType },
-        { now, verbose: true, failureScreenshotPath: join(kesefDir(), `last-failure-${t.institution}.png`) },
+        { now, verbose: true, failureScreenshotPath: join(kesefDir(), `last-failure-${t.institution}.png`), ...(loginUrl ? { loginUrl } : {}) },
       );
       if (!res.ok) {
         onEvent({ type: 'source-error', source: t.label, message: `${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim() || 'login failed' });

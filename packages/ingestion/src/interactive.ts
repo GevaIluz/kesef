@@ -20,6 +20,7 @@ export interface InteractiveDeps {
   timeoutMs?: number; // how long the user has to log in manually (default 3 min)
   verbose?: boolean;
   failureScreenshotPath?: string;
+  loginUrl?: string;  // override the library's login page — e.g. the bank's QR / app-login entry
 }
 export interface InteractiveOutcome {
   ok: boolean;
@@ -34,17 +35,23 @@ interface PatchableScraper {
   getLoginOptions: (credentials: unknown) => Record<string, unknown>;
 }
 
-/** Replace auto-fill/auto-submit with "do nothing" so the human logs in by hand. Preserves everything else. */
-export function patchForManualLogin(scraper: PatchableScraper): void {
+/**
+ * Replace auto-fill/auto-submit with "do nothing" so the human logs in by hand — by password OR by
+ * scanning the bank's QR / approving in the phone app, whichever the login page offers. Preserves
+ * everything else (postAction + possibleResults still detect success by URL). An optional loginUrl
+ * override opens the bank's app-login page instead of the library's default password page.
+ */
+export function patchForManualLogin(scraper: PatchableScraper, loginUrl?: string): void {
   const original = scraper.getLoginOptions.bind(scraper);
   scraper.getLoginOptions = (credentials: unknown) => {
     const opts = original(credentials);
     return {
       ...opts,
-      fields: [], // do not type anything — the user fills the form
+      ...(loginUrl ? { loginUrl } : {}),
+      fields: [], // do not type anything — the user fills the form (or scans the QR / approves in the app)
       submitButtonSelector: async () => {
-        /* no-op: the user clicks the bank's own login button; the library's
-           postAction / possibleResults then waits for and detects success */
+        /* no-op: the user logs in the bank's own way; the library's postAction /
+           possibleResults then waits for and detects success by URL */
       },
     };
   };
@@ -66,7 +73,7 @@ export async function scrapeInteractive(target: InteractiveTarget, deps: Interac
     verbose: deps.verbose ?? false,
     storeFailureScreenShotPath: deps.failureScreenshotPath,
   });
-  patchForManualLogin(scraper as unknown as PatchableScraper);
+  patchForManualLogin(scraper as unknown as PatchableScraper, deps.loginUrl);
   // credentials must be a truthy object (login() guards on it) but are never used — fields is [].
   const result = await scraper.scrape({ username: '', password: '' } as never) as ScrapeResult & {
     errorType?: string; errorMessage?: string;

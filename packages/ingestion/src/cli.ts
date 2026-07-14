@@ -9,6 +9,7 @@ import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
 import { manualAccountFor } from './manualAccounts.js';
 import { loadPortalConfig, savePortalConfig } from './portalConfig.js';
+import { loginUrlFor, setLoginUrl, type LoginSource } from './loginConfig.js';
 
 const vault = new KeyringVault('kesef');
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -45,10 +46,12 @@ async function sync(): Promise<void> {
 
   console.log('A browser window opens for each account — log in there yourself (nothing to type in this terminal).');
   for (const t of targets) {
-    console.log(`\nOpening ${t.label} — log in in the browser window…`);
+    const loginUrl = loginUrlFor(t.institution);
+    const how = loginUrl ? 'scan the QR / approve in your bank app' : 'log in in the browser window (password or bank app)';
+    console.log(`\nOpening ${t.label} — ${how}…`);
     const res = await scrapeInteractive(
       { companyId: t.companyId, institution: t.institution, accountType: t.accountType },
-      { now, verbose: debug, failureScreenshotPath: debug ? join(kesefDir(), `last-failure-${t.institution}.png`) : undefined },
+      { now, verbose: debug, failureScreenshotPath: debug ? join(kesefDir(), `last-failure-${t.institution}.png`) : undefined, ...(loginUrl ? { loginUrl } : {}) },
     );
     if (!res.ok) { console.error(`✗ ${t.label} failed: ${res.errorType ?? ''} ${res.errorMessage ?? ''}`.trim()); continue; }
     const { accounts, transactions, snapshots } = res.data!;
@@ -165,7 +168,17 @@ async function syncIbi(): Promise<void> {
   store.close();
 }
 
+// Point a bank at its QR / app-login page so `sync` opens that instead of the password form.
+// Usage: npm run set-login -- beinleumi https://…   (blank URL clears the override)
+async function setLogin(): Promise<void> {
+  const source = process.argv[3] as LoginSource;
+  const url = (process.argv[4] ?? '').trim();
+  if (source !== 'beinleumi' && source !== 'cal') { console.error('usage: set-login <beinleumi|cal> <url>'); process.exit(1); }
+  setLoginUrl(source, url);
+  console.log(url ? `✓ ${source} will open ${url} on next sync — log in with your phone there.` : `✓ cleared ${source} login override (back to the default page).`);
+}
+
 const cmd = process.argv[2];
-const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance, 'sync-ibi': syncIbi, list };
-(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | sync-ibi | status | categorize | add-balance | list'); process.exit(1); }))()
+const cmds: Record<string, () => Promise<void>> = { connect, sync, status, categorize: recategorize, 'add-balance': addBalance, 'sync-ibi': syncIbi, 'set-login': setLogin, list };
+(cmds[cmd ?? ''] ?? (async () => { console.error('usage: connect | sync | sync-ibi | set-login | status | categorize | add-balance | list'); process.exit(1); }))()
   .catch(e => { console.error(e instanceof Error ? e.message : e); process.exit(1); });

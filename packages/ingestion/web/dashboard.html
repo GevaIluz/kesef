@@ -492,6 +492,7 @@
         <div class="sync-menu-item" data-only="cal" role="menuitem">Cal</div>
         <div class="sync-menu-item" data-only="ibi" role="menuitem">IBI</div>
         <div class="sync-menu-item" data-only="mvs" role="menuitem">Mivtach Simon</div>
+        <div class="sync-menu-item" data-login-setup="1" role="menuitem" style="border-top:1px solid var(--line);margin-top:4px;padding-top:10px" data-t="login_by_phone">📱 Log in by phone…</div>
       </div>
     </div>
     <div class="seg" role="group" aria-label="view">
@@ -889,6 +890,11 @@ const T = {
   close:              { en: 'Close',                       he: 'סגור' },
   sync:               { en: 'Sync',                        he: 'סנכרון' },
   sync_all:           { en: 'All accounts',                he: 'כל החשבונות' },
+  login_by_phone:     { en: '📱 Log in by phone…',         he: '📱 התחברות דרך הטלפון…' },
+  login_pick:         { en: 'Log in by phone — which bank?', he: 'התחברות דרך הטלפון — איזה בנק?' },
+  login_prompt:       { en: 'Paste the bank\'s QR / app-login page URL (must be https). Leave blank to clear and use the normal login.', he: 'הדביקו את כתובת עמוד ההתחברות עם QR/אפליקציה (חייב https). השאירו ריק כדי לחזור להתחברות הרגילה.' },
+  login_saved:        { en: 'Saved. Next sync opens that page — scan with your bank app.', he: 'נשמר. הסנכרון הבא יפתח את העמוד — סרקו עם אפליקציית הבנק.' },
+  login_bad_url:      { en: 'That is not a valid https URL.', he: 'זו אינה כתובת https תקינה.' },
   syncing:            { en: 'Syncing your money',          he: 'מסנכרן את הכסף שלך' },
   sync_hint:          { en: 'A browser opens for each account — just log in there. Nothing is typed here.', he: 'נפתח דפדפן לכל חשבון — פשוט התחברו שם. לא צריך להקליד כאן כלום.' },
   by_raw_cat:         { en: 'By sub-category',             he: 'לפי תת-קטגוריה' },
@@ -2563,11 +2569,27 @@ function setupSync() {
   }
   btn.onclick = () => startSync('');
   if (caret) caret.onclick = (e) => { e.stopPropagation(); if (menu) menu.classList.toggle('open'); };
-  if (menu) menu.querySelectorAll('.sync-menu-item').forEach(it => { it.onclick = () => startSync(it.dataset.only || ''); });
+  if (menu) menu.querySelectorAll('.sync-menu-item').forEach(it => {
+    it.onclick = () => { if (it.dataset.loginSetup) setupPhoneLogin(); else startSync(it.dataset.only || ''); };
+  });
   document.addEventListener('click', (e) => { if (menu && !menu.contains(e.target) && e.target !== caret) menu.classList.remove('open'); });
   if (closeBtn) closeBtn.onclick = () => overlay.classList.add('hidden');
 }
 setupSync();
+
+// ─── "log in by phone": set a bank's QR / app-login page URL (one-time per bank) ──
+async function setupPhoneLogin() {
+  const menu = $('#sync-menu'); if (menu) menu.classList.remove('open');
+  const cur = await api('/api/login-url', 'GET');
+  const which = (prompt(t('login_pick') + '\n\n1 = Beinleumi\n2 = Cal', '1') || '').trim();
+  const source = which === '2' ? 'cal' : which === '1' ? 'beinleumi' : '';
+  if (!source) return;
+  const existing = (cur.data && cur.data[source]) || '';
+  const url = prompt(t('login_prompt'), existing);
+  if (url === null) return;                       // cancelled
+  const r = await api('/api/login-url', 'POST', { source, url: url.trim() });
+  alert(r.ok ? t('login_saved') : (r.data.error === 'invalid URL' || r.data.error === 'login URL must use https' ? t('login_bad_url') : (r.data.error || 'error')));
+}
 
 // ─── theme toggle ─────────────────────────────────────────────────────────────
 const mq = matchMedia('(prefers-color-scheme: dark)');

@@ -8,6 +8,7 @@ import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
 import { pairGenerate, pairJoin, unpair, syncWithPartner, buildMySummary, localCoupleModel } from './coupleSync.js';
+import { loginUrlFor, setLoginUrl, type LoginSource } from './loginConfig.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -201,6 +202,25 @@ const server = createServer(async (req, res) => {
         const result = await withStoreRW(s => syncWithPartner(s, vault, todayISO()));
         return sendJson(res, 200, { model: result.model, mine: result.mine, partnerError: result.partnerError ?? null, partnerAsOf: result.partnerAsOf ?? null });
       } catch (e) { return sendJson(res, 200, { model: null, error: e instanceof Error ? e.message : 'sync failed' }); }
+    }
+
+    // --- per-source login URL (point a bank at its QR / app-login page) ---
+    if (path === '/api/login-url' && method === 'GET') {
+      return sendJson(res, 200, { beinleumi: loginUrlFor('beinleumi') ?? '', cal: loginUrlFor('cal') ?? '' });
+    }
+    if (path === '/api/login-url' && method === 'POST') {
+      const b = await readJson(req);
+      const source = b['source'];
+      const rawUrl = typeof b['url'] === 'string' ? b['url'].trim() : '';
+      if (source !== 'beinleumi' && source !== 'cal') return sendJson(res, 400, { error: 'source must be beinleumi or cal' });
+      // A blank url clears the override; a non-blank one must be a valid https URL (we open it in a browser).
+      if (rawUrl) {
+        let u: URL;
+        try { u = new URL(rawUrl); } catch { return sendJson(res, 400, { error: 'invalid URL' }); }
+        if (u.protocol !== 'https:') return sendJson(res, 400, { error: 'login URL must use https' });
+      }
+      setLoginUrl(source as LoginSource, rawUrl);
+      return sendJson(res, 200, { ok: true });
     }
 
     // --- sync (Server-Sent Events): runs all sources with live progress, no terminal ---
