@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { randomUUID, randomBytes } from 'node:crypto';
-import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode } from '@kesef/core';
+import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode, type Payslip } from '@kesef/core';
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
@@ -204,6 +204,30 @@ const server = createServer(async (req, res) => {
       } catch (e) { return sendJson(res, 200, { model: null, error: e instanceof Error ? e.message : 'sync failed' }); }
     }
 
+    // --- payslips: the gross→net story the bank never sees ---
+    if (path === '/api/payslip' && method === 'POST') {
+      const b = await readJson(req);
+      const month = typeof b['month'] === 'string' && /^\d{4}-\d{2}$/.test(b['month']) ? b['month'] : '';
+      const num = (k: string) => { const v = b[k]; return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0; };
+      const gross = num('gross'), net = num('net');
+      if (!month || gross <= 0 || net <= 0 || net > gross) {
+        return sendJson(res, 400, { error: 'month (YYYY-MM) + gross ≥ net > 0 required' });
+      }
+      const p: Payslip = {
+        month, gross, net, tax: num('tax'),
+        pensionEmp: num('pensionEmp'), kerenEmp: num('kerenEmp'), espp: num('espp'), otherEmp: num('otherEmp'),
+        employerPension: num('employerPension'), employerSeverance: num('employerSeverance'), employerKeren: num('employerKeren'),
+      };
+      await withStoreRW(s => s.upsertPayslip(p));
+      return sendJson(res, 200, { ok: true, payslip: p });
+    }
+    if (path === '/api/payslip' && method === 'DELETE') {
+      const month = url.searchParams.get('month');
+      if (!month) return sendJson(res, 400, { error: 'month required' });
+      await withStore(s => s.deletePayslip(month));
+      return sendJson(res, 200, { ok: true });
+    }
+
     // --- per-source login URL (point a bank at its QR / app-login page) ---
     if (path === '/api/login-url' && method === 'GET') {
       return sendJson(res, 200, { beinleumi: loginUrlFor('beinleumi') ?? '', cal: loginUrlFor('cal') ?? '' });
@@ -297,6 +321,7 @@ const server = createServer(async (req, res) => {
           new Date().toISOString().slice(0, 10),
           {
             goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules(),
+            payslips: s.listPayslips(),
             couple: p ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null } : { paired: false },
           },
         );

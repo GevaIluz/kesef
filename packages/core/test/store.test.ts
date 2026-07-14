@@ -72,3 +72,24 @@ describe('Store', () => {
     expect(msg).not.toContain(secret);
   });
 });
+
+describe('Store payslips', () => {
+  it('round-trips a payslip, replaces on same month, deletes', () => {
+    const path = newDb();
+    const s = Store.open({ path, key: 'pw' });
+    const p = {
+      month: '2026-05', gross: 22002, net: 11559, tax: 5383,
+      pensionEmp: 1320, kerenEmp: 440, espp: 3300, otherEmp: 0,
+      employerPension: 1430, employerSeverance: 1832.6, employerKeren: 1320,
+    };
+    s.upsertPayslip(p);
+    expect(s.listPayslips()).toEqual([p]);
+    s.upsertPayslip({ ...p, net: 11600 });               // same month → replace
+    expect(s.listPayslips()).toEqual([{ ...p, net: 11600 }]);
+    s.upsertPayslip({ ...p, month: '2026-04' });         // second month → sorted by month
+    expect(s.listPayslips().map(x => x.month)).toEqual(['2026-04', '2026-05']);
+    s.deletePayslip('2026-04');
+    expect(s.listPayslips().map(x => x.month)).toEqual(['2026-05']);
+    s.close();
+  });
+});

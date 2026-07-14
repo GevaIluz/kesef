@@ -1,4 +1,4 @@
-import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal } from './types';
+import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal, Payslip } from './types';
 import { normalizeMerchant } from './merchant';
 
 export interface PeriodSummary {
@@ -30,6 +30,7 @@ export interface DashboardModel {
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
   transactions: ClientTxn[];
+  payslips: Payslip[];
   couple: CoupleViewState;
 }
 
@@ -122,7 +123,7 @@ export function shiftDays(iso: string, days: number): string {
 
 export function buildDashboard(
   accounts: Account[], transactions: Transaction[], snapshots: BalanceSnapshot[], now: string,
-  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string>; couple?: CoupleViewState } = {},
+  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string>; couple?: CoupleViewState; payslips?: Payslip[] } = {},
 ): DashboardModel {
   const overrides = opts.overrides ?? new Map<string, string>();
   const merchantRules = opts.merchantRules ?? new Map<string, string>();
@@ -178,6 +179,7 @@ export function buildDashboard(
     accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, shareable: a.shareable, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
+    payslips: opts.payslips ?? [],
     couple: opts.couple ?? { paired: false },
   };
 }

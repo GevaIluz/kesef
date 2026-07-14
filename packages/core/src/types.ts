@@ -50,6 +50,21 @@ export interface Goal {
   shareable: boolean;
 }
 
+/** One month's payslip — the gross→net story the bank never sees. All amounts in ILS. */
+export interface Payslip {
+  month: string;              // YYYY-MM
+  gross: number;              // total payments (bruto)
+  net: number;                // what actually reaches the bank
+  tax: number;                // mandatory: income tax + national insurance + health
+  pensionEmp: number;         // employee pension deduction
+  kerenEmp: number;           // employee study-fund deduction
+  espp: number;               // voluntary ESPP deduction (returns as cash at plan end)
+  otherEmp: number;           // any other voluntary deduction
+  employerPension: number;    // employer contributions — savings on top of gross
+  employerSeverance: number;
+  employerKeren: number;
+}
+
 /** Couple pairing record — NON-secret metadata. The secret S_pair lives in the OS keychain. */
 export interface CouplePairing {
   pairingId: string;

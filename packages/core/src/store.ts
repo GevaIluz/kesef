@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, Transaction, BalanceSnapshot, Goal, CouplePairing } from './types';
+import type { Account, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -180,6 +180,32 @@ export class Store {
     });
     run(id);
   }
+
+  /** Save (upsert) one month's payslip — keyed by YYYY-MM, re-entering a month replaces it. */
+  upsertPayslip(p: Payslip): void {
+    this.db.prepare(
+      `INSERT INTO payslips (month, gross, net, tax, pension_emp, keren_emp, espp, other_emp, employer_pension, employer_severance, employer_keren)
+       VALUES (@month, @gross, @net, @tax, @pensionEmp, @kerenEmp, @espp, @otherEmp, @employerPension, @employerSeverance, @employerKeren)
+       ON CONFLICT(month) DO UPDATE SET
+         gross=@gross, net=@net, tax=@tax, pension_emp=@pensionEmp, keren_emp=@kerenEmp,
+         espp=@espp, other_emp=@otherEmp, employer_pension=@employerPension,
+         employer_severance=@employerSeverance, employer_keren=@employerKeren`
+    ).run({ ...p });
+  }
+
+  listPayslips(): Payslip[] {
+    return (this.db.prepare('SELECT * FROM payslips ORDER BY month').all() as Record<string, unknown>[]).map(r => ({
+      month: r['month'] as string,
+      gross: r['gross'] as number, net: r['net'] as number, tax: r['tax'] as number,
+      pensionEmp: r['pension_emp'] as number, kerenEmp: r['keren_emp'] as number,
+      espp: r['espp'] as number, otherEmp: r['other_emp'] as number,
+      employerPension: r['employer_pension'] as number,
+      employerSeverance: r['employer_severance'] as number,
+      employerKeren: r['employer_keren'] as number,
+    }));
+  }
+
+  deletePayslip(month: string): void { this.db.prepare('DELETE FROM payslips WHERE month = ?').run(month); }
 
   /** Save (upsert) the couple pairing metadata. Secret S_pair is NOT stored here. */
   setPairing(p: CouplePairing): void {

@@ -555,6 +555,46 @@
   </section>
 
   <div class="cards">
+    <!-- Paycheck: the gross→net story the bank never sees -->
+    <section class="card" style="grid-column:1/-1;order:0;animation-delay:.06s" id="paycheck-card">
+      <div class="acc-head">
+        <div>
+          <h3 data-t="paycheck">Your paycheck</h3>
+          <p class="sub" id="paycheck-sub" style="margin-bottom:0" data-t="paycheck_sub">where the gross actually goes</p>
+        </div>
+        <button class="add-goal-btn" id="add-payslip-btn" style="margin-top:0">＋ <span data-t="add_payslip">Add payslip</span></button>
+      </div>
+      <div id="paycheck-body"></div>
+      <div class="goal-form" id="payslip-form">
+        <p class="gf-title" data-t="add_payslip">Add payslip</p>
+        <label data-t="payslip_month">Month</label>
+        <input type="month" id="pf-month">
+        <label data-t="gross_lbl">Gross</label>
+        <input type="number" id="pf-gross" min="0" step="1" placeholder="22000">
+        <label data-t="net_to_bank">Net to bank</label>
+        <input type="number" id="pf-net" min="0" step="1" placeholder="11559">
+        <label data-t="taxes_lbl">Taxes</label>
+        <input type="number" id="pf-tax" min="0" step="1" placeholder="5383">
+        <label>Pension (you)</label>
+        <input type="number" id="pf-pension" min="0" step="1" placeholder="1320">
+        <label>Study fund (you)</label>
+        <input type="number" id="pf-keren" min="0" step="1" placeholder="440">
+        <label data-t="espp_lbl">ESPP</label>
+        <input type="number" id="pf-espp" min="0" step="1" placeholder="3300">
+        <label>Employer: pension</label>
+        <input type="number" id="pf-emp-pension" min="0" step="1" placeholder="1430">
+        <label>Employer: severance</label>
+        <input type="number" id="pf-emp-sev" min="0" step="1" placeholder="1832">
+        <label>Employer: study fund</label>
+        <input type="number" id="pf-emp-keren" min="0" step="1" placeholder="1320">
+        <div class="gf-row">
+          <button class="gf-ok" id="pf-submit" data-t="goal_save">Save</button>
+          <button class="gf-cancel" id="pf-cancel" data-t="goal_cancel">Cancel</button>
+        </div>
+        <div class="gf-err" id="pf-err"></div>
+      </div>
+    </section>
+
     <!-- Your money: every account (incl. pension / gemel / keren / IBI) + composition -->
     <section class="card accounts-card" style="grid-column:1/-1;order:3;animation-delay:.24s">
       <div class="acc-head">
@@ -909,6 +949,21 @@ const T = {
   apply_all:          { en: 'Apply to all',                he: 'החל על כל' },
   saving_cat:         { en: 'Saving…',                     he: 'שומר…' },
   cat_err:            { en: 'Failed to save — try again',  he: 'שגיאה — נסה שוב' },
+  /* paycheck (payslip) card */
+  paycheck:        { en: 'Your paycheck',            he: 'תלוש השכר' },
+  paycheck_sub:    { en: 'where the gross actually goes', he: 'לאן הברוטו באמת הולך' },
+  gross_lbl:       { en: 'Gross',                    he: 'ברוטו' },
+  net_to_bank:     { en: 'Net to bank',              he: 'נטו לבנק' },
+  taxes_lbl:       { en: 'Taxes',                    he: 'מסים' },
+  pension_keren_lbl:{ en: 'Pension & study fund',    he: 'פנסיה וקרן השתלמות' },
+  espp_lbl:        { en: 'ESPP',                     he: 'ESPP' },
+  other_ded_lbl:   { en: 'Other deductions',         he: 'ניכויים אחרים' },
+  employer_added:  { en: 'employer added on top (pension, severance, study fund)', he: 'המעסיק הוסיף מעבר לברוטו (פנסיה, פיצויים, קה"ש)' },
+  no_payslip:      { en: 'No payslip for this period yet — add one to see where the gross goes.', he: 'אין תלוש לתקופה הזו — הוסיפו אחד כדי לראות לאן הברוטו הולך.' },
+  add_payslip:     { en: 'Add payslip',              he: 'הוסף תלוש' },
+  payslip_month:   { en: 'Month',                    he: 'חודש' },
+  payslip_err:     { en: 'Month + gross ≥ net > 0 required.', he: 'נדרשים חודש וברוטו ≥ נטו > 0.' },
+  incl_payroll:    { en: 'incl. paycheck savings',   he: 'כולל חיסכון מהתלוש' },
   /* goals form */
   add_goal:       { en: 'Add goal',           he: 'הוסף יעד' },
   new_goal:       { en: 'New goal',           he: 'יעד חדש' },
@@ -1722,6 +1777,91 @@ function computeSpending(txns) {
   return { income, spent, saved, savedInvested, byCategory };
 }
 
+// ─── paycheck (payslip) card ──────────────────────────────────────────────────
+function payslipsInPeriod(payslips, period, generatedAt) {
+  if (!payslips || payslips.length === 0) return [];
+  const now = (generatedAt || new Date().toISOString()).slice(0, 10);
+  const ymNow = now.slice(0, 7);
+  if (period === 'thisMonth') return payslips.filter(p => p.month === ymNow);
+  const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
+  const ymFrom = shiftDaysStr(now, -days).slice(0, 7);
+  return payslips.filter(p => p.month >= ymFrom && p.month <= ymNow);
+}
+
+/** Payroll savings for the period: your pension+keren deductions + everything the employer adds. ESPP is
+ *  shown in the card but NOT counted here — it returns to the bank as cash at plan end (avoid double count). */
+function payrollSavedInPeriod(payslips, period, generatedAt) {
+  return payslipsInPeriod(payslips, period, generatedAt)
+    .reduce((s, p) => s + p.pensionEmp + p.kerenEmp + p.employerPension + p.employerSeverance + p.employerKeren, 0);
+}
+
+function renderPaycheck(M) {
+  const body = $('#paycheck-body');
+  if (!body) return;
+  const slips = payslipsInPeriod(M.payslips, selectedPeriod, M.generatedAt);
+  if (slips.length === 0) {
+    body.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:6px 0">${t('no_payslip')}</div>`;
+    return;
+  }
+  const sum = k => slips.reduce((s, p) => s + p[k], 0);
+  const gross = sum('gross'), net = sum('net'), tax = sum('tax');
+  const pensKeren = sum('pensionEmp') + sum('kerenEmp'), espp = sum('espp'), other = sum('otherEmp');
+  const employer = sum('employerPension') + sum('employerSeverance') + sum('employerKeren');
+  const parts = [
+    { key: 'net_to_bank',      amt: net,       color: catColorVar('--pos') },
+    { key: 'taxes_lbl',        amt: tax,       color: catColorVar('--neg') },
+    { key: 'pension_keren_lbl',amt: pensKeren, color: catColorVar('--cat-savings') },
+    { key: 'espp_lbl',         amt: espp,      color: catColorVar('--cat-investment') },
+    { key: 'other_ded_lbl',    amt: other,     color: catColorVar('--cat-other') },
+  ].filter(p => p.amt > 0);
+  const monthChip = p => `<span class="pill" style="background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-soft);margin-inline-end:6px;white-space:nowrap">${esc(p.month)}
+    <span class="ps-del" data-month="${esc(p.month)}" role="button" style="cursor:pointer;opacity:.6">×</span></span>`;
+  body.innerHTML = `
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-family:var(--round);font-size:26px;font-variant-numeric:tabular-nums">₪${NF(gross)}</span>
+      <span style="font-size:12.5px;color:var(--ink-soft)">${t('gross_lbl')} · ${slips.length === 1 ? esc(slips[0].month) : slips.length + ' × ' + t('payslip_month').toLowerCase()}</span>
+    </div>
+    <div class="comp-bar">${parts.map(p => `<div class="comp-seg" style="width:${(p.amt / gross * 100).toFixed(1)}%;background:${p.color}" title="${t(p.key)}"></div>`).join('')}</div>
+    <div class="comp-legend">${parts.map(p => `<div class="comp-item"><span class="sw" style="background:${p.color}"></span><span class="ck">${t(p.key)}</span> <span class="cv">₪${NF(p.amt)}</span></div>`).join('')}</div>
+    ${employer > 0 ? `<div class="insight" style="margin-top:14px">🎁 <span><b>+₪${NF(employer)}</b> ${t('employer_added')}</span></div>` : ''}
+    <div style="margin-top:12px">${slips.map(monthChip).join('')}</div>`;
+  body.querySelectorAll('.ps-del').forEach(el => {
+    el.onclick = async () => {
+      if (!el.dataset.month) return;
+      await fetch(`/api/payslip?month=${encodeURIComponent(el.dataset.month)}`, { method: 'DELETE' });
+      location.reload();
+    };
+  });
+}
+
+function setupPayslipForm(M) {
+  const btn = $('#add-payslip-btn'), form = $('#payslip-form'), submit = $('#pf-submit'), cancel = $('#pf-cancel'), errEl = $('#pf-err');
+  if (!btn || !form) return;
+  const showErr = m => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+  btn.onclick = () => {
+    form.classList.toggle('open');
+    const m = $('#pf-month');
+    if (m && !m.value && M.generatedAt) m.value = M.generatedAt.slice(0, 7); // default: current month
+  };
+  if (cancel) cancel.onclick = () => { form.classList.remove('open'); if (errEl) errEl.style.display = 'none'; };
+  if (submit) submit.onclick = async () => {
+    const val = id => { const v = parseFloat($(id)?.value || ''); return Number.isFinite(v) && v >= 0 ? v : 0; };
+    const payload = {
+      month: ($('#pf-month')?.value || '').trim(),
+      gross: val('#pf-gross'), net: val('#pf-net'), tax: val('#pf-tax'),
+      pensionEmp: val('#pf-pension'), kerenEmp: val('#pf-keren'), espp: val('#pf-espp'), otherEmp: 0,
+      employerPension: val('#pf-emp-pension'), employerSeverance: val('#pf-emp-sev'), employerKeren: val('#pf-emp-keren'),
+    };
+    if (!/^\d{4}-\d{2}$/.test(payload.month) || payload.gross <= 0 || payload.net <= 0 || payload.net > payload.gross) { showErr(t('payslip_err')); return; }
+    submit.disabled = true; submit.textContent = t('saving_cat'); if (errEl) errEl.style.display = 'none';
+    try {
+      const res = await fetch('/api/payslip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (res.ok) location.reload();
+      else { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('payslip_err')); }
+    } catch (e) { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('payslip_err')); }
+  };
+}
+
 // ─── SVG donut (interactive, per-segment click) ────────────────────────────────
 let _donutData = [];   // store for segment click → drawer
 let _donutTxns = null; // store for segment click → drawer
@@ -1927,20 +2067,24 @@ function renderPeriodSpending(M) {
   up($('#s-out'),  p.spent,  '₪');
   up($('#s-save'), p.saved,  '₪');
 
-  // savedInvested stat
+  // savedInvested stat: bank-tagged savings/investment outflows + payroll savings from payslips
+  // (pension+keren, yours and the employer's; ESPP excluded — it comes back as cash at plan end)
+  const payrollSaved = payrollSavedInPeriod(M.payslips, selectedPeriod, M.generatedAt);
   const siStat = $('#si-stat');
   const siEl = $('#s-invested');
   const siPill = $('#si-pill');
-  if (siEl) up(siEl, p.savedInvested || 0, '₪');
-  if (siPill) siPill.textContent = periodLabel;
+  if (siEl) up(siEl, (p.savedInvested || 0) + payrollSaved, '₪');
+  if (siPill) siPill.textContent = payrollSaved > 0 ? t('incl_payroll') : periodLabel;
   if (siStat) siStat.style.display = '';
 
-  $('#s-in-pill').textContent  = incomeIsLastPay ? t('last_paycheck') : periodLabel;
+  const slipsCoverPeriod = payslipsInPeriod(M.payslips, selectedPeriod, M.generatedAt).length > 0;
+  $('#s-in-pill').textContent  = incomeIsLastPay ? t('last_paycheck') : (slipsCoverPeriod ? t('net_to_bank') : periodLabel);
   $('#s-out-pill').textContent = periodLabel;
   renderSavingsRate(p.income, p.saved);
   $('#spend-sub').textContent = periodLabel;
   renderDonut(p.byCategory, txns);
   renderMerchants(txns);
+  renderPaycheck(M);
   $$('[data-period-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.periodBtn === selectedPeriod ? 'true' : 'false'));
   if (!$('#viewall-panel').classList.contains('hidden'))  renderViewAll(M, txns);
   if (!$('#transfers-panel').classList.contains('hidden')) renderTransfersPanel(txnsInPeriod(M.transactions || [], selectedPeriod, M.generatedAt));
@@ -2193,6 +2337,7 @@ function render() {
   renderGoals(M.goals, M.generatedAt);
   renderTxs(M.recent);
   setupGoalForm(M.generatedAt);
+  setupPayslipForm(M);
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   setupCoupleButtons(M);
   applyViewVisibility();

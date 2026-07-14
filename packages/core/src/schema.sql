@@ -48,6 +48,24 @@ CREATE TABLE IF NOT EXISTS merchant_rules (
   category TEXT NOT NULL
 );
 
+-- Payslips: the pre-bank truth, one row per month. The bank only ever sees `net`;
+-- the gross→net gap (taxes, pension/keren deductions, ESPP) plus the employer's
+-- contributions is money that moves BEFORE it ever reaches an account — which is
+-- where most real saving happens.
+CREATE TABLE IF NOT EXISTS payslips (
+  month TEXT PRIMARY KEY,               -- YYYY-MM
+  gross REAL NOT NULL,
+  net REAL NOT NULL,
+  tax REAL NOT NULL DEFAULT 0,          -- mandatory: income tax + national insurance + health
+  pension_emp REAL NOT NULL DEFAULT 0,  -- employee pension deduction
+  keren_emp REAL NOT NULL DEFAULT 0,    -- employee study-fund deduction
+  espp REAL NOT NULL DEFAULT 0,         -- voluntary ESPP deduction
+  other_emp REAL NOT NULL DEFAULT 0,    -- any other voluntary deduction
+  employer_pension REAL NOT NULL DEFAULT 0,
+  employer_severance REAL NOT NULL DEFAULT 0,
+  employer_keren REAL NOT NULL DEFAULT 0
+);
+
 -- Couple pairing: NON-secret metadata only. The pairing secret (S_pair) lives in
 -- the OS keychain, never here. local_seq/partner_seq track the monotonic blob
 -- sequence in each relay slot. v1 holds at most one pairing.
