@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import Database from 'better-sqlite3-multiple-ciphers';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -78,6 +79,68 @@ describe('Store sync helpers', () => {
     expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([{ name: 'גמל', value: 100 }, { name: 'פנסיה', value: 50 }]);
     s.upsertAccount({ ...a, id: 'm1' }); // re-upsert without components must NOT wipe them
     expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([{ name: 'גמל', value: 100 }, { name: 'פנסיה', value: 50 }]);
+    s.close();
+  });
+  it('account horizon round-trips and survives a value-only re-upsert (same pattern as components)', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount({ ...a, id: 'm1', horizon: 'medium' });
+    expect(s.listAccounts().find(x => x.id === 'm1')!.horizon).toBe('medium');
+    s.upsertAccount({ ...a, id: 'm1' }); // re-upsert without horizon must NOT wipe it (e.g. a bank re-sync)
+    expect(s.listAccounts().find(x => x.id === 'm1')!.horizon).toBe('medium');
+    s.close();
+  });
+  it('setAccountHorizon sets and clears (null → back to Auto) an account override', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount(a);
+    expect(s.listAccounts()[0]!.horizon).toBeUndefined();
+    s.setAccountHorizon('a1', 'long');
+    expect(s.listAccounts()[0]!.horizon).toBe('long');
+    s.setAccountHorizon('a1', null);
+    expect(s.listAccounts()[0]!.horizon).toBeUndefined();
+    s.close();
+  });
+  it('setComponentHorizon tags one named component in place, leaving the others untouched', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount({ ...a, id: 'm1', components: [{ name: 'גמל', value: 100 }, { name: 'קרן השתלמות', value: 50 }] });
+    s.setComponentHorizon('m1', 'קרן השתלמות', 'medium');
+    expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([
+      { name: 'גמל', value: 100 },
+      { name: 'קרן השתלמות', value: 50, horizon: 'medium' },
+    ]);
+    s.setComponentHorizon('m1', 'קרן השתלמות', null); // clear back to Auto
+    expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([
+      { name: 'גמל', value: 100 },
+      { name: 'קרן השתלמות', value: 50 },
+    ]);
+    s.close();
+  });
+  it('setComponentHorizon on an unknown account or component name is a silent no-op', () => {
+    const s = Store.open({ path: newDb(), key: 'pw' });
+    s.upsertAccount({ ...a, id: 'm1', components: [{ name: 'גמל', value: 100 }] });
+    expect(() => s.setComponentHorizon('nope', 'גמל', 'medium')).not.toThrow();
+    expect(() => s.setComponentHorizon('m1', 'nope', 'medium')).not.toThrow();
+    expect(s.listAccounts().find(x => x.id === 'm1')!.components).toEqual([{ name: 'גמל', value: 100 }]);
+    s.close();
+  });
+  it('migration: an existing pre-F1 DB file (no horizon column) opens cleanly and gains one', () => {
+    const path = newDb();
+    // Recreate the accounts table exactly as it existed before F1 (components, but no horizon column).
+    const raw = new Database(path);
+    raw.pragma("cipher='sqlcipher'");
+    raw.pragma("key='pw'");
+    raw.exec(`CREATE TABLE accounts (
+      id TEXT PRIMARY KEY, institution TEXT NOT NULL, type TEXT NOT NULL, display_name TEXT NOT NULL,
+      currency TEXT NOT NULL, shareable INTEGER NOT NULL DEFAULT 0, components TEXT
+    )`);
+    raw.prepare('INSERT INTO accounts (id, institution, type, display_name, currency, shareable) VALUES (?,?,?,?,?,?)')
+      .run('old1', 'beinleumi', 'bank', 'Old account', 'ILS', 0);
+    raw.close();
+
+    const s = Store.open({ path, key: 'pw' }); // must not throw despite the missing column
+    const old = s.listAccounts().find(x => x.id === 'old1')!;
+    expect(old.horizon).toBeUndefined(); // pre-existing row: column added, value NULL → tolerant read
+    s.setAccountHorizon('old1', 'medium'); // the new column is fully writable after migration
+    expect(s.listAccounts().find(x => x.id === 'old1')!.horizon).toBe('medium');
     s.close();
   });
   it('deleteAccount removes the account and its snapshots/transactions', () => {

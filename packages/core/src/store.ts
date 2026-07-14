@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip } from './types';
+import type { Account, AccountComponent, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip, Horizon } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -31,6 +31,7 @@ export class Store {
       db.pragma('foreign_keys = ON'); // per-connection; establish before any DML
       db.exec(SCHEMA);
       try { db.exec('ALTER TABLE accounts ADD COLUMN components TEXT'); } catch { /* migration: column already exists */ }
+      try { db.exec('ALTER TABLE accounts ADD COLUMN horizon TEXT'); } catch { /* migration: column already exists */ }
     } catch (cause) {
       db.close(); // never leak the native handle on the (expected) wrong-key path
       // Sanitized: the message must never carry the passphrase or raw SQL (could reach logs).
@@ -41,13 +42,32 @@ export class Store {
 
   upsertAccount(a: Account): void {
     this.db.prepare(
-      `INSERT INTO accounts (id, institution, type, display_name, currency, shareable, components)
-       VALUES (@id, @institution, @type, @displayName, @currency, @shareable, @components)
+      `INSERT INTO accounts (id, institution, type, display_name, currency, shareable, components, horizon)
+       VALUES (@id, @institution, @type, @displayName, @currency, @shareable, @components, @horizon)
        ON CONFLICT(id) DO UPDATE SET
          institution=@institution, type=@type, display_name=@displayName,
          currency=@currency, shareable=@shareable,
-         components=COALESCE(@components, components)` // don't wipe components when caller omits them
-    ).run({ ...a, shareable: a.shareable ? 1 : 0, components: a.components ? JSON.stringify(a.components) : null });
+         components=COALESCE(@components, components),
+         horizon=COALESCE(@horizon, horizon)` // don't wipe components/horizon when caller omits them (e.g. a re-sync)
+    ).run({ ...a, shareable: a.shareable ? 1 : 0, components: a.components ? JSON.stringify(a.components) : null, horizon: a.horizon ?? null });
+  }
+
+  /** Override (or, with null, clear back to "Auto") an account's own horizon tag. */
+  setAccountHorizon(id: string, horizon: Horizon | null): void {
+    this.db.prepare('UPDATE accounts SET horizon = ? WHERE id = ?').run(horizon, id);
+  }
+
+  /** Override (or, with null, clear) one named component's horizon tag inside an account's components JSON. */
+  setComponentHorizon(accountId: string, componentName: string, horizon: Horizon | null): void {
+    const row = this.db.prepare('SELECT components FROM accounts WHERE id = ?').get(accountId) as { components: string | null } | undefined;
+    if (!row || !row.components) return;
+    let comps: AccountComponent[];
+    try { comps = JSON.parse(row.components); } catch { return; }
+    const idx = comps.findIndex(c => c.name === componentName);
+    if (idx < 0) return;
+    const { horizon: _drop, ...rest } = comps[idx]!;
+    comps[idx] = horizon ? { ...rest, horizon } : rest;
+    this.db.prepare('UPDATE accounts SET components = ? WHERE id = ?').run(JSON.stringify(comps), accountId);
   }
 
   listAccounts(): Account[] {
@@ -254,6 +274,7 @@ function rowToAccount(r: Record<string, unknown>): Account {
     shareable: !!(r['shareable'] as number),
   };
   if (r['components']) { try { a.components = JSON.parse(r['components'] as string); } catch { /* ignore bad json */ } }
+  if (r['horizon'] != null) a.horizon = r['horizon'] as Horizon;
   return a;
 }
 

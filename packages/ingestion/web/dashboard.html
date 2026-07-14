@@ -257,9 +257,9 @@
   /* ── ACCOUNTS & BALANCES (all your money) ──────────────────────────────── */
   .accounts-card .acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   .composition{margin-bottom:14px}
-  /* day-to-day vs long-term split */
-  .horizon-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-  @media(max-width:520px){.horizon-tiles{grid-template-columns:1fr}}
+  /* day-to-day / medium-term / long-term split */
+  .horizon-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+  @media(max-width:640px){.horizon-tiles{grid-template-columns:1fr}}
   .horizon-tile{border:1.5px solid color-mix(in srgb,var(--hz) 32%,transparent);background:color-mix(in srgb,var(--hz) 9%,transparent);border-radius:18px;padding:15px 17px}
   .horizon-tile .hz-k{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:7px}
   .horizon-tile .hz-v{font-family:var(--round);font-size:27px;color:var(--ink);margin-top:5px;font-variant-numeric:tabular-nums}
@@ -307,14 +307,15 @@
   .tx .a{margin-inline-start:auto;font-family:var(--round);font-variant-numeric:tabular-nums;white-space:nowrap}
   .tx .a.pos{color:var(--pos)}
 
-  /* ── CATEGORY CHIP (re-tag button) ──────────────────────────────────── */
-  .cat-chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-family:var(--round);
+  /* ── CATEGORY CHIP (re-tag button) — .h-chip is the same pattern, sized for an icon-only trigger ── */
+  .cat-chip,.h-chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-family:var(--round);
     padding:2px 9px 2px 7px;border-radius:999px;border:1.5px solid transparent;cursor:pointer;
     transition:background .15s,border-color .15s,transform .12s;white-space:nowrap;vertical-align:middle;
     background:color-mix(in srgb,var(--chip-color,#888) 14%,transparent);
     color:var(--chip-color,#888);border-color:color-mix(in srgb,var(--chip-color,#888) 28%,transparent)}
-  .cat-chip:hover{background:color-mix(in srgb,var(--chip-color,#888) 24%,transparent);transform:scale(1.04)}
-  .cat-chip .cc-icon{font-size:12px}
+  .cat-chip:hover,.h-chip:hover{background:color-mix(in srgb,var(--chip-color,#888) 24%,transparent);transform:scale(1.04)}
+  .cat-chip .cc-icon,.h-chip .cc-icon{font-size:12px}
+  .h-chip{padding:3px 7px;flex:0 0 auto} /* icon-only — a "small" picker per account/component row */
   /* picker overlay */
   .cat-picker-wrap{position:relative;display:inline-block}
   .cat-picker{position:absolute;z-index:500;top:calc(100% + 6px);inset-inline-start:0;min-width:180px;
@@ -985,11 +986,15 @@ const T = {
   goal_done:      { en: 'done!',              he: 'הושג!' },
   /* accounts & balances */
   accounts:       { en: 'Your money',         he: 'הכסף שלך' },
-  accounts_sub:   { en: 'split into day-to-day and long-term', he: 'מחולק לשוטף ולטווח ארוך' },
+  accounts_sub:   { en: 'split into day-to-day, medium- and long-term', he: 'מחולק לשוטף, לטווח בינוני ולטווח ארוך' },
   horizon_daily:     { en: 'Day-to-day',       he: 'שוטף' },
   horizon_daily_sub: { en: 'spendable now',    he: 'זמין עכשיו' },
-  horizon_longterm:     { en: 'Long-term',     he: 'טווח ארוך' },
-  horizon_longterm_sub: { en: 'for 20–30 years', he: 'ל-20–30 שנה' },
+  horizon_medium:     { en: '5–10y',           he: '5–10 שנים' },
+  horizon_medium_sub: { en: 'for 5–10 years',  he: 'ל-5–10 שנים' },
+  horizon_long:     { en: 'Long-term',         he: 'טווח ארוך' },
+  horizon_long_sub: { en: 'for 20–30 years',   he: 'ל-20–30 שנה' },
+  horizon_auto:      { en: 'Auto',             he: 'אוטומטי' },
+  change_horizon:    { en: 'Change horizon',   he: 'שנה טווח' },
   graph_builds: { en: 'This graph fills in each time you sync.', he: 'הגרף מתעדכן עם כל סנכרון.' },
   add_balance:    { en: 'Add / update balance', he: 'הוסף / עדכן יתרה' },
   new_balance:    { en: 'Add or update a balance', he: 'הוספה או עדכון יתרה' },
@@ -1329,12 +1334,19 @@ function clearGoalForm() {
 
 // ─── accounts & balances (all your money) ───────────────────────────────────
 const ACCT_TYPE_ICON = { bank:'🏦', credit_card:'💳', investment:'📈', pension:'🌴' };
-// How soon you'll use the money: bank/cards = day-to-day; investments/pension = long-term (20–30y).
-const HORIZON_OF = { bank: 'daily', credit_card: 'daily', investment: 'longterm', pension: 'longterm' };
+// How soon you'll use the money: bank/cards = day-to-day; investments/pension = long-term by
+// default (20–30y). 'medium' (5–10y) is reached only via an explicit tag — mirrors resolveHorizon
+// in @kesef/core, but only at the account level (list placement doesn't split by component).
+const TYPE_HORIZON = { bank: 'daily', credit_card: 'daily', investment: 'long', pension: 'long' };
+const HORIZON_ORDER = ['daily', 'medium', 'long'];
 const HORIZON = {
-  daily:    { icon: '💳', cssVar: '--gold',           lbl: 'horizon_daily',    sub: 'horizon_daily_sub' },
-  longterm: { icon: '🌱', cssVar: '--cat-investment', lbl: 'horizon_longterm', sub: 'horizon_longterm_sub' },
+  daily:  { icon: '💳', cssVar: '--gold',          lbl: 'horizon_daily',  sub: 'horizon_daily_sub' },
+  medium: { icon: '🏡', cssVar: '--cat-savings',    lbl: 'horizon_medium', sub: 'horizon_medium_sub' },
+  long:   { icon: '🌱', cssVar: '--cat-investment', lbl: 'horizon_long',   sub: 'horizon_long_sub' },
 };
+// Normalize to a known horizon key so a stray/corrupted value can never crash the render.
+const normHorizon = h => HORIZON[h] ? h : 'daily';
+const acctHorizon = a => normHorizon(a.horizon || TYPE_HORIZON[a.type]);
 const acctTypeLabel = type => t('acct_type_' + type) || type;
 const isManualAcct = a => a.institution === 'manual' || a.institution === 'ibi';
 
@@ -1344,33 +1356,27 @@ function renderAccounts(M) {
   const compEl = $('#composition');
   if (!listEl || !compEl) return;
 
-  // split everything into day-to-day vs long-term; liabilities (negative balances) tracked apart
-  const totals = { daily: 0, longterm: 0 };
+  // Composition totals come from the server (horizonSplit — honors account overrides + component
+  // tags); liabilities (negative balances) are tracked apart, same as before F1.
+  const comp = M.composition || { daily: 0, medium: 0, long: 0 };
   let liabilities = 0;
-  for (const a of accounts) {
-    const bal = (typeof a.balance === 'number') ? a.balance : 0;
-    const h = HORIZON_OF[a.type] || 'daily';
-    totals[h] += bal;
-    if (bal < 0) liabilities += -bal;
-  }
-  const dailyShown = Math.max(0, totals.daily), longShown = Math.max(0, totals.longterm);
-  const grand = dailyShown + longShown;
+  for (const a of accounts) { if (typeof a.balance === 'number' && a.balance < 0) liabilities += -a.balance; }
+  const shown = { daily: Math.max(0, comp.daily), medium: Math.max(0, comp.medium), long: Math.max(0, comp.long) };
+  const grand = shown.daily + shown.medium + shown.long;
 
   const tile = (key) => {
     const c = catColorVar(HORIZON[key].cssVar);
-    const v = key === 'daily' ? totals.daily : totals.longterm;
     return `<div class="horizon-tile" style="--hz:${c}">
       <div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div>
-      <div class="hz-v">₪${NF(v)}</div>
+      <div class="hz-v">₪${NF(comp[key])}</div>
       <div class="hz-sub">${t(HORIZON[key].sub)}</div>
     </div>`;
   };
   compEl.innerHTML =
-    `<div class="horizon-tiles">${tile('daily')}${tile('longterm')}</div>` +
-    (grand > 0 ? `<div class="comp-bar">
-        <div class="comp-seg" style="width:${(dailyShown / grand * 100).toFixed(1)}%;background:${catColorVar('--gold')}" title="${t('horizon_daily')}"></div>
-        <div class="comp-seg" style="width:${(longShown / grand * 100).toFixed(1)}%;background:${catColorVar('--cat-investment')}" title="${t('horizon_longterm')}"></div>
-      </div>` : '') +
+    `<div class="horizon-tiles">${HORIZON_ORDER.map(tile).join('')}</div>` +
+    (grand > 0 ? `<div class="comp-bar">${HORIZON_ORDER.map(key =>
+        `<div class="comp-seg" style="width:${(shown[key] / grand * 100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}" title="${t(HORIZON[key].lbl)}"></div>`
+      ).join('')}</div>` : '') +
     (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
   compEl.style.display = '';
 
@@ -1393,10 +1399,10 @@ function renderAccounts(M) {
     }
     const comps = Array.isArray(a.components) ? a.components : [];
     const compHtml = comps.length
-      ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span class="acc-comp-v">₪${NF(c.value)}</span></div>`).join('')}</div>`
+      ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span style="display:flex;align-items:center;gap:7px;flex:0 0 auto"><span class="acc-comp-v">₪${NF(c.value)}</span>${horizonPickerHtml('component', a.id, c.horizon || acctHorizon(a), c.horizon || null, c.name)}</span></div>`).join('')}</div>`
       : '';
     // long-term accounts get a balance-over-time graph (fills in as you sync)
-    const isLong = (HORIZON_OF[a.type] || 'daily') === 'longterm';
+    const isLong = acctHorizon(a) === 'long';
     const hist = Array.isArray(a.history) ? a.history : [];
     const histHtml = !isLong ? ''
       : hist.length >= 2
@@ -1410,6 +1416,7 @@ function renderAccounts(M) {
           <div class="acc-meta">${acctTypeLabel(a.type)}${asof}</div>
         </div>
         <span class="acc-bal ${bal !== null && bal < 0 ? 'neg' : ''}">${balStr}</span>
+        ${horizonPickerHtml('account', a.id, acctHorizon(a), a.horizon || null, null)}
         ${isManualAcct(a) ? `<button class="acc-del" data-acc-id="${esc(a.id)}" title="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>` : ''}
       </div>
       ${compHtml}
@@ -1419,11 +1426,11 @@ function renderAccounts(M) {
   };
   const group = (key) => {
     // only show accounts that actually have a balance (hide e.g. the empty credit-card rows)
-    const accs = accounts.filter(a => (HORIZON_OF[a.type] || 'daily') === key && a.balance != null);
+    const accs = accounts.filter(a => acctHorizon(a) === key && a.balance != null);
     if (!accs.length) return '';
     return `<div class="acc-group"><div class="acc-group-h">${HORIZON[key].icon} ${t(HORIZON[key].lbl)}</div>${accs.map(rowHtml).join('')}</div>`;
   };
-  listEl.innerHTML = group('daily') + group('longterm');
+  listEl.innerHTML = HORIZON_ORDER.map(group).join('');
 
   $$('#accounts-list .acc-del').forEach(btn => {
     btn.onclick = async () => {
@@ -1443,6 +1450,7 @@ function renderAccounts(M) {
       if (lbl) { lbl.classList.toggle('on', on); const s = lbl.querySelector('span'); if (s) s.textContent = on ? '✓ ' + t('shared_badge') : t('share_pill'); }
     };
   });
+  attachHorizonPickerHandlers(listEl);
 }
 
 // resolve a CSS custom property to a concrete color (composition segments)
@@ -1625,6 +1633,95 @@ function attachChipHandlers(root) {
         closePicker(picker);
       } else {
         openPicker(wrap);
+      }
+    };
+  });
+}
+
+// ─── horizon picker (account / component row) — same overlay pattern as the category picker,
+// reusing its shared _activePicker/closePicker state. Trigger is `.h-chip` (not `.cat-chip`) so
+// attachChipHandlers above never wires the category logic onto it by accident.
+const HORIZON_PICK_OPTIONS = ['', 'daily', 'medium', 'long']; // '' = Auto (clears the override)
+
+function horizonPickerHtml(kind, accountId, resolved, raw, componentName) {
+  resolved = normHorizon(resolved);
+  const attrs = `data-h-kind="${esc(kind)}" data-h-account="${esc(accountId)}" data-h-raw="${esc(raw || '')}"`
+    + (componentName != null ? ` data-h-component="${esc(componentName)}"` : '');
+  const label = t(HORIZON[resolved].lbl);
+  return `<span class="cat-picker-wrap h-picker-wrap" ${attrs}>
+    <button class="h-chip" style="--chip-color:${catColorVar(HORIZON[resolved].cssVar)}" title="${t('change_horizon')}: ${esc(label)}" aria-label="${t('change_horizon')}: ${esc(label)}">
+      <span class="cc-icon">${HORIZON[resolved].icon}</span>
+    </button>
+    <div class="cat-picker" role="listbox" aria-label="${t('change_horizon')}"></div>
+  </span>`;
+}
+
+function buildHorizonPicker(wrap) {
+  const picker = wrap.querySelector('.cat-picker');
+  if (!picker) return;
+  const raw = wrap.dataset.hRaw || '';
+  picker.innerHTML = HORIZON_PICK_OPTIONS.map(key => {
+    const active = key === raw;
+    const icon = key === '' ? '✨' : HORIZON[key].icon;
+    const label = key === '' ? t('horizon_auto') : t(HORIZON[key].lbl);
+    const dotColor = key === '' ? 'transparent' : catColorVar(HORIZON[key].cssVar);
+    return `<div class="cp-item ${active ? 'cp-active' : ''}" data-horizon="${esc(key)}" role="option" aria-selected="${active}">
+      <span class="cp-dot" style="background:${dotColor}"></span>${icon} ${esc(label)}
+    </div>`;
+  }).join('');
+  picker.querySelectorAll('.cp-item').forEach(item => {
+    item.onclick = (e) => {
+      e.stopPropagation();
+      const newRaw = item.dataset.horizon || '';
+      if (newRaw === raw) { closePicker(picker); return; }
+      doHorizonRetag(wrap, picker, newRaw || null);
+    };
+  });
+}
+
+async function doHorizonRetag(wrap, picker, newHorizon) {
+  picker.innerHTML = `<div class="cp-saving">${t('saving_cat')}</div>`;
+  const body = {
+    kind: wrap.dataset.hKind, accountId: wrap.dataset.hAccount, horizon: newHorizon,
+  };
+  if (wrap.dataset.hComponent) body.componentName = wrap.dataset.hComponent;
+  try {
+    const res = await fetch('/api/horizon', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      location.reload();
+    } else {
+      picker.innerHTML = `<div class="cp-err">${t('cat_err')}</div>`;
+      setTimeout(() => closePicker(picker), 2200);
+    }
+  } catch (e) {
+    picker.innerHTML = `<div class="cp-err">${t('cat_err')}</div>`;
+    setTimeout(() => closePicker(picker), 2200);
+  }
+}
+
+function openHorizonPicker(wrap) {
+  if (_activePicker && _activePicker !== wrap) {
+    closePicker(_activePicker.querySelector('.cat-picker'));
+  }
+  const picker = wrap.querySelector('.cat-picker');
+  buildHorizonPicker(wrap);
+  picker.classList.add('open');
+  _activePicker = wrap;
+}
+
+function attachHorizonPickerHandlers(root) {
+  (root || document).querySelectorAll('.h-picker-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.h-chip');
+    if (btn) btn.onclick = (e) => {
+      e.stopPropagation();
+      const picker = wrap.querySelector('.cat-picker');
+      if (picker && picker.classList.contains('open')) {
+        closePicker(picker);
+      } else {
+        openHorizonPicker(wrap);
       }
     };
   });
@@ -2518,23 +2615,24 @@ function renderCoupleView() {
   // hero number: combined for couple, partner's for partner view
   up($('#nw'), mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
 
-  // composition (day-to-day vs long-term): combined buckets in couple view, partner-only in partner view
+  // composition (day-to-day / 5-10y / long-term): combined buckets in couple view, partner-only in partner view
   let bb = model.netWorth.byBucket;
   if (mode === 'partner') {
+    // Partner-only recompute is type-based only — ShareAccount carries type but not horizon/components,
+    // so a partner's own medium-tagged money can't be isolated here and falls back to its type bucket.
     const BUCKET_OF_TYPE = { bank: 'liquid', investment: 'investment', pension: 'retirement', credit_card: 'liability' };
-    bb = { liquid: 0, investment: 0, retirement: 0, liability: 0 };
+    bb = { liquid: 0, medium: 0, investment: 0, retirement: 0, liability: 0 };
     for (const a of (model.accounts || [])) {
       if (a.owner === 'partner') bb[BUCKET_OF_TYPE[a.type] || 'liquid'] += (typeof a.balance === 'number' ? a.balance : 0);
     }
   }
-  const daily = bb.liquid, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
-  const grand = Math.max(0, daily) + Math.max(0, longterm);
+  const daily = bb.liquid, medium = bb.medium || 0, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
+  const grand = Math.max(0, daily) + Math.max(0, medium) + Math.max(0, longterm);
+  const cvTile = (key, v) => `<div class="horizon-tile" style="--hz:${catColorVar(HORIZON[key].cssVar)}"><div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div><div class="hz-v">₪${NF(v)}</div><div class="hz-sub">${t(HORIZON[key].sub)}</div></div>`;
+  const cvSeg = (key, v) => `<div class="comp-seg" style="width:${(Math.max(0,v)/grand*100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}"></div>`;
   $('#cv-composition').innerHTML =
-    `<div class="horizon-tiles">
-       <div class="horizon-tile" style="--hz:${catColorVar('--gold')}"><div class="hz-k">${HORIZON.daily.icon} <span>${t(HORIZON.daily.lbl)}</span></div><div class="hz-v">₪${NF(daily)}</div><div class="hz-sub">${t(HORIZON.daily.sub)}</div></div>
-       <div class="horizon-tile" style="--hz:${catColorVar('--cat-investment')}"><div class="hz-k">${HORIZON.longterm.icon} <span>${t(HORIZON.longterm.lbl)}</span></div><div class="hz-v">₪${NF(longterm)}</div><div class="hz-sub">${t(HORIZON.longterm.sub)}</div></div>
-     </div>` +
-    (grand > 0 ? `<div class="comp-bar"><div class="comp-seg" style="width:${(Math.max(0,daily)/grand*100).toFixed(1)}%;background:${catColorVar('--gold')}"></div><div class="comp-seg" style="width:${(Math.max(0,longterm)/grand*100).toFixed(1)}%;background:${catColorVar('--cat-investment')}"></div></div>` : '') +
+    `<div class="horizon-tiles">${cvTile('daily', daily)}${cvTile('medium', medium)}${cvTile('long', longterm)}</div>` +
+    (grand > 0 ? `<div class="comp-bar">${cvSeg('daily', daily)}${cvSeg('medium', medium)}${cvSeg('long', longterm)}</div>` : '') +
     (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
 
   // you / partner split

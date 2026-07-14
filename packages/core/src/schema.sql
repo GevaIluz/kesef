@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   display_name TEXT NOT NULL,
   currency TEXT NOT NULL,
   shareable INTEGER NOT NULL DEFAULT 0,
-  components TEXT
+  components TEXT,
+  horizon TEXT
 );
 
 CREATE TABLE IF NOT EXISTS transactions (

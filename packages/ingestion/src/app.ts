@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { randomUUID, randomBytes } from 'node:crypto';
-import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode, type Payslip } from '@kesef/core';
+import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode, type Payslip, type Horizon } from '@kesef/core';
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
@@ -28,6 +28,7 @@ const CATEGORIES = new Set<string>([
   'groceries', 'dining', 'transport', 'housing', 'utilities', 'health', 'shopping',
   'entertainment', 'income', 'transfer', 'savings', 'investment', 'fees', 'other',
 ]);
+const HORIZONS = new Set<string>(['daily', 'medium', 'long']);
 
 async function dbKey(): Promise<string> {
   const k = await vault.get('db-key');
@@ -145,6 +146,26 @@ const server = createServer(async (req, res) => {
       const id = url.searchParams.get('id');
       if (!id) return sendJson(res, 400, { error: 'id required' });
       await withStore(s => s.deleteAccount(id));
+      return sendJson(res, 200, { ok: true });
+    }
+    // Tag an account (or one of its components) with a horizon override — null clears back to Auto.
+    if (path === '/api/horizon' && method === 'POST') {
+      const b = await readJson(req);
+      const kind = b['kind'];
+      const accountId = typeof b['accountId'] === 'string' ? b['accountId'] : '';
+      const horizonRaw = b['horizon'];
+      const horizon: Horizon | null | undefined = horizonRaw === null ? null
+        : (typeof horizonRaw === 'string' && HORIZONS.has(horizonRaw)) ? horizonRaw as Horizon : undefined;
+      if ((kind !== 'account' && kind !== 'component') || !accountId || horizon === undefined) {
+        return sendJson(res, 400, { error: 'kind (account|component) + accountId + horizon (daily|medium|long|null) required' });
+      }
+      if (kind === 'component') {
+        const componentName = typeof b['componentName'] === 'string' ? b['componentName'] : '';
+        if (!componentName) return sendJson(res, 400, { error: 'componentName required for kind=component' });
+        await withStore(s => s.setComponentHorizon(accountId, componentName, horizon));
+      } else {
+        await withStore(s => s.setAccountHorizon(accountId, horizon));
+      }
       return sendJson(res, 200, { ok: true });
     }
 

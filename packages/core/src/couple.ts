@@ -4,6 +4,7 @@
 
 import { hkdfSync, randomBytes } from 'node:crypto';
 import type { Account, BalanceSnapshot, Goal, Transaction, CategoryCode } from './types';
+import { horizonSplit } from './types';
 import { summarize, shiftDays } from './analytics';
 import { normalizeMerchant } from './merchant';
 import { encrypt, decrypt, type EncryptedBlob } from './crypto';
@@ -24,8 +25,13 @@ export interface ShareGoal {
   targetDate?: string;
 }
 
-/** Net-worth split that drives the "day-to-day vs long-term" framing (liquid = spendable, investment+retirement = long-term). */
-export interface NetWorthBuckets { liquid: number; investment: number; retirement: number; liability: number }
+/**
+ * Net-worth split that drives the "day-to-day vs long-term" framing (liquid = spendable,
+ * investment+retirement = long-term). `medium` is a carve-out: money whose resolved horizon
+ * (account override or component tag — see resolveHorizon) is 'medium' moves here instead of
+ * its type bucket. Untagged money is unaffected — same buckets as before F1.
+ */
+export interface NetWorthBuckets { liquid: number; medium: number; investment: number; retirement: number; liability: number }
 export interface NetWorth { total: number; byBucket: NetWorthBuckets }
 
 /** Map an account type to its net-worth bucket. */
@@ -93,8 +99,8 @@ export function buildShareableSummary(
 ): CoupleSummary {
   const all = opts.includeAll === true;
   const latest = latestSnap(snapshots);
-  const shareAccounts: ShareAccount[] = accounts
-    .filter(a => all || a.shareable)
+  const shareableAccounts = accounts.filter(a => all || a.shareable);
+  const shareAccounts: ShareAccount[] = shareableAccounts
     .map(a => {
       const l = latest.get(a.id);
       return { type: a.type, label: a.displayName, balance: l ? l.balance : 0, asOf: l ? l.date : null };
@@ -133,9 +139,16 @@ export function buildShareableSummary(
       if (g.targetDate) sg.targetDate = g.targetDate;
       return sg;
     });
-  const byBucket: NetWorthBuckets = { liquid: 0, investment: 0, retirement: 0, liability: 0 };
-  for (const a of shareAccounts) byBucket[bucketOf(a.type)] += a.balance;
-  const total = byBucket.liquid + byBucket.investment + byBucket.retirement + byBucket.liability;
+  // byBucket: type-bucketed as before, except money whose resolved horizon is 'medium' (account
+  // override or component tag) is carved out into its own bucket instead of its type bucket.
+  const byBucket: NetWorthBuckets = { liquid: 0, medium: 0, investment: 0, retirement: 0, liability: 0 };
+  for (const a of shareableAccounts) {
+    const balance = latest.get(a.id)?.balance ?? 0;
+    const medium = horizonSplit(a, balance).medium;
+    byBucket.medium += medium;
+    byBucket[bucketOf(a.type)] += balance - medium;
+  }
+  const total = byBucket.liquid + byBucket.medium + byBucket.investment + byBucket.retirement + byBucket.liability;
   return {
     schema: SUMMARY_SCHEMA,
     pairingId: opts.pairingId,
@@ -181,7 +194,7 @@ function mergePeriod(a: SharePeriod, b: SharePeriod): SharePeriod {
 function emptySummary(): CoupleSummary {
   return {
     schema: SUMMARY_SCHEMA, pairingId: '', author: 'B', generatedAt: '', currency: 'ILS',
-    netWorth: { total: 0, byBucket: { liquid: 0, investment: 0, retirement: 0, liability: 0 } },
+    netWorth: { total: 0, byBucket: { liquid: 0, medium: 0, investment: 0, retirement: 0, liability: 0 } },
     accounts: [], spending: { thisMonth: { spent: 0, byCategory: [] }, last30: { spent: 0, byCategory: [] }, last90: { spent: 0, byCategory: [] }, year: { spent: 0, byCategory: [] } }, goals: [],
   };
 }
@@ -189,8 +202,11 @@ function emptySummary(): CoupleSummary {
 // partner may be null/absent — the couple view always shows MY side; the partner fills in once synced.
 export function buildCoupleModel(mine: CoupleSummary, partner?: CoupleSummary | null): CoupleModel {
   const p = partner ?? emptySummary();
+  // `medium` is read tolerantly: a partner still on a pre-F1 build sends a blob with no `medium`
+  // key at all (schema string is unchanged, additive field) — treat that as 0, not NaN.
   const byBucket: NetWorthBuckets = {
     liquid: mine.netWorth.byBucket.liquid + p.netWorth.byBucket.liquid,
+    medium: (mine.netWorth.byBucket.medium ?? 0) + (p.netWorth.byBucket.medium ?? 0),
     investment: mine.netWorth.byBucket.investment + p.netWorth.byBucket.investment,
     retirement: mine.netWorth.byBucket.retirement + p.netWorth.byBucket.retirement,
     liability: mine.netWorth.byBucket.liability + p.netWorth.byBucket.liability,

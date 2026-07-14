@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildShareableSummary, buildCoupleModel } from '../src/couple';
 import { normalizeMerchant } from '../src/index';
 import type { Account, BalanceSnapshot, Goal, Transaction } from '../src/index';
-import type { CoupleSummary, SharePeriod, ShareSpending } from '../src/couple';
+import type { CoupleSummary, NetWorthBuckets, SharePeriod, ShareSpending } from '../src/couple';
 
 const acct = (over: Partial<Account>): Account => ({
   id: 'a', institution: 'beinleumi', type: 'bank', displayName: 'A', currency: 'ILS', shareable: false, ...over,
@@ -86,7 +86,29 @@ describe('buildShareableSummary — what leaves the device', () => {
     const summary = buildShareableSummary(accounts, [], snaps, [], '2026-06-04', { pairingId: 'p1' });
     expect(summary.netWorth).toEqual({
       total: 42200 + 96000 + 46000 - 3000,
-      byBucket: { liquid: 42200, investment: 96000, retirement: 46000, liability: -3000 },
+      byBucket: { liquid: 42200, medium: 0, investment: 96000, retirement: 46000, liability: -3000 },
+    });
+  });
+
+  it('horizon resolution (account override + component tag) carves money into the medium bucket', () => {
+    const accounts = [
+      // whole-account override: an IBI portfolio explicitly tagged medium (5-10y), not its investment default.
+      acct({ id: 'ibi', institution: 'ibi', type: 'investment', shareable: true, horizon: 'medium' }),
+      // MVS: one pension account, mixed component tags — קרן השתלמות tagged medium, קרן פנסיה untagged
+      // (inherits the account's own resolved horizon, which defaults to 'long' for a pension).
+      acct({
+        id: 'mvs', institution: 'manual', type: 'pension', shareable: true,
+        components: [
+          { name: 'קרן השתלמות', value: 20000, horizon: 'medium' },
+          { name: 'קרן פנסיה', value: 30000 },
+        ],
+      }),
+    ];
+    const snaps = [snap('ibi', 54000, '2026-06-01'), snap('mvs', 50000, '2026-06-01')];
+    const summary = buildShareableSummary(accounts, [], snaps, [], '2026-06-04', { pairingId: 'p1' });
+    expect(summary.netWorth).toEqual({
+      total: 54000 + 50000,
+      byBucket: { liquid: 0, medium: 54000 + 20000, investment: 0, retirement: 30000, liability: 0 },
     });
   });
 
@@ -176,33 +198,42 @@ const periods = (over: Partial<ShareSpending>): ShareSpending =>
   ({ thisMonth: emptyPeriod, last30: emptyPeriod, last90: emptyPeriod, year: emptyPeriod, ...over });
 const summaryWith = (over: Partial<CoupleSummary>): CoupleSummary => ({
   schema: 'kesef.couple.summary/v1', pairingId: 'p', author: 'A', generatedAt: '2026-06-04', currency: 'ILS',
-  netWorth: { total: 0, byBucket: { liquid: 0, investment: 0, retirement: 0, liability: 0 } },
+  netWorth: { total: 0, byBucket: { liquid: 0, medium: 0, investment: 0, retirement: 0, liability: 0 } },
   accounts: [], spending: periods({}), goals: [], ...over,
 });
 
 describe('buildCoupleModel — the merged couple view', () => {
   it('works with no partner yet — shows just my side, partner contributes 0', () => {
     const mine = summaryWith({
-      netWorth: { total: 100, byBucket: { liquid: 100, investment: 0, retirement: 0, liability: 0 } },
+      netWorth: { total: 100, byBucket: { liquid: 100, medium: 0, investment: 0, retirement: 0, liability: 0 } },
       accounts: [{ type: 'bank', label: 'X', balance: 100, asOf: '2026-06-01' }],
       spending: periods({ thisMonth: { spent: 200, byCategory: [{ category: 'dining', amount: 200 }] } }),
       goals: [{ name: 'G', targetAmount: 10, currentAmount: 2 }],
     });
     const model = buildCoupleModel(mine, null);
-    expect(model.netWorth).toEqual({ total: 100, me: 100, partner: 0, byBucket: { liquid: 100, investment: 0, retirement: 0, liability: 0 } });
+    expect(model.netWorth).toEqual({ total: 100, me: 100, partner: 0, byBucket: { liquid: 100, medium: 0, investment: 0, retirement: 0, liability: 0 } });
     expect(model.accounts).toEqual([{ owner: 'me', type: 'bank', label: 'X', balance: 100, asOf: '2026-06-01' }]);
     expect(model.goals).toEqual([{ owner: 'me', name: 'G', targetAmount: 10, currentAmount: 2 }]);
     expect(model.spending.thisMonth).toEqual({ spent: 200, byCategory: [{ category: 'dining', amount: 200 }] });
   });
 
   it('combines net worth across both partners (total, per-owner, and buckets)', () => {
-    const mine = summaryWith({ netWorth: { total: 100, byBucket: { liquid: 60, investment: 40, retirement: 0, liability: 0 } } });
-    const partner = summaryWith({ author: 'B', netWorth: { total: 250, byBucket: { liquid: 50, investment: 100, retirement: 120, liability: -20 } } });
+    const mine = summaryWith({ netWorth: { total: 100, byBucket: { liquid: 60, medium: 0, investment: 40, retirement: 0, liability: 0 } } });
+    const partner = summaryWith({ author: 'B', netWorth: { total: 250, byBucket: { liquid: 50, medium: 0, investment: 100, retirement: 120, liability: -20 } } });
     const model = buildCoupleModel(mine, partner);
     expect(model.netWorth).toEqual({
       total: 350, me: 100, partner: 250,
-      byBucket: { liquid: 110, investment: 140, retirement: 120, liability: -20 },
+      byBucket: { liquid: 110, medium: 0, investment: 140, retirement: 120, liability: -20 },
     });
+  });
+
+  it('combines medium across partners too, and tolerates a pre-F1 partner blob with no medium key at all', () => {
+    const mine = summaryWith({ netWorth: { total: 100, byBucket: { liquid: 50, medium: 50, investment: 0, retirement: 0, liability: 0 } } });
+    // simulate a partner still on an old build: their deserialized blob simply has no `medium` key.
+    const partnerBucket = { liquid: 50, investment: 100, retirement: 120, liability: -20 } as unknown as NetWorthBuckets;
+    const partner = summaryWith({ author: 'B', netWorth: { total: 250, byBucket: partnerBucket } });
+    const model = buildCoupleModel(mine, partner);
+    expect(model.netWorth.byBucket).toEqual({ liquid: 100, medium: 50, investment: 100, retirement: 120, liability: -20 });
   });
 
   it('tags each account by owner so both partners on the SAME institution stay distinct', () => {

@@ -140,4 +140,58 @@ describe('buildDashboard', () => {
     const d = buildDashboard([], [], [], '2026-06-15');
     expect(d.couple).toEqual({ paired: false });
   });
+
+  describe('composition — horizon resolution (type default vs account override vs component tag)', () => {
+    const snap = (accountId: string, balance: number): BalanceSnapshot => ({ id: `${accountId}@2026-06-01`, accountId, date: '2026-06-01', balance });
+
+    it('untagged accounts keep today\'s type-default placement (bank/credit_card daily, investment/pension long)', () => {
+      const accs: Account[] = [
+        { id: 'b', institution: 'beinleumi', type: 'bank', displayName: 'Bank', currency: 'ILS', shareable: false },
+        { id: 'c', institution: 'cal', type: 'credit_card', displayName: 'Card', currency: 'ILS', shareable: false },
+        { id: 'i', institution: 'ibi', type: 'investment', displayName: 'IBI', currency: 'ILS', shareable: false },
+        { id: 'p', institution: 'manual', type: 'pension', displayName: 'MVS', currency: 'ILS', shareable: false },
+      ];
+      const snaps = [snap('b', 1000), snap('c', -200), snap('i', 5000), snap('p', 9000)];
+      const d = buildDashboard(accs, [], snaps, '2026-06-15');
+      expect(d.composition).toEqual({ daily: 800, medium: 0, long: 14000 }); // 1000-200=800 daily; 5000+9000 long
+      expect(d.accounts.find(a => a.id === 'b')!.horizon).toBeNull(); // "Auto" — no override stored
+    });
+
+    it('an explicit account-level override moves its whole balance to that horizon', () => {
+      const accs: Account[] = [
+        { id: 'i', institution: 'ibi', type: 'investment', displayName: 'IBI', currency: 'ILS', shareable: false, horizon: 'medium' },
+      ];
+      const d = buildDashboard(accs, [], [snap('i', 20000)], '2026-06-15');
+      expect(d.composition).toEqual({ daily: 0, medium: 20000, long: 0 });
+      expect(d.accounts[0]!.horizon).toBe('medium');
+    });
+
+    it('a component tag moves only that slice; untagged components + the remainder inherit the account horizon', () => {
+      const accs: Account[] = [{
+        id: 'mvs', institution: 'manual', type: 'pension', displayName: 'MVS', currency: 'ILS', shareable: false,
+        components: [
+          { name: 'קרן השתלמות', value: 20000, horizon: 'medium' }, // tagged → medium
+          { name: 'קרן פנסיה', value: 30000 },                       // untagged → inherits account horizon (long, pension default)
+        ],
+      }];
+      const d = buildDashboard(accs, [], [snap('mvs', 55000)], '2026-06-15'); // 5000 unitemized remainder
+      expect(d.composition).toEqual({ daily: 0, medium: 20000, long: 35000 }); // 30000 + 5000 remainder
+    });
+
+    it('a component tag can beat an account override too (component wins the precedence order)', () => {
+      const accs: Account[] = [{
+        id: 'mvs', institution: 'manual', type: 'pension', displayName: 'MVS', currency: 'ILS', shareable: false,
+        horizon: 'daily', // account-level override
+        components: [{ name: 'קרן השתלמות', value: 10000, horizon: 'long' }], // component tag beats the account override
+      }];
+      const d = buildDashboard(accs, [], [snap('mvs', 10000)], '2026-06-15');
+      expect(d.composition).toEqual({ daily: 0, medium: 0, long: 10000 });
+    });
+
+    it('accounts without a known balance are skipped (no NaN leaking into the totals)', () => {
+      const accs: Account[] = [{ id: 'x', institution: 'manual', type: 'bank', displayName: 'X', currency: 'ILS', shareable: false }];
+      const d = buildDashboard(accs, [], [], '2026-06-15');
+      expect(d.composition).toEqual({ daily: 0, medium: 0, long: 0 });
+    });
+  });
 });

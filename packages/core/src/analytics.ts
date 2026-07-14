@@ -1,4 +1,5 @@
-import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal, Payslip } from './types';
+import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal, Payslip, Horizon, HorizonTotals } from './types';
+import { horizonSplit } from './types';
 import { normalizeMerchant } from './merchant';
 
 export interface PeriodSummary {
@@ -25,7 +26,8 @@ export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
   spending: { thisMonth: PeriodSummary; last30: PeriodSummary; last90: PeriodSummary; year: PeriodSummary };
-  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; shareable: boolean; components: { name: string; value: number }[] | null; history: { date: string; balance: number }[] }[];
+  composition: HorizonTotals; // net worth split by horizon (daily/medium/long) — drives the composition tiles
+  accounts: { id: string; name: string; institution: string; type: string; balance: number | null; asOf: string | null; shareable: boolean; horizon: Horizon | null; components: { name: string; value: number; horizon?: Horizon }[] | null; history: { date: string; balance: number }[] }[];
   recent: { id: string; date: string; amount: number; category: CategoryCode | null; rawCategory: string | null; description: string; merchant: string }[];
   netWorthSeries: { date: string; balance: number }[];
   goals: Goal[];
@@ -148,6 +150,16 @@ export function buildDashboard(
   const histByAccount = historyByAccount(snapshots);
   const netWorth = [...latest.values()].reduce((a, b) => a + b, 0);
 
+  // Composition: every account's balance split across horizons (type default, account override,
+  // or component tag — see resolveHorizon), summed into the three tiles the dashboard shows.
+  const composition: HorizonTotals = { daily: 0, medium: 0, long: 0 };
+  for (const a of accounts) {
+    const bal = latest.get(a.id);
+    if (bal == null) continue;
+    const split = horizonSplit(a, bal);
+    composition.daily += split.daily; composition.medium += split.medium; composition.long += split.long;
+  }
+
   // Net-worth trend: reconstruct from transactions when we have them (true history back to the first txn);
   // otherwise fall back to whatever balance snapshots exist.
   let netWorthSeries: { date: string; balance: number }[];
@@ -175,8 +187,8 @@ export function buildDashboard(
 
   return {
     generatedAt: now, netWorth,
-    spending,
-    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, shareable: a.shareable, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
+    spending, composition,
+    accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, shareable: a.shareable, horizon: a.horizon ?? null, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
     payslips: opts.payslips ?? [],
