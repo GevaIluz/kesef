@@ -101,6 +101,25 @@ describe('buildDashboard', () => {
     expect(s.find(p => p.date === '2025-12-10')!.balance).toBe(7000);      // after rent
     expect(s[s.length - 1]!.balance).toBe(7000);                           // ends at today's balance
   });
+  it('transaction-less accounts use their snapshot history in the net-worth series (not flat)', () => {
+    const accts = [
+      { id: 'beinleumi:1', institution: 'beinleumi', type: 'bank', displayName: 'b', currency: 'ILS', shareable: false },
+      { id: 'manual:pension', institution: 'manual', type: 'pension', displayName: 'MVS', currency: 'ILS', shareable: false },
+    ] as any;
+    const txns2 = [{ id: 'n1', accountId: 'beinleumi:1', date: '2026-05-01', amount: 1000, description: 'salary', shareable: false }] as any;
+    const snaps2 = [
+      { id: 's1', accountId: 'beinleumi:1', date: '2026-06-01', balance: 1000 },
+      { id: 'p1', accountId: 'manual:pension', date: '2026-03-01', balance: 100000 },
+      { id: 'p2', accountId: 'manual:pension', date: '2026-05-01', balance: 110000 },
+      { id: 'p3', accountId: 'manual:pension', date: '2026-06-01', balance: 120000 },
+    ] as any;
+    const d = buildDashboard(accts, txns2, snaps2, '2026-06-15');
+    const at = (date: string) => d.netWorthSeries.find(p => p.date === date)!.balance;
+    expect(at('2026-03-01')).toBe(100000);      // pension checkpoint + bank pre-salary (0)
+    expect(at('2026-05-01')).toBe(111000);      // pension 110k + bank 1000 after salary
+    expect(at('2026-06-01')).toBe(121000);      // pension 120k + bank 1000
+    expect(d.netWorthSeries[d.netWorthSeries.length - 1]).toEqual({ date: '2026-06-15', balance: 121000 });
+  });
   it('per-transaction override beats a merchant rule', () => {
     const lime = [{ id: 'l1', accountId: 'a', date: '2026-06-10', amount: -15, description: 'LIME*5 RIDES', category: 'transport', shareable: false }] as any;
     const d = buildDashboard([], lime, [], '2026-06-15', {

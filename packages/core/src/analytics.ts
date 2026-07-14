@@ -73,19 +73,26 @@ export function summarize(txns: Transaction[]): PeriodSummary {
 /**
  * Reconstruct net worth over time. The bank only ever reports the CURRENT balance, so we walk backward
  * from it through each account's transactions to recover the historical balance at every transaction date.
- * Accounts without a known current balance are excluded; accounts with a balance but no transactions stay
- * flat at that balance.
+ * Accounts without a known current balance are excluded. Accounts with no transactions (manual/IBI/MVS
+ * pension-style balances) use their snapshot series as checkpoints — so hand-entered history moves the
+ * long-run curve; only a single-snapshot account stays flat.
  */
 function reconstructNetWorthSeries(
   transactions: Transaction[],
   latest: Map<string, number>,
   now: string,
+  snapHistory: Map<string, { date: string; balance: number }[]>,
 ): { date: string; balance: number }[] {
   interface Acct { dates: string[]; bals: number[]; startBal: number; flat: number | null }
   const perAccount: Acct[] = [];
   for (const [id, current] of latest) {
     const txns = transactions.filter(t => t.accountId === id && t.date <= now).sort((a, b) => a.date.localeCompare(b.date));
-    if (txns.length === 0) { perAccount.push({ dates: [], bals: [], startBal: current, flat: current }); continue; }
+    if (txns.length === 0) {
+      const hist = (snapHistory.get(id) ?? []).filter(h => h.date <= now);
+      if (hist.length === 0) { perAccount.push({ dates: [], bals: [], startBal: current, flat: current }); continue; }
+      perAccount.push({ dates: hist.map(h => h.date), bals: hist.map(h => h.balance), startBal: hist[0]!.balance, flat: null });
+      continue;
+    }
     const sumAll = txns.reduce((s, t) => s + t.amount, 0);
     const startBal = current - sumAll;                 // balance just before the first transaction
     const dateToBal = new Map<string, number>();
@@ -144,7 +151,7 @@ export function buildDashboard(
   // otherwise fall back to whatever balance snapshots exist.
   let netWorthSeries: { date: string; balance: number }[];
   if (transactions.length && latest.size) {
-    netWorthSeries = reconstructNetWorthSeries(transactions, latest, now);
+    netWorthSeries = reconstructNetWorthSeries(transactions, latest, now, histByAccount);
   } else {
     const byDate = new Map<string, number>();
     for (const s of snapshots) byDate.set(s.date, (byDate.get(s.date) ?? 0) + s.balance);
