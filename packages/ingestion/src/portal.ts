@@ -1,9 +1,9 @@
 import puppeteer, { type Page } from 'puppeteer';
 
 /**
- * Interactive IBI reader. No scraper library covers Israeli investment houses, and trading
- * screens (SPARK/OrderNet) are full of market figures — so we don't guess. You log in yourself
- * (no credentials are ever stored), then CLICK your portfolio total once: kesef captures exactly
+ * Interactive portal reader (IBI, Mivtach Simon, …). No scraper library covers Israeli investment
+ * houses and pension agencies, and their screens are full of market figures — so we do not guess. You
+ * log in yourself (no credentials are ever stored), then CLICK your total once: kesef captures exactly
  * that value and a selector for it, so next time it can read the number automatically. Everything
  * stays on your machine.
  */
@@ -38,7 +38,7 @@ export function pickTotal(cands: TotalCandidate[]): TotalCandidate | null {
   return pool.reduce((best, c) => (c.value > best.value ? c : best));
 }
 
-export interface IbiReadDeps {
+export interface PortalReadDeps {
   url: string;
   /** Resolves once the user has logged in and the portfolio screen is on display. */
   waitForLogin: () => Promise<unknown>;
@@ -53,7 +53,7 @@ export interface IbiReadDeps {
   headless?: boolean;
 }
 
-export interface IbiReadResult {
+export interface PortalReadResult {
   value: number | null;
   selector: string | null;
   rawText: string | null;
@@ -62,7 +62,7 @@ export interface IbiReadResult {
 }
 
 /** Open IBI; read the portfolio total automatically (saved selector) or by letting the user click it. */
-export async function readIbiTotal(deps: IbiReadDeps): Promise<IbiReadResult> {
+export async function readPortalTotal(deps: PortalReadDeps): Promise<PortalReadResult> {
   const browser = await puppeteer.launch({
     headless: deps.headless ?? false,
     defaultViewport: null,

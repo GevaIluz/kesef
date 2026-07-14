@@ -2,18 +2,31 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { kesefDir } from './paths.js';
 
-/** Where the user's IBI portfolio total lives, learned once so future syncs read it automatically. */
-export interface IbiConfig { url?: string; selector?: string }
+/** Where a portal's total lives (url + taught selector), learned once per portal (ibi, mvs, …). */
+export interface PortalConfig { url?: string; selector?: string }
 
-const cfgPath = () => join(kesefDir(), 'ibi.json');
+const cfgPath = () => join(kesefDir(), 'portals.json');
+const legacyIbiPath = () => join(kesefDir(), 'ibi.json'); // pre-portals.json installs kept IBI here
 
-export function loadIbiConfig(): IbiConfig {
+function readJson(path: string): Record<string, unknown> {
   try {
-    const j = JSON.parse(readFileSync(cfgPath(), 'utf8'));
-    return (j && typeof j === 'object') ? j as IbiConfig : {};
+    const j = JSON.parse(readFileSync(path, 'utf8'));
+    return (j && typeof j === 'object') ? j as Record<string, unknown> : {};
   } catch { return {}; }
 }
 
-export function saveIbiConfig(cfg: IbiConfig): void {
-  try { mkdirSync(kesefDir(), { recursive: true }); writeFileSync(cfgPath(), JSON.stringify(cfg, null, 2)); } catch { /* non-fatal */ }
+export function loadPortalConfig(key: string): PortalConfig {
+  const cfg = readJson(cfgPath())[key];
+  if (cfg && typeof cfg === 'object') return cfg as PortalConfig;
+  if (key === 'ibi') return readJson(legacyIbiPath()) as PortalConfig;
+  return {};
+}
+
+export function savePortalConfig(key: string, cfg: PortalConfig): void {
+  try {
+    mkdirSync(kesefDir(), { recursive: true });
+    const all = readJson(cfgPath());
+    all[key] = cfg;
+    writeFileSync(cfgPath(), JSON.stringify(all, null, 2));
+  } catch { /* non-fatal: next sync just re-teaches */ }
 }

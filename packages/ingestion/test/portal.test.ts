@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseShekel, pickTotal, type TotalCandidate } from '../src/ibi';
+import { parseShekel, pickTotal, type TotalCandidate } from '../src/portal';
 
 describe('parseShekel', () => {
   it('parses Israeli-formatted currency (comma thousands, dot decimal)', () => {

@@ -8,7 +8,7 @@ import { scrapeInteractive } from './interactive.js';
 import { categorize, assignCategory } from './categorize.js';
 import { loadOverrides } from './overrides.js';
 import { manualAccountFor } from './manualAccounts.js';
-import { loadIbiConfig, saveIbiConfig } from './ibiConfig.js';
+import { loadPortalConfig, savePortalConfig } from './portalConfig.js';
 
 const vault = new KeyringVault('kesef');
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -128,14 +128,14 @@ async function syncIbi(): Promise<void> {
     : choice === '4' ? ((await ask('Portal URL: ')).trim() || 'https://mycapital.ibi.co.il')
     : (process.env.KESEF_IBI_URL || 'https://mycapital.ibi.co.il');
 
-  const cfg = loadIbiConfig();
+  const cfg = loadPortalConfig('ibi');
   const saved = cfg.url === url ? cfg.selector : undefined;
   console.log('\nA browser will open to IBI. Log in yourself — kesef never sees your credentials.');
   console.log('Open the screen that shows your portfolio total.');
   if (saved) console.log('(I’ll try to read your saved total automatically first.)');
 
-  const { readIbiTotal } = await import('./ibi.js');
-  const res = await readIbiTotal({
+  const { readPortalTotal } = await import('./portal.js');
+  const res = await readPortalTotal({
     url,
     savedSelector: saved,
     waitForLogin: () => ask('\n→ Logged in with your portfolio total on screen? Press Enter… '),
@@ -152,7 +152,7 @@ async function syncIbi(): Promise<void> {
     console.log(`\nRead automatically: ₪${total.toLocaleString('en-US')}`);
   } else {
     console.log(`\nCaptured: ₪${total.toLocaleString('en-US')}  (from "${res.rawText}")`);
-    if (res.selector) { saveIbiConfig({ url, selector: res.selector }); console.log('✓ Saved where it lives — next time it reads automatically, no clicking.'); }
+    if (res.selector) { savePortalConfig('ibi', { url, selector: res.selector }); console.log('✓ Saved where it lives — next time it reads automatically, no clicking.'); }
   }
 
   const spec = manualAccountFor('ibi');
