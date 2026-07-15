@@ -25,6 +25,10 @@ export interface CoupleViewState {
 /** F6 monthly plan as surfaced to the dashboard — the stored plan plus the current window's sent/not-yet verdict. */
 export interface PlanState { amount: number; label: string; sent: boolean }
 
+/** F4 — ESPP in flight this plan window (Feb 1–Jul 31 / Aug 1–Jan 31), principal only — no stock quotes,
+ *  no estimated value (decided; the payout cash is caught by the normal bank sync when it lands). */
+export interface EsppInFlight { amount: number; windowStartMonth: string; payoutMonth: string }
+
 /** F7 — the current pay cycle: from the latest detected salary landing to now. Null when no salary is detectable. */
 export interface CycleState {
   start: string;                 // date the salary landed (cycle start, inclusive)
@@ -48,6 +52,7 @@ export interface DashboardModel {
   plan: PlanState | null;          // F6 — null when no plan is set
   leftThisMonth: number | null;    // F5 — null when not computable (no cycle, no income this month, no payslip)
   cycle: CycleState | null;        // F7 — the salary-anchored window "This month" actually means
+  esppInFlight: EsppInFlight | null; // F4 — null hides the paycheck-card line (no espp in the current window)
 }
 
 const RECENT_LIMIT = 12;
@@ -75,6 +80,27 @@ function latestBalanceByAccount(snaps: BalanceSnapshot[]): { bal: Map<string, nu
 /** The most recent payslip by month (YYYY-MM sorts lexicographically), or null if there are none. */
 function latestPayslipOf(payslips: Payslip[]): Payslip | null {
   return payslips.reduce<Payslip | null>((latest, p) => (!latest || p.month > latest.month) ? p : latest, null);
+}
+
+/**
+ * F4 — ESPP in flight: the sum of `payslips.espp` inside the plan window (fixed calendar halves, per
+ * Check Point's ESPP: Feb 1–Jul 31, or Aug 1–Jan 31 spanning into the next year) that contains `now`.
+ * Independent of the pay cycle / selected period — always the window around "now". Null when there's
+ * nothing in flight (no payslip in the window, or all-zero espp), so the paycheck card hides the line.
+ */
+function esppInFlight(payslips: Payslip[], now: string): EsppInFlight | null {
+  const d = new Date(now + 'T00:00:00Z');
+  const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; // 1-12
+  const ym = (yr: number, mo: number) => `${yr}-${String(mo).padStart(2, '0')}`;
+  let startMonth: string, endMonth: string, payoutMonth: string;
+  if (m >= 2 && m <= 7) {
+    startMonth = ym(y, 2); endMonth = ym(y, 7); payoutMonth = ym(y, 8);
+  } else {
+    const startYear = m === 1 ? y - 1 : y; // January belongs to the window opened the PRIOR August
+    startMonth = ym(startYear, 8); endMonth = ym(startYear + 1, 1); payoutMonth = ym(startYear + 1, 2);
+  }
+  const amount = payslips.filter(p => p.month >= startMonth && p.month <= endMonth).reduce((s, p) => s + p.espp, 0);
+  return amount > 0 ? { amount, windowStartMonth: startMonth, payoutMonth } : null;
 }
 
 export function summarize(txns: Transaction[]): PeriodSummary {
@@ -165,11 +191,16 @@ export function buildDashboard(
     year: summarize(inRange(shiftDays(now, -365))),
   };
 
+  const payslips = opts.payslips ?? [];
+
+  // F4 — ESPP in flight: always the plan window around "now", regardless of the pay cycle / selected
+  // period (see esppInFlight doc comment).
+  const espp = esppInFlight(payslips, now);
+
   // F7 — pay-cycle frame. Israeli salaries land at month-end, so calendar months answer a question
   // nobody asks. A salary event = income-category txn (effective category → re-tagging heals a false
   // hit) of at least half the bigger of {largest income txn in the last 120 days, latest payslip net}.
   // The current cycle runs from the latest salary event (whole day included) to now.
-  const payslips = opts.payslips ?? [];
   const latestSlip = latestPayslipOf(payslips);
   const MIN_SALARY = 3000; // absolute floor: below half of Israeli minimum wage nothing is a salary anchor
   const incomeTxns = eff.filter(t => t.amount > 0 && t.category === 'income' && t.date <= now);
@@ -266,5 +297,6 @@ export function buildDashboard(
     payslips,
     couple: opts.couple ?? { paired: false },
     plan, leftThisMonth, cycle,
+    esppInFlight: espp,
   };
 }

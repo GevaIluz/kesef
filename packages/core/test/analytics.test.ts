@@ -294,3 +294,59 @@ describe('pay-cycle frame (F7)', () => {
     expect(buildDashboard([], txns, [], '2026-06-15').cycle).toBeNull();
   });
 });
+
+describe('ESPP in flight (F4)', () => {
+  const slip = (month: string, espp: number): any => ({
+    month, gross: 20000, net: 11000, tax: 5000, pensionEmp: 0, kerenEmp: 0, espp, otherEmp: 0,
+    employerPension: 0, employerSeverance: 0, employerKeren: 0,
+  });
+
+  it('sums espp across payslips inside the Feb–Jul window; reports the window start + payout month', () => {
+    const payslips = [slip('2026-02', 1000), slip('2026-06', 1200), slip('2026-07', 1300)];
+    const d = buildDashboard([], [], [], '2026-06-15', { payslips });
+    expect(d.esppInFlight).toEqual({ amount: 3500, windowStartMonth: '2026-02', payoutMonth: '2026-08' });
+  });
+
+  it('a July slip is IN the Feb–Jul window; an August slip belongs to the NEXT window (excluded)', () => {
+    const payslips = [slip('2026-07', 1000), slip('2026-08', 5000)];
+    const d = buildDashboard([], [], [], '2026-07-31', { payslips });
+    expect(d.esppInFlight).toEqual({ amount: 1000, windowStartMonth: '2026-02', payoutMonth: '2026-08' });
+  });
+
+  it('sums espp across the Aug–Jan window, spanning the calendar-year boundary', () => {
+    const payslips = [slip('2026-08', 1000), slip('2026-12', 1100), slip('2027-01', 1200)];
+    const d = buildDashboard([], [], [], '2026-10-15', { payslips });
+    expect(d.esppInFlight).toEqual({ amount: 3300, windowStartMonth: '2026-08', payoutMonth: '2027-02' });
+  });
+
+  it('a January slip is IN the PRIOR Aug–Jan window; a February slip starts the NEXT window (excluded)', () => {
+    const payslips = [slip('2026-01', 1000), slip('2026-02', 5000)];
+    const d = buildDashboard([], [], [], '2026-01-15', { payslips });
+    expect(d.esppInFlight).toEqual({ amount: 1000, windowStartMonth: '2025-08', payoutMonth: '2026-02' });
+  });
+
+  it('is null when no payslip falls in the current window', () => {
+    const payslips = [slip('2025-11', 1000)]; // last window, long gone
+    const d = buildDashboard([], [], [], '2026-06-15', { payslips });
+    expect(d.esppInFlight).toBeNull();
+  });
+
+  it('is null when a payslip is in-window but espp is zero (nothing in flight)', () => {
+    const payslips = [slip('2026-06', 0)];
+    const d = buildDashboard([], [], [], '2026-06-15', { payslips });
+    expect(d.esppInFlight).toBeNull();
+  });
+
+  it('is null with no payslips at all', () => {
+    expect(buildDashboard([], [], [], '2026-06-15').esppInFlight).toBeNull();
+  });
+
+  it('is independent of the pay cycle: the window follows "now", not the cycle-start date', () => {
+    const payslips = [slip('2026-07', 1000), slip('2026-08', 2000)];
+    const txns = [{ id: 'e1', accountId: 'a', date: '2026-07-30', amount: 11000, description: 'salary', category: 'income', shareable: false }] as any;
+    const d = buildDashboard([], txns, [], '2026-08-05', { payslips });
+    expect(d.cycle!.start).toBe('2026-07-30');    // cycle anchors on the July 30 salary
+    // ESPP window follows "now" (August → Aug–Jan window), not cycle.start (July) — only the Aug slip counts.
+    expect(d.esppInFlight).toEqual({ amount: 2000, windowStartMonth: '2026-08', payoutMonth: '2027-02' });
+  });
+});

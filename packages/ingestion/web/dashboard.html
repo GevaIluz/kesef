@@ -1015,6 +1015,10 @@ const T = {
   payslip_month:   { en: 'Month',                    he: 'חודש' },
   payslip_err:     { en: 'Month + gross ≥ net > 0 required.', he: 'נדרשים חודש וברוטו ≥ נטו > 0.' },
   incl_payroll:    { en: 'incl. paycheck savings',   he: 'כולל חיסכון מהתלוש' },
+  /* F4 — ESPP in flight (paycheck card, independent of the selected period) */
+  espp_flight_lbl: { en: 'ESPP in flight',           he: 'ESPP בתהליך' },
+  espp_since:      { en: 'since',                    he: 'מאז' },
+  espp_payout:     { en: 'pays out early',           he: 'משולם בתחילת' },
   /* goals form */
   add_goal:       { en: 'Add goal',           he: 'הוסף יעד' },
   new_goal:       { en: 'New goal',           he: 'יעד חדש' },
@@ -1987,12 +1991,25 @@ function payrollSavedInPeriod(payslips, period, generatedAt) {
     .reduce((s, p) => s + p.pensionEmp + p.kerenEmp + p.employerPension + p.employerSeverance + p.employerKeren, 0);
 }
 
+// F4 — ESPP in flight: server-computed (esppInFlight in core), always the plan window around "now" —
+// independent of the selected period/cycle, unlike the rest of this card. Hidden when null (nothing in flight).
+function monthYearLabel(ym) {
+  try { return new Date(ym + '-01').toLocaleDateString(lang === 'he' ? 'he-IL' : 'en-US', { month: 'short', year: 'numeric' }); }
+  catch (e) { return ym; }
+}
+function esppFlightLine(M) {
+  const flight = M.esppInFlight;
+  if (!flight) return '';
+  return `<div class="insight" style="margin-top:14px">📈 <span>${t('espp_flight_lbl')}: <b>₪${NF(flight.amount)}</b> ${t('espp_since')} ${monthYearLabel(flight.windowStartMonth)} · ${t('espp_payout')} ${monthYearLabel(flight.payoutMonth)}</span></div>`;
+}
+
 function renderPaycheck(M) {
   const body = $('#paycheck-body');
   if (!body) return;
   const slips = payslipsInPeriod(M.payslips, selectedPeriod, M.generatedAt);
+  const esppLine = esppFlightLine(M);
   if (slips.length === 0) {
-    body.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:6px 0">${t('no_payslip')}</div>`;
+    body.innerHTML = `<div style="color:var(--ink-soft);font-size:14px;padding:6px 0">${t('no_payslip')}</div>${esppLine}`;
     return;
   }
   const sum = k => slips.reduce((s, p) => s + p[k], 0);
@@ -2016,6 +2033,7 @@ function renderPaycheck(M) {
     <div class="comp-bar">${parts.map(p => `<div class="comp-seg" style="width:${(p.amt / gross * 100).toFixed(1)}%;background:${p.color}" title="${t(p.key)}"></div>`).join('')}</div>
     <div class="comp-legend">${parts.map(p => `<div class="comp-item"><span class="sw" style="background:${p.color}"></span><span class="ck">${t(p.key)}</span> <span class="cv">₪${NF(p.amt)}</span></div>`).join('')}</div>
     ${employer > 0 ? `<div class="insight" style="margin-top:14px">🎁 <span><b>+₪${NF(employer)}</b> ${t('employer_added')}</span></div>` : ''}
+    ${esppLine}
     <div style="margin-top:12px">${slips.map(monthChip).join('')}</div>`;
   body.querySelectorAll('.ps-del').forEach(el => {
     el.onclick = async () => {
