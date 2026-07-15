@@ -254,6 +254,11 @@
   .goal-form .gf-cancel:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
   .goal-form .gf-err{font-size:12px;color:var(--neg);margin-top:8px;display:none}
 
+  /* ── MONTHLY PLAN (F6) — one quiet row near the stats ──────────────────── */
+  .plan-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:var(--card);border-radius:var(--r);padding:14px 20px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+  .plan-row .plan-text{font-size:14px;color:var(--ink-soft)}
+
   /* ── ACCOUNTS & BALANCES (all your money) ──────────────────────────────── */
   .accounts-card .acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   .composition{margin-bottom:14px}
@@ -547,13 +552,36 @@
     </label>
   </div>
 
-  <!-- 4-column stat strip: Income · Spent · Saved · Saved & Invested -->
+  <!-- 4-column stat strip: Income · Spent · Saved · Saved & Invested (+ quiet 5th: Left this month) -->
   <section class="stats">
     <div class="stat" style="animation-delay:.05s"><div class="k">💸 <span data-t="income">Income</span></div><div class="v pos" id="s-in">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)" id="s-in-pill"></span></div>
     <div class="stat" style="animation-delay:.1s"><div class="k">🧾 <span data-t="spent">Spent</span></div><div class="v" id="s-out">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--neg)" id="s-out-pill"></span></div>
     <div class="stat" style="animation-delay:.15s"><div class="k">🐷 <span data-t="saved">Saved</span></div><div class="v teal" id="s-save">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal-ink)" id="s-rate"></span></div>
     <div class="stat" style="animation-delay:.2s" id="si-stat"><div class="k">💎 <span data-t="saved_invested">Saved &amp; invested</span></div><div class="v teal" id="s-invested">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--cat-investment) 16%,transparent);color:var(--cat-investment)" id="si-pill"></span></div>
+    <!-- F5: quiet, no colors-of-shame — shown only for "This month" and only when computable -->
+    <div class="stat" style="animation-delay:.25s;display:none" id="left-stat"><div class="k">👛 <span data-t="left_this_month">Left this month</span></div><div class="v" id="s-left">₪0</div><span class="pill" style="background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-soft)" id="left-pill"></span></div>
   </section>
+
+  <!-- F6: monthly plan — a quiet sent/not-yet line, e.g. "₪2,000 to IBI: sent ✓" -->
+  <div class="plan-row" id="plan-row">
+    <span class="plan-text" id="plan-text"></span>
+    <button class="add-goal-btn" id="plan-edit-btn" style="margin-top:0"></button>
+  </div>
+  <div class="goal-form" id="plan-form">
+    <p class="gf-title" data-t="plan_form_title">Monthly plan</p>
+    <label data-t="plan_amount_lbl">Amount (₪ / month)</label>
+    <input type="number" id="pln-amount" min="1" step="1" placeholder="2000">
+    <label data-t="plan_label_lbl">Label</label>
+    <input type="text" id="pln-label" data-t-placeholder="plan_label_ph">
+    <div class="gf-row">
+      <button class="gf-ok" id="pln-submit" data-t="goal_save">Save</button>
+      <button class="gf-cancel" id="pln-cancel" data-t="goal_cancel">Cancel</button>
+    </div>
+    <div class="gf-row" id="pln-remove-row" style="display:none">
+      <button class="gf-cancel" id="pln-remove" data-t="plan_remove">Remove plan</button>
+    </div>
+    <div class="gf-err" id="pln-err"></div>
+  </div>
 
   <div class="cards">
     <!-- Paycheck: the gross→net story the bank never sees -->
@@ -864,6 +892,7 @@ const T = {
   spent:     { en: 'Spent',          he: 'הוצאה' },
   saved:     { en: 'Saved',          he: 'חיסכון' },
   saved_invested: { en: 'Saved & invested', he: 'נחסך והושקע' },
+  left_this_month: { en: 'Left this month', he: 'נשאר החודש' },
   this_month:{ en: 'this month',     he: 'החודש' },
   spend:     { en: 'Where it goes',  he: 'לאן זה הולך' },
   total:     { en: 'total',          he: 'סה״כ' },
@@ -984,6 +1013,20 @@ const T = {
   by_date:        { en: 'by',                 he: 'עד' },
   goal_today:     { en: 'today',              he: 'היום' },
   goal_done:      { en: 'done!',              he: 'הושג!' },
+  /* monthly plan (F6) */
+  plan_to:        { en: 'to',                 he: 'ל' },
+  plan_sent:      { en: 'sent ✓',             he: 'נשלח ✓' },
+  plan_not_yet:   { en: 'not yet',            he: 'עדיין לא' },
+  no_plan:        { en: 'No monthly plan set.', he: 'לא הוגדרה תכנית חודשית.' },
+  add_plan:       { en: 'Set a monthly plan', he: 'הגדירו תכנית חודשית' },
+  edit_plan:      { en: 'Edit',               he: 'ערוך' },
+  plan_form_title:{ en: 'Monthly plan',       he: 'תכנית חודשית' },
+  plan_amount_lbl:{ en: 'Amount (₪ / month)', he: 'סכום (₪ לחודש)' },
+  plan_label_lbl: { en: 'Label',              he: 'תווית' },
+  plan_label_ph:  { en: 'e.g. IBI',           he: 'למשל IBI' },
+  plan_remove:    { en: 'Remove plan',        he: 'הסר תכנית' },
+  plan_err:       { en: 'Enter an amount and a label.', he: 'נא להזין סכום ותווית.' },
+  plan_err_save:  { en: 'Failed to save — try again.', he: 'שמירה נכשלה — נסו שוב.' },
   /* accounts & balances */
   accounts:       { en: 'Your money',         he: 'הכסף שלך' },
   accounts_sub:   { en: 'split into day-to-day, medium- and long-term', he: 'מחולק לשוטף, לטווח בינוני ולטווח ארוך' },
@@ -1959,6 +2002,49 @@ function setupPayslipForm(M) {
   };
 }
 
+// ─── monthly plan (F6) — quiet sent/not-yet row + edit form ───────────────────
+function renderPlan(M) {
+  const textEl = $('#plan-text'), btn = $('#plan-edit-btn');
+  if (!textEl || !btn) return;
+  if (M.plan) {
+    const status = M.plan.sentThisMonth ? t('plan_sent') : t('plan_not_yet');
+    textEl.innerHTML = `₪${NF(M.plan.amount)} ${t('plan_to')} ${esc(M.plan.label)}: <b>${status}</b>`;
+    btn.textContent = t('edit_plan');
+  } else {
+    textEl.textContent = t('no_plan');
+    btn.textContent = '＋ ' + t('add_plan');
+  }
+}
+
+function setupPlanForm(M) {
+  const btn = $('#plan-edit-btn'), form = $('#plan-form'), submit = $('#pln-submit'), cancel = $('#pln-cancel');
+  const removeRow = $('#pln-remove-row'), removeBtn = $('#pln-remove'), errEl = $('#pln-err');
+  if (!btn || !form) return;
+  const showErr = m => { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } };
+  btn.onclick = () => {
+    form.classList.toggle('open');
+    if (M.plan) { const a = $('#pln-amount'), l = $('#pln-label'); if (a) a.value = M.plan.amount; if (l) l.value = M.plan.label; }
+    if (removeRow) removeRow.style.display = M.plan ? '' : 'none';
+  };
+  if (cancel) cancel.onclick = () => { form.classList.remove('open'); if (errEl) errEl.style.display = 'none'; };
+  if (submit) submit.onclick = async () => {
+    const amount = parseFloat($('#pln-amount')?.value || '');
+    const label = ($('#pln-label')?.value || '').trim();
+    if (!(amount > 0) || !label) { showErr(t('plan_err')); return; }
+    submit.disabled = true; submit.textContent = t('saving_cat'); if (errEl) errEl.style.display = 'none';
+    try {
+      const res = await fetch('/api/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, label }) });
+      if (res.ok) location.reload();
+      else { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('plan_err')); }
+    } catch (e) { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('plan_err')); }
+  };
+  if (removeBtn) removeBtn.onclick = async () => {
+    removeBtn.disabled = true;
+    try { await fetch('/api/plan', { method: 'DELETE' }); } catch (e) { /* reload shows the truth either way */ }
+    location.reload();
+  };
+}
+
 // ─── SVG donut (interactive, per-segment click) ────────────────────────────────
 let _donutData = [];   // store for segment click → drawer
 let _donutTxns = null; // store for segment click → drawer
@@ -2173,6 +2259,19 @@ function renderPeriodSpending(M) {
   if (siEl) up(siEl, (p.savedInvested || 0) + payrollSaved, '₪');
   if (siPill) siPill.textContent = payrollSaved > 0 ? t('incl_payroll') : periodLabel;
   if (siStat) siStat.style.display = '';
+
+  // F5 — "left this month": server-computed (needs the payslip fallback + F6 plan status), so this
+  // just shows/hides the card; only meaningful for "This month" and only when the server could compute it.
+  const leftStat = $('#left-stat');
+  if (leftStat) {
+    const showLeft = selectedPeriod === 'thisMonth' && M.leftThisMonth != null;
+    leftStat.style.display = showLeft ? '' : 'none';
+    if (showLeft) {
+      up($('#s-left'), M.leftThisMonth, '₪');
+      const leftPill = $('#left-pill');
+      if (leftPill) leftPill.textContent = periodLabel;
+    }
+  }
 
   const slipsCoverPeriod = payslipsInPeriod(M.payslips, selectedPeriod, M.generatedAt).length > 0;
   $('#s-in-pill').textContent  = incomeIsLastPay ? t('last_paycheck') : (slipsCoverPeriod ? t('net_to_bank') : periodLabel);
@@ -2435,6 +2534,8 @@ function render() {
   renderTxs(M.recent);
   setupGoalForm(M.generatedAt);
   setupPayslipForm(M);
+  renderPlan(M);
+  setupPlanForm(M);
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   setupCoupleButtons(M);
   applyViewVisibility();

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { randomUUID, randomBytes } from 'node:crypto';
-import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode, type Payslip, type Horizon } from '@kesef/core';
+import { KeyringVault, Store, buildDashboard, type Goal, type CategoryCode, type Payslip, type Horizon, type MonthlyPlan } from '@kesef/core';
 import { dbPath } from './paths.js';
 import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
@@ -166,6 +166,22 @@ const server = createServer(async (req, res) => {
       } else {
         await withStore(s => s.setAccountHorizon(accountId, horizon));
       }
+      return sendJson(res, 200, { ok: true });
+    }
+    // F6 — monthly plan: one quiet savings/investment intent (e.g. "₪2,000 to IBI"); v1 keeps at most one.
+    if (path === '/api/plan' && method === 'POST') {
+      const b = await readJson(req);
+      const amount = typeof b['amount'] === 'number' ? b['amount'] : Number(b['amount']);
+      const label = typeof b['label'] === 'string' ? b['label'].trim() : '';
+      if (!Number.isFinite(amount) || !(amount > 0) || !label) {
+        return sendJson(res, 400, { error: 'amount > 0 + non-empty label required' });
+      }
+      const plan: MonthlyPlan = { amount, label };
+      await withStore(s => s.setPlan(plan));
+      return sendJson(res, 200, { ok: true, plan });
+    }
+    if (path === '/api/plan' && method === 'DELETE') {
+      await withStore(s => s.deletePlan());
       return sendJson(res, 200, { ok: true });
     }
 
@@ -344,6 +360,7 @@ const server = createServer(async (req, res) => {
             goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules(),
             payslips: s.listPayslips(),
             couple: p ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null } : { paired: false },
+            plan: s.getPlan(),
           },
         );
       });

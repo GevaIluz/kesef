@@ -93,3 +93,18 @@ describe('Store payslips', () => {
     s.close();
   });
 });
+
+describe('Store monthly plan', () => {
+  it('round-trips, upserts in place, and deletes the single plan', () => {
+    const path = newDb();
+    const s = Store.open({ path, key: 'pw' });
+    expect(s.getPlan()).toBeNull();
+    s.setPlan({ amount: 2000, label: 'IBI' });
+    expect(s.getPlan()).toEqual({ amount: 2000, label: 'IBI' });
+    s.setPlan({ amount: 2500, label: 'IBI' });               // upsert replaces, still one row
+    expect(s.getPlan()).toEqual({ amount: 2500, label: 'IBI' });
+    s.deletePlan();
+    expect(s.getPlan()).toBeNull();
+    s.close();
+  });
+});

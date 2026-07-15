@@ -195,3 +195,42 @@ describe('buildDashboard', () => {
     });
   });
 });
+
+describe('monthly plan (F6) + left this month (F5)', () => {
+  const plan = { amount: 2000, label: 'IBI' };
+  const slip = {
+    month: '2026-05', gross: 22000, net: 11559, tax: 5383,
+    pensionEmp: 1320, kerenEmp: 440, espp: 3300, otherEmp: 0,
+    employerPension: 1430, employerSeverance: 1832.6, employerKeren: 1320,
+  };
+  it('detects the plan as sent when an investment outflow ≥95% lands this month', () => {
+    const txns = [{ id: 'p1', accountId: 'a', date: '2026-06-05', amount: -1950, description: 'הוראת קבע IBI', category: 'investment', shareable: false }] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan });
+    expect(d.plan).toEqual({ amount: 2000, label: 'IBI', sentThisMonth: true });
+  });
+  it('sub-threshold, wrong-category, and wrong-month outflows do NOT count as sent', () => {
+    const txns = [
+      { id: 'p2', accountId: 'a', date: '2026-06-05', amount: -1800, description: 'IBI', category: 'investment', shareable: false },
+      { id: 'p3', accountId: 'a', date: '2026-06-06', amount: -2000, description: 'mall', category: 'shopping', shareable: false },
+      { id: 'p4', accountId: 'a', date: '2026-05-05', amount: -2000, description: 'IBI', category: 'investment', shareable: false },
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan });
+    expect(d.plan!.sentThisMonth).toBe(false);
+  });
+  it('sent-detection uses the EFFECTIVE category (override beats raw)', () => {
+    const txns = [{ id: 'p5', accountId: 'a', date: '2026-06-05', amount: -2000, description: 'העברה', category: 'transfer', shareable: false }] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan, overrides: new Map([['p5', 'investment']]) });
+    expect(d.plan!.sentThisMonth).toBe(true);
+  });
+  it('left this month = incomeBase − spent − unsent plan; payslip-net fallback when no bank income', () => {
+    const txns = [{ id: 'l1', accountId: 'a', date: '2026-06-03', amount: -1000, description: 'cafe', category: 'dining', shareable: false }] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan, payslips: [slip] });
+    expect(d.leftThisMonth).toBe(11559 - 1000 - 2000);   // plan not sent → subtracted
+    const txns2 = [...txns, { id: 'l2', accountId: 'a', date: '2026-06-04', amount: -2000, description: 'IBI', category: 'investment', shareable: false }] as any;
+    const d2 = buildDashboard([], txns2, [], '2026-06-15', { plan, payslips: [slip] });
+    expect(d2.leftThisMonth).toBe(11559 - 1000);         // plan sent → not subtracted (and not "spent")
+  });
+  it('left this month is null when there is nothing to base it on', () => {
+    expect(buildDashboard([], [], [], '2026-06-15', {}).leftThisMonth).toBeNull();
+  });
+});

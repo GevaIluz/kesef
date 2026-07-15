@@ -1,4 +1,4 @@
-import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal, Payslip, Horizon, HorizonTotals } from './types';
+import type { Account, Transaction, BalanceSnapshot, CategoryCode, Goal, Payslip, Horizon, HorizonTotals, MonthlyPlan } from './types';
 import { horizonSplit } from './types';
 import { normalizeMerchant } from './merchant';
 
@@ -22,6 +22,9 @@ export interface CoupleViewState {
   partnerAsOf?: string | null;
 }
 
+/** F6 monthly plan as surfaced to the dashboard — the stored plan plus this month's sent/not-yet verdict. */
+export interface PlanState { amount: number; label: string; sentThisMonth: boolean }
+
 export interface DashboardModel {
   generatedAt: string;
   netWorth: number;
@@ -34,6 +37,8 @@ export interface DashboardModel {
   transactions: ClientTxn[];
   payslips: Payslip[];
   couple: CoupleViewState;
+  plan: PlanState | null;          // F6 — null when no plan is set
+  leftThisMonth: number | null;    // F5 — null when not computable (no income this month AND no payslip to fall back on)
 }
 
 const RECENT_LIMIT = 12;
@@ -56,6 +61,11 @@ function latestBalanceByAccount(snaps: BalanceSnapshot[]): { bal: Map<string, nu
     if (!prev || s.date > prev) { asOf.set(s.accountId, s.date); bal.set(s.accountId, s.balance); }
   }
   return { bal, asOf };
+}
+
+/** The most recent payslip by month (YYYY-MM sorts lexicographically), or null if there are none. */
+function latestPayslipOf(payslips: Payslip[]): Payslip | null {
+  return payslips.reduce<Payslip | null>((latest, p) => (!latest || p.month > latest.month) ? p : latest, null);
 }
 
 export function summarize(txns: Transaction[]): PeriodSummary {
@@ -125,7 +135,7 @@ export function shiftDays(iso: string, days: number): string {
 
 export function buildDashboard(
   accounts: Account[], transactions: Transaction[], snapshots: BalanceSnapshot[], now: string,
-  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string>; couple?: CoupleViewState; payslips?: Payslip[] } = {},
+  opts: { goals?: Goal[]; overrides?: Map<string, string>; merchantRules?: Map<string, string>; couple?: CoupleViewState; payslips?: Payslip[]; plan?: MonthlyPlan | null } = {},
 ): DashboardModel {
   const overrides = opts.overrides ?? new Map<string, string>();
   const merchantRules = opts.merchantRules ?? new Map<string, string>();
@@ -145,6 +155,32 @@ export function buildDashboard(
     last90: summarize(inRange(shiftDays(now, -90))),
     year: summarize(inRange(shiftDays(now, -365))),
   };
+
+  // F6 — monthly plan sent-detection: an outgoing (amount<0) transaction THIS calendar month whose
+  // EFFECTIVE category (same override→merchant-rule→auto resolution as `eff` above, not the raw
+  // category) is investment or savings, covering at least 95% of the plan amount (a small bank fee
+  // or rounding shouldn't make a real transfer register as "not sent").
+  let plan: PlanState | null = null;
+  if (opts.plan) {
+    const threshold = 0.95 * opts.plan.amount;
+    const sentThisMonth = eff.some(t =>
+      t.date.slice(0, 7) === month && t.amount < 0 &&
+      (t.category === 'investment' || t.category === 'savings') &&
+      Math.abs(t.amount) >= threshold
+    );
+    plan = { amount: opts.plan.amount, label: opts.plan.label, sentThisMonth };
+  }
+
+  // F5 — "left this month": a quiet number, not a budget. incomeBase falls back to the latest
+  // payslip's net when the bank hasn't shown this month's salary yet (same shape as the existing
+  // last-paycheck fallback); left out entirely (null) when neither source has anything to go on.
+  const payslips = opts.payslips ?? [];
+  let leftThisMonth: number | null = null;
+  if (spending.thisMonth.income > 0 || payslips.length > 0) {
+    const incomeBase = spending.thisMonth.income > 0 ? spending.thisMonth.income : (latestPayslipOf(payslips)?.net ?? 0);
+    const planNotYetSent = plan && !plan.sentThisMonth ? plan.amount : 0;
+    leftThisMonth = incomeBase - spending.thisMonth.spent - planNotYetSent;
+  }
 
   const { bal: latest, asOf } = latestBalanceByAccount(snapshots);
   const histByAccount = historyByAccount(snapshots);
@@ -191,7 +227,8 @@ export function buildDashboard(
     accounts: accounts.map(a => ({ id: a.id, name: a.displayName, institution: a.institution, type: a.type, balance: latest.has(a.id) ? latest.get(a.id)! : null, asOf: asOf.get(a.id) ?? null, shareable: a.shareable, horizon: a.horizon ?? null, components: a.components ?? null, history: histByAccount.get(a.id) ?? [] })),
     recent, netWorthSeries, goals: opts.goals ?? [],
     transactions: txList,
-    payslips: opts.payslips ?? [],
+    payslips,
     couple: opts.couple ?? { paired: false },
+    plan, leftThisMonth,
   };
 }

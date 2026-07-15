@@ -2,10 +2,11 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, AccountComponent, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip, Horizon } from './types';
+import type { Account, AccountComponent, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip, Horizon, MonthlyPlan } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
+const PLAN_ID = 'default'; // monthly_plan v1 holds at most one row, always upserted at this fixed id
 
 export interface OpenStoreOptions {
   path: string;
@@ -260,6 +261,23 @@ export class Store {
 
   /** Disconnect: forget the pairing locally (caller also clears the keychain secret + tells the relay). */
   clearPairing(): void { this.db.prepare('DELETE FROM couple_pairing').run(); }
+
+  /** Save (upsert) the single monthly plan (F6) — fixed id, same one-row pattern as couple_pairing. */
+  setPlan(p: MonthlyPlan): void {
+    this.db.prepare(
+      `INSERT INTO monthly_plan (id, amount, label) VALUES (@id, @amount, @label)
+       ON CONFLICT(id) DO UPDATE SET amount=@amount, label=@label`
+    ).run({ id: PLAN_ID, amount: p.amount, label: p.label });
+  }
+
+  /** The current monthly plan, or null if none set. */
+  getPlan(): MonthlyPlan | null {
+    const r = this.db.prepare('SELECT amount, label FROM monthly_plan WHERE id = ?').get(PLAN_ID) as { amount: number; label: string } | undefined;
+    return r ? { amount: r.amount, label: r.label } : null;
+  }
+
+  /** Clear the monthly plan. */
+  deletePlan(): void { this.db.prepare('DELETE FROM monthly_plan WHERE id = ?').run(PLAN_ID); }
 
   close(): void { this.db.close(); }
 }

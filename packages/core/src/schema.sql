@@ -79,3 +79,11 @@ CREATE TABLE IF NOT EXISTS couple_pairing (
   local_seq INTEGER NOT NULL DEFAULT 0,
   partner_seq INTEGER NOT NULL DEFAULT 0
 );
+
+-- Monthly plan (F6): one quiet savings/investment intent (e.g. "₪2,000 → IBI"). v1 holds at most
+-- one row, upserted at a fixed id (see Store.PLAN_ID) — same one-row shape as couple_pairing.
+CREATE TABLE IF NOT EXISTS monthly_plan (
+  id TEXT PRIMARY KEY,
+  amount REAL NOT NULL,
+  label TEXT NOT NULL
+);

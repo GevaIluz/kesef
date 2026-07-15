@@ -121,6 +121,12 @@ export interface CouplePairing {
   partnerSeq: number;         // highest partner seq this device has accepted
 }
 
+/** The monthly plan (F6) — a quiet savings/investment intent, e.g. "₪2,000 to IBI". v1 keeps at most one. */
+export interface MonthlyPlan {
+  amount: number; // > 0
+  label: string;  // non-empty, e.g. "IBI"
+}
+
 export function isExpense(tx: Transaction): boolean {
   return tx.amount < 0;
 }
