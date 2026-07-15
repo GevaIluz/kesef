@@ -540,8 +540,8 @@
   <div id="me-view">
   <div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <div class="seg" role="group" aria-label="period" id="period-seg">
-      <button data-period-btn="thisMonth" aria-pressed="false" data-t="period_thisMonth">This month</button>
-      <button data-period-btn="last30"    aria-pressed="true"  data-t="period_last30">Last 30 days</button>
+      <button data-period-btn="thisMonth" aria-pressed="true"  data-t="period_thisMonth">This month</button>
+      <button data-period-btn="last30"    aria-pressed="false" data-t="period_last30">Last 30 days</button>
       <button data-period-btn="last90"    aria-pressed="false" data-t="period_last90">Last 3 months</button>
       <button data-period-btn="year"      aria-pressed="false" data-t="period_year">This year</button>
     </div>
@@ -1086,7 +1086,7 @@ const T = {
 const ALL_CATS = ['groceries','dining','transport','housing','utilities','health','shopping','entertainment','income','transfer','savings','investment','fees','other'];
 
 let lang = 'en';
-let selectedPeriod = 'last30';
+let selectedPeriod = 'thisMonth'; // opening view = the month you're living in
 const cl = key => (T.cat[key] || { en: key, he: key })[lang];
 const t = key => (T[key] || { en: key, he: key })[lang];
 
@@ -1855,12 +1855,15 @@ function renderSparkLabels(series) {
 // ─── savings rate pill ────────────────────────────────────────────────────────
 function renderSavingsRate(income, saved) {
   const pill = $('#s-rate');
-  if (!income || income <= 0) {
+  const rate = income > 0 ? Math.round(saved / income * 100) : null;
+  // a rate outside ±100% means the period's income isn't really in yet (salary lands at month end) —
+  // showing "-6135% of income" is noise, not information
+  if (rate === null || Math.abs(rate) > 100) {
     pill.hidden = true;
     return;
   }
   pill.hidden = false;
-  pill.textContent = Math.round(saved / income * 100) + t('of_income');
+  pill.textContent = rate + t('of_income');
 }
 
 // ─── disabled partner/couple buttons ─────────────────────────────────────────
