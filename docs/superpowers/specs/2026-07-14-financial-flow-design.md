@@ -63,8 +63,9 @@ Interview answers that shape everything below:
 ### F5 — "Left this month" (quiet, not a budget)
 - 5th stat card, shown only for the **This month** period and only when computable.
 - `left = incomeBase − spentThisMonth − planNotYetSent`
-  - `incomeBase`: this month's bank income; if zero, the latest payslip's `net`
-    (same fallback logic as the existing "last paycheck" pill).
+  - `incomeBase`: `max(this month's bank income, latest payslip net)` — a stray small
+    deposit must not mask the salary-hasn't-landed-yet case; once the real salary lands
+    it exceeds the payslip net and wins.
   - `planNotYetSent`: F6's amount if the plan hasn't been detected as sent this month, else 0.
 - No colors-of-shame, no warnings. A number, a label, done.
 

@@ -171,13 +171,13 @@ export function buildDashboard(
     plan = { amount: opts.plan.amount, label: opts.plan.label, sentThisMonth };
   }
 
-  // F5 — "left this month": a quiet number, not a budget. incomeBase falls back to the latest
-  // payslip's net when the bank hasn't shown this month's salary yet (same shape as the existing
-  // last-paycheck fallback); left out entirely (null) when neither source has anything to go on.
+  // F5 — "left this month": a quiet number, not a budget. incomeBase = max(bank income this month,
+  // latest payslip net) — a stray small deposit must not mask the "salary hasn't landed yet" case,
+  // and once the real salary lands it exceeds the payslip net and wins. Null when neither exists.
   const payslips = opts.payslips ?? [];
   let leftThisMonth: number | null = null;
   if (spending.thisMonth.income > 0 || payslips.length > 0) {
-    const incomeBase = spending.thisMonth.income > 0 ? spending.thisMonth.income : (latestPayslipOf(payslips)?.net ?? 0);
+    const incomeBase = Math.max(spending.thisMonth.income, latestPayslipOf(payslips)?.net ?? 0);
     const planNotYetSent = plan && !plan.sentThisMonth ? plan.amount : 0;
     leftThisMonth = incomeBase - spending.thisMonth.spent - planNotYetSent;
   }

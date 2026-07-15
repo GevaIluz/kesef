@@ -2267,7 +2267,9 @@ function renderPeriodSpending(M) {
     const showLeft = selectedPeriod === 'thisMonth' && M.leftThisMonth != null;
     leftStat.style.display = showLeft ? '' : 'none';
     if (showLeft) {
-      up($('#s-left'), M.leftThisMonth, '₪');
+      const leftEl = $('#s-left');
+      if (M.leftThisMonth >= 0) up(leftEl, M.leftThisMonth, '₪');
+      else leftEl.textContent = '−₪' + NF(-M.leftThisMonth); // overspent: proper minus, no animation drama
       const leftPill = $('#left-pill');
       if (leftPill) leftPill.textContent = periodLabel;
     }

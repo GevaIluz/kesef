@@ -230,6 +230,14 @@ describe('monthly plan (F6) + left this month (F5)', () => {
     const d2 = buildDashboard([], txns2, [], '2026-06-15', { plan, payslips: [slip] });
     expect(d2.leftThisMonth).toBe(11559 - 1000);         // plan sent → not subtracted (and not "spent")
   });
+  it('a stray small deposit does not mask the payslip fallback (incomeBase = max of both)', () => {
+    const txns = [
+      { id: 's1', accountId: 'a', date: '2026-06-02', amount: 100, description: 'refund', category: 'other', shareable: false },
+      { id: 's2', accountId: 'a', date: '2026-06-03', amount: -1000, description: 'cafe', category: 'dining', shareable: false },
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan, payslips: [slip] });
+    expect(d.leftThisMonth).toBe(11559 - 1000 - 2000);   // payslip net wins over the ₪100 refund
+  });
   it('left this month is null when there is nothing to base it on', () => {
     expect(buildDashboard([], [], [], '2026-06-15', {}).leftThisMonth).toBeNull();
   });
