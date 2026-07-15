@@ -510,6 +510,7 @@
       <button data-lang-btn="en" aria-pressed="true">EN</button>
       <button data-lang-btn="he" aria-pressed="false">עברית</button>
     </div>
+    <button class="icon-btn" id="privacy-eye" aria-label="show or hide amounts" title="show/hide amounts">🙈</button>
     <button class="icon-btn" id="theme" aria-label="toggle theme">◐</button>
   </header>
 
@@ -855,6 +856,13 @@ window.__KESEF__ = /*__KESEF_DATA__*/ null;
 
 // ─── utilities ───────────────────────────────────────────────────────────────
 const NF = n => new Intl.NumberFormat('en-US').format(Math.round(n));
+
+// Privacy: wealth numbers (net worth, balances, composition) are MASKED by default on every load —
+// shoulder-surfers and show-the-app moments see •••• until the eye is tapped. Day-to-day spending
+// stays visible. Preference persists per device; masking is display-only (data never changes).
+let privacyOn = (localStorage.getItem('kesefPrivacy') ?? 'on') === 'on';
+const WMASK = '₪ ••••';
+const wealth = n => privacyOn ? WMASK : (n < 0 ? '−₪' + NF(-n) : '₪' + NF(n));
 const kfmt = n => '₪' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -1178,7 +1186,7 @@ function setupSparkHover() {
     guide.setAttribute('x1', pt.xv); guide.setAttribute('x2', pt.xv);
     hover.setAttribute('cx', pt.xv); hover.setAttribute('cy', pt.yv);
     chart.classList.add('hovering');
-    tip.querySelector('.stip-amt').textContent = '₪' + NF(pt.balance);
+    tip.querySelector('.stip-amt').textContent = wealth(pt.balance);
     tip.querySelector('.stip-date').textContent = fmtSparkDate(pt.date);
     tip.style.display = 'block';
     tip.style.left = clientX + 'px';
@@ -1188,6 +1196,14 @@ function setupSparkHover() {
   area.addEventListener('pointermove', e => move(e.clientX));
   area.addEventListener('pointerdown', e => move(e.clientX));   // tap / drag on touch
   area.addEventListener('pointerleave', end);
+}
+
+// Hero net-worth setter: masked → dots, no count-up (the ₪ symbol lives in its own span).
+function setNetWorth(n) {
+  const el = $('#nw');
+  if (!el) return;
+  if (privacyOn) el.textContent = '••••••';
+  else up(el, n);
 }
 
 // ─── count-up animation ───────────────────────────────────────────────────────
@@ -1412,7 +1428,7 @@ function renderAccounts(M) {
     const c = catColorVar(HORIZON[key].cssVar);
     return `<div class="horizon-tile" style="--hz:${c}">
       <div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div>
-      <div class="hz-v">₪${NF(comp[key])}</div>
+      <div class="hz-v">${wealth(comp[key])}</div>
       <div class="hz-sub">${t(HORIZON[key].sub)}</div>
     </div>`;
   };
@@ -1421,7 +1437,7 @@ function renderAccounts(M) {
     (grand > 0 ? `<div class="comp-bar">${HORIZON_ORDER.map(key =>
         `<div class="comp-seg" style="width:${(shown[key] / grand * 100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}" title="${t(HORIZON[key].lbl)}"></div>`
       ).join('')}</div>` : '') +
-    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
+    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
   compEl.style.display = '';
 
   if (accounts.length === 0) {
@@ -1433,7 +1449,7 @@ function renderAccounts(M) {
   const rowHtml = (a) => {
     const bal = (typeof a.balance === 'number') ? a.balance : null;
     const shareHtml = paired ? `<label class="toggle-pill share-pill ${a.shareable ? 'on' : ''}"><input type="checkbox" data-share-acct="${esc(a.id)}" ${a.shareable ? 'checked' : ''}> <span>${a.shareable ? '✓ ' + t('shared_badge') : t('share_pill')}</span></label>` : '';
-    const balStr = bal === null ? '—' : (bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal));
+    const balStr = bal === null ? '—' : wealth(bal);
     const icon = ACCT_TYPE_ICON[a.type] || '🏦';
     let asof = '';
     if (a.asOf) {
@@ -1443,14 +1459,14 @@ function renderAccounts(M) {
     }
     const comps = Array.isArray(a.components) ? a.components : [];
     const compHtml = comps.length
-      ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span style="display:flex;align-items:center;gap:7px;flex:0 0 auto"><span class="acc-comp-v">₪${NF(c.value)}</span>${horizonPickerHtml('component', a.id, c.horizon || acctHorizon(a), c.horizon || null, c.name)}</span></div>`).join('')}</div>`
+      ? `<div class="acc-components">${comps.map(c => `<div class="acc-comp-row"><span class="acc-comp-n" title="${esc(c.name)}">${esc(c.name)}</span><span style="display:flex;align-items:center;gap:7px;flex:0 0 auto"><span class="acc-comp-v">${wealth(c.value)}</span>${horizonPickerHtml('component', a.id, c.horizon || acctHorizon(a), c.horizon || null, c.name)}</span></div>`).join('')}</div>`
       : '';
     // long-term accounts get a balance-over-time graph (fills in as you sync)
     const isLong = acctHorizon(a) === 'long';
     const hist = Array.isArray(a.history) ? a.history : [];
     const histHtml = !isLong ? ''
       : hist.length >= 2
-        ? `${miniSparkSvg(hist, '--cat-investment')}<div class="acc-spark-lbl"><span>${fmtSparkDate(hist[0].date)}</span><span>₪${NF(hist[hist.length - 1].balance)}</span></div>`
+        ? `${miniSparkSvg(hist, '--cat-investment')}<div class="acc-spark-lbl"><span>${fmtSparkDate(hist[0].date)}</span><span>${wealth(hist[hist.length - 1].balance)}</span></div>`
         : `<div class="acc-spark-hint">📈 ${t('graph_builds')}</div>`;
     return `<div class="acc-item">
       <div class="acc-row">
@@ -1822,11 +1838,12 @@ function applyText() {
 // ─── delta chip ───────────────────────────────────────────────────────────────
 function renderDelta(series) {
   const chip = $('#delta-chip');
-  if (!series || series.length < 2) {
-    chip.hidden = true;
+  // style.display, not [hidden]: the chip's own display:inline-flex would defeat the hidden attribute
+  if (privacyOn || !series || series.length < 2) {
+    chip.style.display = 'none'; // the delta reveals the scale of the number it describes — mask together
     return;
   }
-  chip.hidden = false;
+  chip.style.display = '';
   const first = series[0].balance, last = series[series.length - 1].balance;
   const diff = last - first;
   const pct = first !== 0 ? ((diff / Math.abs(first)) * 100).toFixed(1) : null;
@@ -2544,7 +2561,7 @@ function render() {
   }
   applyText();
   setupDisabledButtons();
-  up($('#nw'), M.netWorth);
+  setNetWorth(M.netWorth);
   renderDelta(M.netWorthSeries);
   spark(M.netWorthSeries || []);
   renderSparkLabels(M.netWorthSeries);
@@ -2671,10 +2688,10 @@ function applyViewVisibility() {
   if (privacy) privacy.hidden = isMe;
   if (chart) chart.style.visibility = isMe ? '' : 'hidden';
   const deltaChip = $('#delta-chip');
-  if (deltaChip) deltaChip.style.display = isMe ? '' : 'none';   // personal trend chip — irrelevant in couple view
+  if (deltaChip) deltaChip.style.display = (isMe && !privacyOn) ? '' : 'none'; // personal chip; masked with the hero
   const eyebrow = $('.eyebrow');
   if (isMe) {
-    if (M) up($('#nw'), M.netWorth);
+    if (M) setNetWorth(M.netWorth);
     if (eyebrow) eyebrow.innerHTML = '👋 <span>' + t('hello') + '</span>';
   } else {
     if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '❤️ ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
@@ -2728,14 +2745,14 @@ function renderCoupleView() {
     if (content) content.hidden = true;
     ['cv-accounts-card','cv-spending-card','cv-goals-card'].forEach(id => { const e = document.getElementById(id); if (e) e.hidden = true; });
     if (loading) { loading.hidden = false; loading.textContent = d.error || t('cv_no_partner'); }
-    up($('#nw'), 0);
+    setNetWorth(0);
     return;
   }
   if (loading) loading.hidden = true;
   if (content) content.hidden = false;
 
   // hero number: combined for couple, partner's for partner view
-  up($('#nw'), mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
+  setNetWorth(mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
 
   // composition (day-to-day / 5-10y / long-term): combined buckets in couple view, partner-only in partner view
   let bb = model.netWorth.byBucket;
@@ -2750,17 +2767,17 @@ function renderCoupleView() {
   }
   const daily = bb.liquid, medium = bb.medium || 0, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
   const grand = Math.max(0, daily) + Math.max(0, medium) + Math.max(0, longterm);
-  const cvTile = (key, v) => `<div class="horizon-tile" style="--hz:${catColorVar(HORIZON[key].cssVar)}"><div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div><div class="hz-v">₪${NF(v)}</div><div class="hz-sub">${t(HORIZON[key].sub)}</div></div>`;
+  const cvTile = (key, v) => `<div class="horizon-tile" style="--hz:${catColorVar(HORIZON[key].cssVar)}"><div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div><div class="hz-v">${wealth(v)}</div><div class="hz-sub">${t(HORIZON[key].sub)}</div></div>`;
   const cvSeg = (key, v) => `<div class="comp-seg" style="width:${(Math.max(0,v)/grand*100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}"></div>`;
   $('#cv-composition').innerHTML =
     `<div class="horizon-tiles">${cvTile('daily', daily)}${cvTile('medium', medium)}${cvTile('long', longterm)}</div>` +
     (grand > 0 ? `<div class="comp-bar">${cvSeg('daily', daily)}${cvSeg('medium', medium)}${cvSeg('long', longterm)}</div>` : '') +
-    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: −₪${NF(liabilities)}</div>` : '');
+    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
 
   // you / partner split
   $('#cv-split').innerHTML = mode === 'couple'
-    ? `<div class="cv-who"><div class="cv-who-k">🧑 ${t('cv_you')}</div><div class="cv-who-v">₪${NF(model.netWorth.me)}</div></div>
-       <div class="cv-who"><div class="cv-who-k">❤️ ${esc(partnerName())}</div><div class="cv-who-v">₪${NF(model.netWorth.partner)}</div></div>`
+    ? `<div class="cv-who"><div class="cv-who-k">🧑 ${t('cv_you')}</div><div class="cv-who-v">${wealth(model.netWorth.me)}</div></div>
+       <div class="cv-who"><div class="cv-who-k">❤️ ${esc(partnerName())}</div><div class="cv-who-v">${wealth(model.netWorth.partner)}</div></div>`
     : '';
 
   // accounts, owner-tagged
@@ -2770,7 +2787,7 @@ function renderCoupleView() {
     accEl.innerHTML = accs.map(a => {
       const icon = ACCT_TYPE_ICON[a.type] || '🏦';
       const bal = (typeof a.balance === 'number') ? a.balance : 0;
-      const balStr = bal < 0 ? '−₪' + NF(-bal) : '₪' + NF(bal);
+      const balStr = wealth(bal);
       const who = a.owner === 'me' ? `<span class="owner-badge me">${t('cv_you')}</span>` : `<span class="owner-badge partner">${esc(partnerName())}</span>`;
       return `<div class="cv-acc"><span class="cv-acc-ic">${icon}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)} ${who}</div><div class="cv-acc-meta">${acctTypeLabel(a.type)}${a.asOf ? ' · ' + t('as_of') + ' ' + a.asOf : ''}</div></div><span class="cv-acc-bal">${balStr}</span></div>`;
     }).join('');
@@ -2868,8 +2885,8 @@ function setupPreview() {
       body.innerHTML = `<div class="cv-empty">${t('cv_preview_none')}</div>`;
     } else {
       body.innerHTML =
-        `<div class="cv-who" style="margin-bottom:12px"><div class="cv-who-k">${t('cv_combined_nw')}</div><div class="cv-who-v">₪${NF(nw)}</div></div>` +
-        (accts.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 4px">${t('cv_accounts')}</div>` + accts.map(a => `<div class="cv-acc"><span class="cv-acc-ic">${ACCT_TYPE_ICON[a.type]||'🏦'}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)}</div></div><span class="cv-acc-bal">₪${NF(a.balance)}</span></div>`).join('') : '') +
+        `<div class="cv-who" style="margin-bottom:12px"><div class="cv-who-k">${t('cv_combined_nw')}</div><div class="cv-who-v">${wealth(nw)}</div></div>` +
+        (accts.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 4px">${t('cv_accounts')}</div>` + accts.map(a => `<div class="cv-acc"><span class="cv-acc-ic">${ACCT_TYPE_ICON[a.type]||'🏦'}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)}</div></div><span class="cv-acc-bal">${wealth(a.balance)}</span></div>`).join('') : '') +
         (goals.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:12px 0 4px">${t('cv_goals')}</div>` + goals.map(g => `<div class="cv-acc"><span class="cv-acc-ic">🎯</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(g.name)}</div></div><span class="cv-acc-bal">₪${NF(g.currentAmount)}</span></div>`).join('') : '');
     }
     ov.classList.remove('hidden');
@@ -2963,6 +2980,11 @@ const cur = () => manual ?? (mq.matches ? 'dark' : 'light');
 const applyTheme = () => document.documentElement.dataset.theme = cur();
 mq.addEventListener('change', () => { if (manual === null) applyTheme(); });
 $('#theme').onclick = () => { manual = cur() === 'dark' ? 'light' : 'dark'; applyTheme(); };
+// privacy eye: flip masking, remember, repaint everything with the new state
+const eyeBtn = $('#privacy-eye');
+function applyEye() { if (eyeBtn) eyeBtn.textContent = privacyOn ? '🙈' : '👁'; }
+if (eyeBtn) eyeBtn.onclick = () => { privacyOn = !privacyOn; localStorage.setItem('kesefPrivacy', privacyOn ? 'on' : 'off'); applyEye(); render(); };
+applyEye();
 applyTheme();
 
 render();
