@@ -45,6 +45,23 @@ async function getOrCreateDbKey(): Promise<string> {
 
 let syncing = false; // only one sync run at a time
 
+/** The full dashboard model from the encrypted store — one source for '/' injection and GET /api/model. */
+async function currentModel() {
+  return withStore(s => {
+    const p = s.getPairing();
+    return buildDashboard(
+      s.listAccounts(), s.allTransactions(), s.allBalanceSnapshots(),
+      new Date().toISOString().slice(0, 10),
+      {
+        goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules(),
+        payslips: s.listPayslips(),
+        couple: p ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null } : { paired: false },
+        plan: s.getPlan(),
+      },
+    );
+  });
+}
+
 /** Open the encrypted store, run fn, always close. */
 async function withStore<T>(fn: (s: Store) => T): Promise<T> {
   const s = Store.open({ path: dbPath(), key: await dbKey() });
@@ -349,21 +366,14 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // --- model (shared by the page injection and the no-reload client refresh) ---
+    if (path === '/api/model' && method === 'GET') {
+      return sendJson(res, 200, await currentModel());
+    }
+
     // --- dashboard ---
     if (path === '/' && method === 'GET') {
-      const model = await withStore(s => {
-        const p = s.getPairing();
-        return buildDashboard(
-          s.listAccounts(), s.allTransactions(), s.allBalanceSnapshots(),
-          new Date().toISOString().slice(0, 10),
-          {
-            goals: s.listGoals(), overrides: s.categoryOverrides() as Map<string, CategoryCode>, merchantRules: s.merchantRules(),
-            payslips: s.listPayslips(),
-            couple: p ? { paired: true, role: p.role, partnerLabel: p.partnerLabel ?? null, relayUrl: p.relayUrl ?? null } : { paired: false },
-            plan: s.getPlan(),
-          },
-        );
-      });
+      const model = await currentModel();
       const json = JSON.stringify(model).replace(/</g, '\\u003c'); // can't break out of <script>
       const html = readFileSync(join(webDir, 'dashboard.html'), 'utf8').replace('/*__KESEF_DATA__*/ null', () => json);
       // never cache the dashboard — a plain refresh should always show the latest build + data

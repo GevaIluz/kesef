@@ -586,7 +586,7 @@
 
   <div class="cards">
     <!-- Paycheck: the gross→net story the bank never sees -->
-    <section class="card" style="grid-column:1/-1;order:0;animation-delay:.06s" id="paycheck-card">
+    <section class="card" style="grid-column:1/-1;order:3;animation-delay:.24s" id="paycheck-card">
       <div class="acc-head">
         <div>
           <h3 data-t="paycheck">Your paycheck</h3>
@@ -626,7 +626,7 @@
     </section>
 
     <!-- Your money: every account (incl. pension / gemel / keren / IBI) + composition -->
-    <section class="card accounts-card" style="grid-column:1/-1;order:3;animation-delay:.24s">
+    <section class="card accounts-card" style="grid-column:1/-1;order:4;animation-delay:.3s">
       <div class="acc-head">
         <div>
           <h3 data-t="accounts">Your money</h3>
@@ -663,7 +663,7 @@
       </div>
     </section>
 
-    <section class="card" style="order:1;animation-delay:.1s">
+    <section class="card" style="order:0;animation-delay:.06s">
       <h3 data-t="spend">Where it goes</h3>
       <p class="sub" id="spend-sub">this month</p>
       <div class="donut-row">
@@ -677,7 +677,7 @@
       <div class="insight" id="insight-box">💡 <span id="insight-text"></span></div>
     </section>
 
-    <section class="card" style="order:2;animation-delay:.17s">
+    <section class="card" style="order:1;animation-delay:.12s">
       <h3 data-t="goals">Your goals</h3>
       <p class="sub" data-t="goals_sub">the fun part 🎉</p>
       <div id="goals"></div>
@@ -701,7 +701,7 @@
     </section>
 
     <!-- Top Merchants full-width card -->
-    <section class="card merchants-card" style="order:4;animation-delay:.3s" id="merchants-card">
+    <section class="card merchants-card" style="order:2;animation-delay:.18s" id="merchants-card">
       <h3 data-t="top_merchants">Top merchants</h3>
       <p class="sub" id="merchants-sub">this period</p>
       <div id="merchants-list"></div>
@@ -863,6 +863,18 @@ const NF = n => new Intl.NumberFormat('en-US').format(Math.round(n));
 let privacyOn = (localStorage.getItem('kesefPrivacy') ?? 'on') === 'on';
 const WMASK = '₪ ••••';
 const wealth = n => privacyOn ? WMASK : (n < 0 ? '−₪' + NF(-n) : '₪' + NF(n));
+
+// No-reload refresh: refetch the model and re-render in place. Falls back to a full reload if the
+// fetch fails (server restarting, first-run with no db yet). Entry animations run on first paint only.
+let firstPaint = true;
+async function refresh() {
+  try {
+    const r = await fetch('/api/model');
+    if (!r.ok) { location.reload(); return; }
+    window.__KESEF__ = await r.json();
+    render();
+  } catch (e) { location.reload(); }
+}
 const kfmt = n => '₪' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -1155,14 +1167,19 @@ function spark(series) {    // series = [{date, balance}]
   const dl = $('#dotlast');
   dl.setAttribute('cx', x(series.length - 1));
   dl.setAttribute('cy', y(vals[series.length - 1]));
-  const L = $('#line'), len = L.getTotalLength();
-  L.style.transition = 'none';
-  L.style.strokeDasharray = len;
-  L.style.strokeDashoffset = len;
-  requestAnimationFrame(() => {
-    L.style.transition = 'stroke-dashoffset 1.3s cubic-bezier(.3,.8,.2,1) .25s';
-    L.style.strokeDashoffset = 0;
-  });
+  if (firstPaint) { // line-draw entrance once; later refreshes just show the line
+    const L = $('#line'), len = L.getTotalLength();
+    L.style.transition = 'none';
+    L.style.strokeDasharray = len;
+    L.style.strokeDashoffset = len;
+    requestAnimationFrame(() => {
+      L.style.transition = 'stroke-dashoffset 1.3s cubic-bezier(.3,.8,.2,1) .25s';
+      L.style.strokeDashoffset = 0;
+    });
+  } else {
+    const L = $('#line');
+    L.style.transition = 'none'; L.style.strokeDasharray = ''; L.style.strokeDashoffset = '';
+  }
   setupSparkHover();
 }
 
@@ -1208,6 +1225,7 @@ function setNetWorth(n) {
 
 // ─── count-up animation ───────────────────────────────────────────────────────
 function up(el, to, pre = '', post = '') {
+  if (!firstPaint) { el.textContent = pre + NF(to) + post; return; } // animate once; instant thereafter
   const t0 = performance.now(), dur = 1000;
   (function s(t) {
     const q = Math.min(1, (t - t0) / dur);
@@ -1301,7 +1319,7 @@ function renderGoals(goals, generatedAt) {
       btn.textContent = '…';
       try {
         const res = await fetch(`/api/goals?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (res.ok) { location.reload(); } else {
+        if (res.ok) { refresh(); } else {
           btn.disabled = false; btn.textContent = '×';
         }
       } catch(e) {
@@ -1366,7 +1384,8 @@ function setupGoalForm(generatedAt) {
         body: JSON.stringify({ name, targetAmount: target, targetDate: dateVal, currentAmount: current }),
       });
       if (res.ok) {
-        location.reload();
+        form.classList.remove('open'); clearGoalForm(); submit.disabled = false; submit.textContent = t('goal_save');
+        refresh();
       } else {
         submit.disabled = false;
         submit.textContent = t('goal_save');
@@ -1498,7 +1517,7 @@ function renderAccounts(M) {
       btn.disabled = true; btn.textContent = '…';
       try {
         const res = await fetch(`/api/balance?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (res.ok) location.reload(); else { btn.disabled = false; btn.textContent = '×'; }
+        if (res.ok) refresh(); else { btn.disabled = false; btn.textContent = '×'; }
       } catch (e) { btn.disabled = false; btn.textContent = '×'; }
     };
   });
@@ -1571,7 +1590,7 @@ function setupBalanceForm(M) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kind, name, value, date }),
       });
-      if (res.ok) location.reload();
+      if (res.ok) { form.classList.remove('open'); submit.disabled = false; submit.textContent = t('balance_save'); refresh(); }
       else { submit.disabled = false; submit.textContent = t('balance_save'); showErr(t('balance_save_err')); }
     } catch (e) { submit.disabled = false; submit.textContent = t('balance_save'); showErr(t('balance_save_err')); }
   };
@@ -1649,7 +1668,8 @@ async function doReTag(wrap, picker, txnId, newCat, scope, merchant) {
       body: JSON.stringify({ txnId, category: newCat, scope: scope || 'one', merchant: merchant || '' }),
     });
     if (res.ok) {
-      location.reload();
+      closePicker(picker);
+      refresh();
     } else {
       picker.innerHTML = `<div class="cp-err">${t('cat_err')}</div>`;
       setTimeout(() => closePicker(picker), 2200);
@@ -2001,7 +2021,7 @@ function renderPaycheck(M) {
     el.onclick = async () => {
       if (!el.dataset.month) return;
       await fetch(`/api/payslip?month=${encodeURIComponent(el.dataset.month)}`, { method: 'DELETE' });
-      location.reload();
+      refresh();
     };
   });
 }
@@ -2028,7 +2048,7 @@ function setupPayslipForm(M) {
     submit.disabled = true; submit.textContent = t('saving_cat'); if (errEl) errEl.style.display = 'none';
     try {
       const res = await fetch('/api/payslip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (res.ok) location.reload();
+      if (res.ok) { form.classList.remove('open'); submit.disabled = false; submit.textContent = t('goal_save'); refresh(); }
       else { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('payslip_err')); }
     } catch (e) { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('payslip_err')); }
   };
@@ -2066,14 +2086,15 @@ function setupPlanForm(M) {
     submit.disabled = true; submit.textContent = t('saving_cat'); if (errEl) errEl.style.display = 'none';
     try {
       const res = await fetch('/api/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount, label }) });
-      if (res.ok) location.reload();
+      if (res.ok) { form.classList.remove('open'); submit.disabled = false; submit.textContent = t('goal_save'); refresh(); }
       else { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('plan_err')); }
     } catch (e) { submit.disabled = false; submit.textContent = t('goal_save'); showErr(t('plan_err')); }
   };
   if (removeBtn) removeBtn.onclick = async () => {
     removeBtn.disabled = true;
-    try { await fetch('/api/plan', { method: 'DELETE' }); } catch (e) { /* reload shows the truth either way */ }
-    location.reload();
+    try { await fetch('/api/plan', { method: 'DELETE' }); } catch (e) { /* refresh shows the truth either way */ }
+    removeBtn.disabled = false; form.classList.remove('open');
+    refresh();
   };
 }
 
@@ -2166,8 +2187,8 @@ function renderDonut(byCategory, txns) {
 
   svg.innerHTML = svgHtml;
 
-  // animate: draw from 0
-  svg.querySelectorAll('.donut-seg').forEach((seg, i) => {
+  // animate: draw from 0 (first paint only — refreshes and period switches render instantly)
+  if (firstPaint) svg.querySelectorAll('.donut-seg').forEach((seg, i) => {
     const dashArr = parseFloat(seg.getAttribute('stroke-dasharray').split(' ')[0]);
     seg.style.strokeDasharray = `0 ${circ.toFixed(3)}`;
     seg.style.transition = 'none';
@@ -2239,11 +2260,13 @@ function renderDonut(byCategory, txns) {
     };
   });
 
-  // reset donut animation
-  if (wrap) {
+  // reset donut pop-in (first paint only)
+  if (wrap && firstPaint) {
     wrap.style.animation = 'none';
     void wrap.offsetWidth;
     wrap.style.animation = '';
+  } else if (wrap) {
+    wrap.style.animation = 'none'; wrap.style.opacity = 1; wrap.style.transform = 'none';
   }
 
   const top1 = sorted[0];
@@ -2577,6 +2600,7 @@ function render() {
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   setupCoupleButtons(M);
   applyViewVisibility();
+  firstPaint = false;
 }
 
 // ─── period toggle ────────────────────────────────────────────────────────────
