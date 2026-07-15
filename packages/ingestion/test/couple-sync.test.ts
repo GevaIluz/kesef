@@ -116,7 +116,7 @@ describe('couple sync — two devices, zero-knowledge relay', () => {
   });
 
   // F2 — couple net-worth trend: a snapshot is captured ONLY when the partner blob actually opens.
-  it('writes today\'s row (mine/partner SHAREABLE totals) only once a partner blob is decrypted, overwriting same-day', async () => {
+  it('writes today\'s row (my FULL total + partner SHARED total) only once a partner blob is decrypted, overwriting same-day', async () => {
     const A = tmpStore(); seedGuy(A);
     const B = tmpStore(); seedPartner(B);
     const vaultA = new InMemoryVault(); const vaultB = new InMemoryVault();
@@ -129,18 +129,19 @@ describe('couple sync — two devices, zero-knowledge relay', () => {
 
     // B syncs — uploads its own summary AND opens A's already-uploaded one: a real partner open.
     await syncWithPartner(B, vaultB, '2026-06-04');
-    // B's shareable total (pibi 54000; private pbank excluded) + A's shareable total (gbank 42200).
-    expect(B.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 54000, partner: 42200 }]);
+    // mine = B's FULL total (pibi 54000 + private pbank 99999) so the trend matches the couple hero
+    // (my full side + partner's shared side); partner = A's SHAREABLE total (gbank 42200).
+    expect(B.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 153999, partner: 42200 }]);
 
     // A syncs again — now opens B's blob too.
     await syncWithPartner(A, vaultA, '2026-06-04');
-    // "mine" is A's SHAREABLE total (42200 — private gcard excluded), not the 39200 A sees of itself
-    // in its own merged model (which includes gcard): the snapshot mirrors what actually crossed the wire.
-    expect(A.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 42200, partner: 54000 }]);
+    // "mine" is A's FULL total (gbank 42200 + private gcard −3000 = 39200) — what A's couple hero
+    // shows for A's own side; only the partner value is limited to what crossed the wire. Local-only.
+    expect(A.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 39200, partner: 54000 }]);
 
     // re-syncing later the SAME day overwrites in place — still one row, not two.
     await syncWithPartner(A, vaultA, '2026-06-04');
-    expect(A.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 42200, partner: 54000 }]);
+    expect(A.listCoupleSnapshots()).toEqual([{ date: '2026-06-04', mine: 39200, partner: 54000 }]);
   });
 
   it('refuses a non-https relay (except localhost) and errors when unpaired', async () => {

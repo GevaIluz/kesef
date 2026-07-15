@@ -1274,14 +1274,14 @@ function renderGoals(goals, generatedAt) {
     if (!done) {
       if (g.targetDate) {
         const needed = Math.ceil((tgt - cur) / monthsUntil(g.targetDate, generatedAt));
-        if (needed > 0) hintHtml = `<div class="goal-monthly">🐷 ₪${NF(needed)}${t('goal_per_month')}</div>`;
+        if (needed > 0) hintHtml = `<div class="goal-monthly">🐷 ${wealth(needed)}${t('goal_per_month')}</div>`;
       } else {
         hintHtml = `<div class="goal-monthly muted">📅 ${t('goal_need_date')}</div>`;
       }
     }
     // projection graph: the path from where you are now to the target by the deadline (dashed = plan)
     const projHtml = (g.targetDate && !done)
-      ? `${miniSparkSvg([{ date: generatedAt || '', balance: cur }, { date: g.targetDate, balance: tgt }], '--teal-ink', true)}<div class="acc-spark-lbl"><span>${t('goal_today')} · ₪${NF(cur)}</span><span>${t('by_date')} ${g.targetDate} · ₪${NF(tgt)}</span></div>`
+      ? `${miniSparkSvg([{ date: generatedAt || '', balance: cur }, { date: g.targetDate, balance: tgt }], '--teal-ink', true)}<div class="acc-spark-lbl"><span>${t('goal_today')} · ${wealth(cur)}</span><span>${t('by_date')} ${g.targetDate} · ${wealth(tgt)}</span></div>`
       : '';
     return `<div class="goal-item">
       <div class="goal">
@@ -1294,7 +1294,7 @@ function renderGoals(goals, generatedAt) {
           <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + t('goal_done') : (dueLabel ? ' · ' + dueLabel : '')}</div>
           ${hintHtml}
         </div>
-        <div class="ga">₪${NF(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ₪${NF(tgt)}</small></div>
+        <div class="ga">${wealth(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ${wealth(tgt)}</small></div>
         <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
       </div>
       ${projHtml}
@@ -2889,7 +2889,7 @@ function renderCoupleView() {
     gEl.innerHTML = goals.map(g => {
       const pc = Math.min(1, (g.currentAmount||0) / (g.targetAmount||1));
       const who = g.owner === 'me' ? `<span class="owner-badge me">${t('cv_you')}</span>` : `<span class="owner-badge partner">${esc(partnerName())}</span>`;
-      return `<div style="padding:11px 2px;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div class="cv-acc-name">${esc(g.name)} ${who}</div><div class="ga" style="text-align:end">₪${NF(g.currentAmount||0)}<small>${lang==='en'?'of':'מתוך'} ₪${NF(g.targetAmount||0)}</small></div></div><div class="cv-bar-track" style="margin-top:7px"><span class="cv-bar-fill" style="width:${(pc*100).toFixed(0)}%;background:${catColorVar('--teal')}"></span></div></div>`;
+      return `<div style="padding:11px 2px;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div class="cv-acc-name">${esc(g.name)} ${who}</div><div class="ga" style="text-align:end">${wealth(g.currentAmount||0)}<small>${lang==='en'?'of':'מתוך'} ${wealth(g.targetAmount||0)}</small></div></div><div class="cv-bar-track" style="margin-top:7px"><span class="cv-bar-fill" style="width:${(pc*100).toFixed(0)}%;background:${catColorVar('--teal')}"></span></div></div>`;
     }).join('');
     gCard.hidden = false;
   } else if (gCard) gCard.hidden = true;
@@ -2962,7 +2962,7 @@ function setupPreview() {
       body.innerHTML =
         `<div class="cv-who" style="margin-bottom:12px"><div class="cv-who-k">${t('cv_combined_nw')}</div><div class="cv-who-v">${wealth(nw)}</div></div>` +
         (accts.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:8px 0 4px">${t('cv_accounts')}</div>` + accts.map(a => `<div class="cv-acc"><span class="cv-acc-ic">${ACCT_TYPE_ICON[a.type]||'🏦'}</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(a.label)}</div></div><span class="cv-acc-bal">${wealth(a.balance)}</span></div>`).join('') : '') +
-        (goals.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:12px 0 4px">${t('cv_goals')}</div>` + goals.map(g => `<div class="cv-acc"><span class="cv-acc-ic">🎯</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(g.name)}</div></div><span class="cv-acc-bal">₪${NF(g.currentAmount)}</span></div>`).join('') : '');
+        (goals.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:12px 0 4px">${t('cv_goals')}</div>` + goals.map(g => `<div class="cv-acc"><span class="cv-acc-ic">🎯</span><div class="cv-acc-main"><div class="cv-acc-name">${esc(g.name)}</div></div><span class="cv-acc-bal">${wealth(g.currentAmount)}</span></div>`).join('') : '');
     }
     ov.classList.remove('hidden');
   };
