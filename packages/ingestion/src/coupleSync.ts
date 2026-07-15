@@ -170,6 +170,8 @@ export async function syncWithPartner(store: Store, vault: SecretVault, now: str
         partnerAsOf = partner.generatedAt;
         next = { ...next, partnerSeq: partnerData.seq };
         store.setPairing(next);
+        // F2 — a couple net-worth point ONLY on a successful partner open; last sync of the day wins (date PK).
+        store.upsertCoupleSnapshot({ date: now, mine: mine.netWorth.total, partner: partner.netWorth.total });
       } catch {
         partnerError = "couldn't read your partner's data (corrupted or from a different pairing)";
       }

@@ -127,6 +127,17 @@ export interface MonthlyPlan {
   label: string;  // non-empty, e.g. "IBI"
 }
 
+/**
+ * Couple net-worth trend (F2) — one point per day a sync SUCCEEDED at opening the partner's blob.
+ * `mine`/`partner` are each side's CoupleSummary.netWorth.total at that moment; no backfill of the
+ * partner's past, and re-syncing the same day overwrites (date is the PK — last sync of the day wins).
+ */
+export interface CoupleSnapshot {
+  date: string;    // YYYY-MM-DD
+  mine: number;
+  partner: number;
+}
+
 export function isExpense(tx: Transaction): boolean {
   return tx.amount < 0;
 }

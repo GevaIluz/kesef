@@ -87,3 +87,11 @@ CREATE TABLE IF NOT EXISTS monthly_plan (
   amount REAL NOT NULL,
   label TEXT NOT NULL
 );
+
+-- Couple net-worth trend (F2): one row per day a sync SUCCEEDED at opening the partner's blob.
+-- date is the PK so re-syncing the same day overwrites (last sync of the day wins); no backfill.
+CREATE TABLE IF NOT EXISTS couple_snapshots (
+  date TEXT PRIMARY KEY,
+  mine REAL NOT NULL,
+  partner REAL NOT NULL
+);

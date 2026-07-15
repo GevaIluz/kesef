@@ -247,14 +247,20 @@ const server = createServer(async (req, res) => {
     if (path === '/api/couple/view' && method === 'GET') {
       const out = await withStoreRW(s => {
         const p = s.getPairing();
-        return { model: localCoupleModel(s, todayISO()), paired: !!p, partnerLabel: p?.partnerLabel ?? null };
+        // F2 — couple net-worth trend: combined (mine+partner) per day, captured on successful syncs.
+        const netWorthSeries = s.listCoupleSnapshots().map(row => ({ date: row.date, balance: row.mine + row.partner }));
+        return { model: localCoupleModel(s, todayISO()), netWorthSeries, paired: !!p, partnerLabel: p?.partnerLabel ?? null };
       });
       return sendJson(res, 200, out);
     }
     if (path === '/api/couple/sync' && method === 'POST') {
       try {
-        const result = await withStoreRW(s => syncWithPartner(s, vault, todayISO()));
-        return sendJson(res, 200, { model: result.model, mine: result.mine, partnerError: result.partnerError ?? null, partnerAsOf: result.partnerAsOf ?? null });
+        const result = await withStoreRW(async s => {
+          const r = await syncWithPartner(s, vault, todayISO());
+          const netWorthSeries = s.listCoupleSnapshots().map(row => ({ date: row.date, balance: row.mine + row.partner }));
+          return { ...r, netWorthSeries };
+        });
+        return sendJson(res, 200, { model: result.model, mine: result.mine, netWorthSeries: result.netWorthSeries, partnerError: result.partnerError ?? null, partnerAsOf: result.partnerAsOf ?? null });
       } catch (e) { return sendJson(res, 200, { model: null, error: e instanceof Error ? e.message : 'sync failed' }); }
     }
 

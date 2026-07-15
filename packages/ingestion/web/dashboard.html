@@ -2725,15 +2725,22 @@ function applyViewVisibility() {
   $$('[data-view-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.viewBtn === currentView ? 'true' : 'false'));
   const meView = $('#me-view'), coupleView = $('#couple-view'), privacy = $('#privacy'), chart = $('#chart-area');
   const isMe = currentView === 'me';
+  const isCouple = currentView === 'couple';
   if (meView) meView.hidden = !isMe;
   if (coupleView) coupleView.hidden = isMe;
   if (privacy) privacy.hidden = isMe;
-  if (chart) chart.style.visibility = isMe ? '' : 'hidden';
+  // F2: the couple hero also gets a trend (combined mine+partner); the partner-only view has no series of its own.
+  if (chart) chart.style.visibility = (isMe || isCouple) ? '' : 'hidden';
   const deltaChip = $('#delta-chip');
   if (deltaChip) deltaChip.style.display = (isMe && !privacyOn) ? '' : 'none'; // personal chip; masked with the hero
   const eyebrow = $('.eyebrow');
   if (isMe) {
-    if (M) setNetWorth(M.netWorth);
+    if (M) {
+      setNetWorth(M.netWorth);
+      // restore MY trend — couple mode redraws the same shared chart with its own (combined) series
+      spark(M.netWorthSeries || []);
+      renderSparkLabels(M.netWorthSeries || []);
+    }
     if (eyebrow) eyebrow.innerHTML = '👋 <span>' + t('hello') + '</span>';
   } else {
     if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '❤️ ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
@@ -2795,6 +2802,14 @@ function renderCoupleView() {
 
   // hero number: combined for couple, partner's for partner view
   setNetWorth(mode === 'couple' ? model.netWorth.total : model.netWorth.partner);
+
+  // F2 — couple net-worth trend: the combined (mine+partner) series, same spark component as Me view.
+  // Couple mode only — partner-only view's hero number isn't the combined total this series represents.
+  if (mode === 'couple') {
+    const series = d.netWorthSeries || [];
+    spark(series);
+    renderSparkLabels(series);
+  }
 
   // composition (day-to-day / 5-10y / long-term): combined buckets in couple view, partner-only in partner view
   let bb = model.netWorth.byBucket;

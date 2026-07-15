@@ -2,7 +2,7 @@ import Database from 'better-sqlite3-multiple-ciphers';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import type { Account, AccountComponent, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip, Horizon, MonthlyPlan } from './types';
+import type { Account, AccountComponent, Transaction, BalanceSnapshot, Goal, CouplePairing, Payslip, Horizon, MonthlyPlan, CoupleSnapshot } from './types';
 
 const SCHEMA = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'schema.sql'), 'utf8');
 const NUL = String.fromCharCode(0);
@@ -278,6 +278,19 @@ export class Store {
 
   /** Clear the monthly plan. */
   deletePlan(): void { this.db.prepare('DELETE FROM monthly_plan WHERE id = ?').run(PLAN_ID); }
+
+  /** Save (upsert) one day's couple net-worth point (F2) — same date re-synced today overwrites it. */
+  upsertCoupleSnapshot(s: CoupleSnapshot): void {
+    this.db.prepare(
+      `INSERT INTO couple_snapshots (date, mine, partner) VALUES (@date, @mine, @partner)
+       ON CONFLICT(date) DO UPDATE SET mine=@mine, partner=@partner`
+    ).run({ date: s.date, mine: s.mine, partner: s.partner });
+  }
+
+  /** All couple net-worth points, oldest first — the trend the couple hero draws. */
+  listCoupleSnapshots(): CoupleSnapshot[] {
+    return this.db.prepare('SELECT date, mine, partner FROM couple_snapshots ORDER BY date').all() as CoupleSnapshot[];
+  }
 
   close(): void { this.db.close(); }
 }

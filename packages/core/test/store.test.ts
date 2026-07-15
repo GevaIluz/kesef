@@ -108,3 +108,29 @@ describe('Store monthly plan', () => {
     s.close();
   });
 });
+
+describe('Store couple snapshots (F2)', () => {
+  it('round-trips a snapshot per date, ordered oldest first regardless of insertion order', () => {
+    const path = newDb();
+    const s = Store.open({ path, key: 'pw' });
+    expect(s.listCoupleSnapshots()).toEqual([]);
+    s.upsertCoupleSnapshot({ date: '2026-07-10', mine: 100, partner: 50 });
+    s.upsertCoupleSnapshot({ date: '2026-07-05', mine: 90, partner: 40 });  // inserted out of order
+    s.upsertCoupleSnapshot({ date: '2026-07-15', mine: 110, partner: 60 });
+    expect(s.listCoupleSnapshots()).toEqual([
+      { date: '2026-07-05', mine: 90, partner: 40 },
+      { date: '2026-07-10', mine: 100, partner: 50 },
+      { date: '2026-07-15', mine: 110, partner: 60 },
+    ]);
+    s.close();
+  });
+
+  it('same-day overwrite: a second sync the same day replaces the row, last sync wins', () => {
+    const path = newDb();
+    const s = Store.open({ path, key: 'pw' });
+    s.upsertCoupleSnapshot({ date: '2026-07-15', mine: 100, partner: 50 });
+    s.upsertCoupleSnapshot({ date: '2026-07-15', mine: 105, partner: 52 }); // later sync, same date
+    expect(s.listCoupleSnapshots()).toEqual([{ date: '2026-07-15', mine: 105, partner: 52 }]);
+    s.close();
+  });
+});
