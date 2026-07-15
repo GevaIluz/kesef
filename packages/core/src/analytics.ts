@@ -22,8 +22,16 @@ export interface CoupleViewState {
   partnerAsOf?: string | null;
 }
 
-/** F6 monthly plan as surfaced to the dashboard — the stored plan plus this month's sent/not-yet verdict. */
-export interface PlanState { amount: number; label: string; sentThisMonth: boolean }
+/** F6 monthly plan as surfaced to the dashboard — the stored plan plus the current window's sent/not-yet verdict. */
+export interface PlanState { amount: number; label: string; sent: boolean }
+
+/** F7 — the current pay cycle: from the latest detected salary landing to now. Null when no salary is detectable. */
+export interface CycleState {
+  start: string;                 // date the salary landed (cycle start, inclusive)
+  payslipMonth: string | null;   // the slip funding this cycle (start month, else the month before), if entered
+  income: number; spent: number; savedInvested: number;
+  byCategory: { category: CategoryCode | 'other'; amount: number }[];
+}
 
 export interface DashboardModel {
   generatedAt: string;
@@ -38,7 +46,8 @@ export interface DashboardModel {
   payslips: Payslip[];
   couple: CoupleViewState;
   plan: PlanState | null;          // F6 — null when no plan is set
-  leftThisMonth: number | null;    // F5 — null when not computable (no income this month AND no payslip to fall back on)
+  leftThisMonth: number | null;    // F5 — null when not computable (no cycle, no income this month, no payslip)
+  cycle: CycleState | null;        // F7 — the salary-anchored window "This month" actually means
 }
 
 const RECENT_LIMIT = 12;
@@ -156,29 +165,56 @@ export function buildDashboard(
     year: summarize(inRange(shiftDays(now, -365))),
   };
 
-  // F6 — monthly plan sent-detection: an outgoing (amount<0) transaction THIS calendar month whose
-  // EFFECTIVE category (same override→merchant-rule→auto resolution as `eff` above, not the raw
-  // category) is investment or savings, covering at least 95% of the plan amount (a small bank fee
-  // or rounding shouldn't make a real transfer register as "not sent").
+  // F7 — pay-cycle frame. Israeli salaries land at month-end, so calendar months answer a question
+  // nobody asks. A salary event = income-category txn (effective category → re-tagging heals a false
+  // hit) of at least half the bigger of {largest income txn in the last 120 days, latest payslip net}.
+  // The current cycle runs from the latest salary event (whole day included) to now.
+  const payslips = opts.payslips ?? [];
+  const latestSlip = latestPayslipOf(payslips);
+  const MIN_SALARY = 3000; // absolute floor: below half of Israeli minimum wage nothing is a salary anchor
+  const incomeTxns = eff.filter(t => t.amount > 0 && t.category === 'income' && t.date <= now);
+  const recentMax = incomeTxns.filter(t => t.date >= shiftDays(now, -120)).reduce((m, t) => Math.max(m, t.amount), 0);
+  const salaryFloor = Math.max(0.5 * Math.max(recentMax, latestSlip?.net ?? 0), MIN_SALARY);
+  const salaryEvents = incomeTxns.filter(t => t.amount >= salaryFloor).map(t => t.date).sort();
+  const cycleStart = salaryEvents.length ? salaryEvents[salaryEvents.length - 1]! : null;
+
+  let cycle: DashboardModel['cycle'] = null;
+  if (cycleStart) {
+    const s = summarize(inRange(cycleStart));
+    // The slip that funded this cycle: salary paid Jun 30 or Jul 1 is June's slip — try the cycle-start
+    // month first, then the month before it.
+    const startYm = cycleStart.slice(0, 7);
+    const prevYm = shiftDays(startYm + '-01', -1).slice(0, 7);
+    const slipMonth = payslips.some(p => p.month === startYm) ? startYm
+      : payslips.some(p => p.month === prevYm) ? prevYm : null;
+    cycle = { start: cycleStart, payslipMonth: slipMonth, income: s.income, spent: s.spent, savedInvested: s.savedInvested, byCategory: s.byCategory };
+  }
+
+  // F6 — monthly plan sent-detection: an outgoing (amount<0) transaction inside the current window —
+  // the pay cycle when one exists, else this calendar month — whose EFFECTIVE category is investment
+  // or savings, covering at least 95% of the plan amount (a small bank fee or rounding shouldn't make
+  // a real transfer register as "not sent").
   let plan: PlanState | null = null;
   if (opts.plan) {
     const threshold = 0.95 * opts.plan.amount;
-    const sentThisMonth = eff.some(t =>
-      t.date.slice(0, 7) === month && t.amount < 0 &&
+    const inWindow = (t: Transaction) => cycleStart ? (t.date >= cycleStart && t.date <= now) : t.date.slice(0, 7) === month;
+    const sent = eff.some(t =>
+      inWindow(t) && t.amount < 0 &&
       (t.category === 'investment' || t.category === 'savings') &&
       Math.abs(t.amount) >= threshold
     );
-    plan = { amount: opts.plan.amount, label: opts.plan.label, sentThisMonth };
+    plan = { amount: opts.plan.amount, label: opts.plan.label, sent };
   }
 
-  // F5 — "left this month": a quiet number, not a budget. incomeBase = max(bank income this month,
-  // latest payslip net) — a stray small deposit must not mask the "salary hasn't landed yet" case,
-  // and once the real salary lands it exceeds the payslip net and wins. Null when neither exists.
-  const payslips = opts.payslips ?? [];
+  // F5 — "left this month": a quiet number, not a budget. With a cycle, income is REAL (the salary
+  // is inside the window) — no fallback needed. Without one, incomeBase = max(calendar-month income,
+  // latest payslip net) so a stray small deposit can't mask "salary hasn't landed yet".
   let leftThisMonth: number | null = null;
-  if (spending.thisMonth.income > 0 || payslips.length > 0) {
-    const incomeBase = Math.max(spending.thisMonth.income, latestPayslipOf(payslips)?.net ?? 0);
-    const planNotYetSent = plan && !plan.sentThisMonth ? plan.amount : 0;
+  const planNotYetSent = plan && !plan.sent ? plan.amount : 0;
+  if (cycle) {
+    leftThisMonth = cycle.income - cycle.spent - planNotYetSent;
+  } else if (spending.thisMonth.income > 0 || payslips.length > 0) {
+    const incomeBase = Math.max(spending.thisMonth.income, latestSlip?.net ?? 0);
     leftThisMonth = incomeBase - spending.thisMonth.spent - planNotYetSent;
   }
 
@@ -229,6 +265,6 @@ export function buildDashboard(
     transactions: txList,
     payslips,
     couple: opts.couple ?? { paired: false },
-    plan, leftThisMonth,
+    plan, leftThisMonth, cycle,
   };
 }

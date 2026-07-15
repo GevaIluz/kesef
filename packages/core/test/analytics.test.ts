@@ -206,7 +206,7 @@ describe('monthly plan (F6) + left this month (F5)', () => {
   it('detects the plan as sent when an investment outflow ≥95% lands this month', () => {
     const txns = [{ id: 'p1', accountId: 'a', date: '2026-06-05', amount: -1950, description: 'הוראת קבע IBI', category: 'investment', shareable: false }] as any;
     const d = buildDashboard([], txns, [], '2026-06-15', { plan });
-    expect(d.plan).toEqual({ amount: 2000, label: 'IBI', sentThisMonth: true });
+    expect(d.plan).toEqual({ amount: 2000, label: 'IBI', sent: true });
   });
   it('sub-threshold, wrong-category, and wrong-month outflows do NOT count as sent', () => {
     const txns = [
@@ -215,12 +215,12 @@ describe('monthly plan (F6) + left this month (F5)', () => {
       { id: 'p4', accountId: 'a', date: '2026-05-05', amount: -2000, description: 'IBI', category: 'investment', shareable: false },
     ] as any;
     const d = buildDashboard([], txns, [], '2026-06-15', { plan });
-    expect(d.plan!.sentThisMonth).toBe(false);
+    expect(d.plan!.sent).toBe(false);
   });
   it('sent-detection uses the EFFECTIVE category (override beats raw)', () => {
     const txns = [{ id: 'p5', accountId: 'a', date: '2026-06-05', amount: -2000, description: 'העברה', category: 'transfer', shareable: false }] as any;
     const d = buildDashboard([], txns, [], '2026-06-15', { plan, overrides: new Map([['p5', 'investment']]) });
-    expect(d.plan!.sentThisMonth).toBe(true);
+    expect(d.plan!.sent).toBe(true);
   });
   it('left this month = incomeBase − spent − unsent plan; payslip-net fallback when no bank income', () => {
     const txns = [{ id: 'l1', accountId: 'a', date: '2026-06-03', amount: -1000, description: 'cafe', category: 'dining', shareable: false }] as any;
@@ -240,5 +240,57 @@ describe('monthly plan (F6) + left this month (F5)', () => {
   });
   it('left this month is null when there is nothing to base it on', () => {
     expect(buildDashboard([], [], [], '2026-06-15', {}).leftThisMonth).toBeNull();
+  });
+});
+
+describe('pay-cycle frame (F7)', () => {
+  const plan = { amount: 2000, label: 'IBI' };
+  it('detects the cycle from the latest salary-sized income txn; spending before it is excluded', () => {
+    const txns = [
+      { id: 'c1', accountId: 'a', date: '2026-06-02', amount: 9000, description: 'salary', category: 'income', shareable: false },
+      { id: 'c2', accountId: 'a', date: '2026-05-28', amount: -400, description: 'pre-salary', category: 'dining', shareable: false },
+      { id: 'c3', accountId: 'a', date: '2026-06-05', amount: -150, description: 'post-salary', category: 'dining', shareable: false },
+      { id: 'c4', accountId: 'a', date: '2026-06-03', amount: 300, description: 'refund', category: 'income', shareable: false }, // small income, not a salary
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15');
+    expect(d.cycle!.start).toBe('2026-06-02');
+    expect(d.cycle!.income).toBe(9300);   // salary + the refund inside the window
+    expect(d.cycle!.spent).toBe(150);     // pre-salary dining excluded
+  });
+  it('plan sent-detection uses the cycle window across a calendar-month boundary', () => {
+    const txns = [
+      { id: 'c5', accountId: 'a', date: '2026-06-28', amount: 11000, description: 'salary', category: 'income', shareable: false },
+      { id: 'c6', accountId: 'a', date: '2026-06-29', amount: -2000, description: 'IBI', category: 'investment', shareable: false },
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-07-10', { plan });
+    expect(d.cycle!.start).toBe('2026-06-28');
+    expect(d.plan!.sent).toBe(true);      // calendar-July would say false; the cycle says true
+    expect(d.leftThisMonth).toBe(11000 - 0);  // sent → plan not subtracted; no spending in window
+  });
+  it('left this month = cycle income − cycle spent − unsent plan', () => {
+    const txns = [
+      { id: 'c7', accountId: 'a', date: '2026-06-02', amount: 9000, description: 'salary', category: 'income', shareable: false },
+      { id: 'c8', accountId: 'a', date: '2026-06-05', amount: -200, description: 'cafe', category: 'dining', shareable: false },
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-06-15', { plan });
+    expect(d.leftThisMonth).toBe(9000 - 200 - 2000);
+  });
+  it('matches the slip funding the cycle: start month, else the month before', () => {
+    const slip = { month: '2026-06', gross: 22000, net: 11559, tax: 5383, pensionEmp: 1320, kerenEmp: 440, espp: 3300, otherEmp: 0, employerPension: 1430, employerSeverance: 1832.6, employerKeren: 1320 };
+    const txns = [{ id: 'c9', accountId: 'a', date: '2026-07-01', amount: 11559, description: 'salary', category: 'income', shareable: false }] as any;
+    const d = buildDashboard([], txns, [], '2026-07-10', { payslips: [slip] });
+    expect(d.cycle!.payslipMonth).toBe('2026-06');   // paid Jul 1 = June's slip
+  });
+  it('two salary-sized events: the LATEST starts the cycle (bonus month)', () => {
+    const txns = [
+      { id: 'ca', accountId: 'a', date: '2026-06-01', amount: 11000, description: 'salary', category: 'income', shareable: false },
+      { id: 'cb', accountId: 'a', date: '2026-06-30', amount: 13000, description: 'salary+bonus', category: 'income', shareable: false },
+    ] as any;
+    const d = buildDashboard([], txns, [], '2026-07-05');
+    expect(d.cycle!.start).toBe('2026-06-30');
+  });
+  it('no salary-sized income → cycle is null and calendar behavior stands', () => {
+    const txns = [{ id: 'cc', accountId: 'a', date: '2026-06-03', amount: 300, description: 'refund', category: 'income', shareable: false }] as any;
+    expect(buildDashboard([], txns, [], '2026-06-15').cycle).toBeNull();
   });
 });

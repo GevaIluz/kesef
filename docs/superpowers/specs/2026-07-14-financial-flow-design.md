@@ -81,6 +81,22 @@ Interview answers that shape everything below:
   (amount + label) behind an edit control. Feeds F5.
 - API: `POST /api/plan { amount, label }`, `DELETE /api/plan`.
 
+### F7 — Pay-cycle frame (approved 2026-07-14, "yes to the cycle")
+Israeli salaries land at month-end, so calendar-month stats answer a question nobody asks.
+- **Salary detection**: an income-category transaction (effective category, so user-correctable
+  by re-tagging) with `amount ≥ 0.5 × max(largest income txn in the last 120 days, latest payslip net)`.
+  <!-- ponytail: threshold heuristic; a mis-tagged large deposit resets the cycle — fixed by re-tagging it -->
+- **Cycle**: starts on the date of the most recent salary event; "This month" becomes the current
+  cycle — income = salary + everything since, spent = spending since (whole start day included).
+  Label switches to "Since paycheck <date>" (he: "מהמשכורת") when a cycle exists.
+- **Plan (F6)** sent-detection scopes to the cycle window (field renamed `sent`).
+- **Left (F5)** = cycle.income − cycle.spent − unsent plan; the payslip-net fallback applies only
+  when NO salary is detectable (then everything falls back to calendar-month behavior unchanged).
+- **Paycheck card** in cycle view shows the slip funding the cycle: month == cycle-start's month,
+  else the month before (salary paid Jun 30 or Jul 1 = June's slip). 💎 payroll savings same match.
+- Model: `cycle: { start, payslipMonth, income, spent, savedInvested, byCategory } | null` — null
+  when no salary event is found (new installs, partner before her first sync).
+
 ## Explicitly out of scope (decisions, not accidents)
 - Budgets, spending limits, overspend nudges, safe-to-spend *systems* (F5 is one derived line).
 - Who-paid-what / settle-up ledgers.

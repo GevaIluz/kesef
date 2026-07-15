@@ -908,6 +908,7 @@ const T = {
   no_data:   { en: "No data yet — press Sync and log in to your accounts in the windows that open.",
                he: "אין נתונים עדיין — לחצו סנכרון והתחברו לחשבונות בחלונות שנפתחים." },
   period_thisMonth: { en: 'This month', he: 'החודש' },
+  period_cycle:     { en: 'Since paycheck', he: 'מהמשכורת' },
   period_last30:    { en: 'Last 30 days', he: '30 ימים' },
   period_last90:    { en: 'Last 3 months', he: '3 חודשים' },
   period_year:      { en: 'This year', he: 'השנה' },
@@ -1884,10 +1885,16 @@ function shiftDaysStr(iso, days) {
   const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
 }
 // Same boundary rule as the server (analytics inRange): plain string compares on YYYY-MM-DD.
+// F7: "thisMonth" means the current PAY CYCLE (since the last salary landed) when one is detected;
+// plain calendar month only when no salary is detectable.
 function txnsInPeriod(txns, period, generatedAt) {
   if (!txns || txns.length === 0) return [];
   const now = (generatedAt || new Date().toISOString()).slice(0, 10);
-  if (period === 'thisMonth') { const ym = now.slice(0, 7); return txns.filter(tx => tx.date && tx.date.slice(0, 7) === ym); }
+  if (period === 'thisMonth') {
+    const cyc = window.__KESEF__ && window.__KESEF__.cycle;
+    if (cyc) return txns.filter(tx => tx.date && tx.date.slice(0, 10) >= cyc.start && tx.date.slice(0, 10) <= now);
+    const ym = now.slice(0, 7); return txns.filter(tx => tx.date && tx.date.slice(0, 7) === ym);
+  }
   const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
   const from = shiftDaysStr(now, -days);
   return txns.filter(tx => tx.date && tx.date.slice(0, 10) >= from && tx.date.slice(0, 10) <= now);
@@ -1925,7 +1932,12 @@ function payslipsInPeriod(payslips, period, generatedAt) {
   if (!payslips || payslips.length === 0) return [];
   const now = (generatedAt || new Date().toISOString()).slice(0, 10);
   const ymNow = now.slice(0, 7);
-  if (period === 'thisMonth') return payslips.filter(p => p.month === ymNow);
+  if (period === 'thisMonth') {
+    const cyc = window.__KESEF__ && window.__KESEF__.cycle;
+    // cycle view: the one slip that funded this cycle (server-matched); calendar fallback otherwise
+    if (cyc) return cyc.payslipMonth ? payslips.filter(p => p.month === cyc.payslipMonth) : [];
+    return payslips.filter(p => p.month === ymNow);
+  }
   const days = period === 'last30' ? 30 : period === 'last90' ? 90 : 365;
   const ymFrom = shiftDaysStr(now, -days).slice(0, 7);
   return payslips.filter(p => p.month >= ymFrom && p.month <= ymNow);
@@ -2010,7 +2022,7 @@ function renderPlan(M) {
   const textEl = $('#plan-text'), btn = $('#plan-edit-btn');
   if (!textEl || !btn) return;
   if (M.plan) {
-    const status = M.plan.sentThisMonth ? t('plan_sent') : t('plan_not_yet');
+    const status = M.plan.sent ? t('plan_sent') : t('plan_not_yet');
     textEl.innerHTML = `₪${NF(M.plan.amount)} ${t('plan_to')} ${esc(M.plan.label)}: <b>${status}</b>`;
     btn.textContent = t('edit_plan');
   } else {
@@ -2248,7 +2260,11 @@ function renderPeriodSpending(M) {
     if (lastPay) { p = { ...p, income: lastPay.amount, saved: lastPay.amount - p.spent }; incomeIsLastPay = true; }
   }
 
-  const periodLabel = t('period_' + selectedPeriod);
+  // F7: "This month" is really the pay cycle when a salary was detected — label it honestly
+  const cycleActive = selectedPeriod === 'thisMonth' && !!M.cycle;
+  const periodLabel = cycleActive ? `${t('period_cycle')} ${fmtSparkDate(M.cycle.start)}` : t('period_' + selectedPeriod);
+  const tmBtn = $('[data-period-btn="thisMonth"]');
+  if (tmBtn) tmBtn.textContent = M.cycle ? t('period_cycle') : t('period_thisMonth');
   up($('#s-in'),   p.income, '₪');
   up($('#s-out'),  p.spent,  '₪');
   up($('#s-save'), p.saved,  '₪');
