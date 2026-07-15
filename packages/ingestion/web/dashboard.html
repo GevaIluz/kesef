@@ -2765,6 +2765,24 @@ async function loadCoupleView(forceSync) {
   }
 }
 
+// F3 — auto-fresh partner sync ("shared truth without ceremony"): on load, if paired,
+// fire ONE silent background sync so Couple view is fresh without a manual tap. Capped
+// to once per AUTO_SYNC_THROTTLE_MS via a localStorage timestamp guard, so repeat page
+// loads don't hammer the relay. Silent on failure — the existing "as of" freshness line
+// in renderCoupleView already reports staleness. The manual Sync-with-partner button
+// (setupPreview's #cv-sync-btn handler) is unaffected.
+const AUTO_SYNC_THROTTLE_MS = 3 * 60 * 60 * 1000; // 3 hours
+async function autoSyncPartner() {
+  if (!couplePaired()) return;
+  const last = Number(localStorage.getItem('kesefLastAutoSync') || 0);
+  if (Date.now() - last < AUTO_SYNC_THROTTLE_MS) return;
+  localStorage.setItem('kesefLastAutoSync', String(Date.now()));
+  try {
+    const r = await api('/api/couple/sync', 'POST');
+    if (r.data && r.data.model) coupleData = r.data; // fresh whenever Couple view opens next
+  } catch (e) { /* silent — freshness line reports staleness when the user looks */ }
+}
+
 function renderCoupleView() {
   const d = coupleData || {};
   const mode = currentView; // 'partner' | 'couple'
@@ -3045,6 +3063,7 @@ applyEye();
 applyTheme();
 
 render();
+autoSyncPartner(); // F3 — background, throttled; see AUTO_SYNC_THROTTLE_MS above
 </script>
 </body>
 </html>
