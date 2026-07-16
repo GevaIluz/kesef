@@ -1,0 +1,7 @@
+.bubbles{position:absolute;inset:0;overflow:hidden;border-radius:36px;pointer-events:none}
+.bub{position:absolute;pointer-events:none;animation:leaffall var(--dur) linear var(--delay) forwards;will-change:transform}
+.gust{width:100%;height:100%;transition:transform 2.1s cubic-bezier(.22,.61,.36,1)}
+.bubskin{width:100%;height:100%;pointer-events:auto;cursor:pointer;opacity:.85;animation:sway var(--bdur,4.5s) ease-in-out infinite alternate;transform-origin:50% 0%}
+.bubskin svg{width:100%;height:100%;display:block;filter:drop-shadow(0 5px 9px rgba(40,30,10,.22))}
+.bubskin.heart svg{filter:drop-shadow(0 5px 9px rgba(40,30,10,.22)) drop-shadow(0 0 12px rgba(247,200,67,.35))}
+@keyframes sway{0%{transform:rotate(-16deg) translateX(-6px)}100%{transform:rotate(17deg) translateX(7px)}}
