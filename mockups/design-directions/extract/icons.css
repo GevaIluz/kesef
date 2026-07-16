@@ -1,0 +1,5 @@
+svg.ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-.12em;flex:0 0 auto}
+.greet .ic{font-size:17px}
+.card h3 .hic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:15px;color:#fff;background:linear-gradient(160deg,var(--hc,#16A78C),color-mix(in srgb,var(--hc,#0C7A66) 70%,#000 12%));box-shadow:0 5px 10px -4px color-mix(in srgb,var(--hc,#0C7A66) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}
+.tx .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:16px;color:#fff;background:linear-gradient(160deg,var(--c,#9E8A70),color-mix(in srgb,var(--c,#9E8A70) 72%,#000 12%));box-shadow:0 5px 10px -4px color-mix(in srgb,var(--c,#9E8A70) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.35);flex:0 0 auto}
+.tx .ic{width:34px;height:34px;border-radius:11px}

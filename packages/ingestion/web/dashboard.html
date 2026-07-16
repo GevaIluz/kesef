@@ -21,12 +21,12 @@
 <style>
   :root{
     --paper:#FBF3E7; --paper-2:#FFFDF8; --card:#FFFFFF; --ink:#2C2620; --ink-soft:#857A6B;
-    --line:#EEE3D2; --teal:#16A78C; --teal-ink:#0C7A66; --coral:#F2795B; --gold:#F4B43C; --berry:#C76699;
-    --pos:#1B9E76; --neg:#E0673F;
+    --line:#EEE3D2; --teal:#0F8E75; --teal-ink:#085E4E; --coral:#F2795B; --gold:#F7C843; --berry:#C76699;
+    --pos:#17835F; --neg:#E0673F;
     --shadow:0 26px 50px -32px rgba(70,50,20,.45); --shadow-sm:0 12px 26px -18px rgba(70,50,20,.4);
     --shadow-lift:0 20px 40px -16px rgba(70,50,20,.38), 0 4px 12px -4px rgba(70,50,20,.18);
     --r:28px; --maxw:1080px; --body:"Assistant",system-ui,sans-serif; --round:"Fredoka","Assistant",sans-serif;
-    --teal-deep:#075D4D;
+    --teal-deep:#04443A;
 
     /* ── per-category palette ─────────────────────────────────────────── */
     --cat-dining:        #F06048;
@@ -138,15 +138,15 @@
 
   /* HERO — duonero-b5: "left this month" is the story; net worth lives in the vault below */
   .hero{position:relative;color:#fff;border-radius:36px;padding:clamp(26px,3.6vw,42px);overflow:hidden;margin-bottom:18px;
-    background:radial-gradient(120% 150% at 85% -20%, #2CC4A4 0%, var(--teal) 38%, var(--teal-ink) 78%, var(--teal-deep) 100%);
-    box-shadow:0 36px 70px -28px rgba(7,93,77,.55),0 10px 24px -10px rgba(7,93,77,.4),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -18px 40px -20px rgba(0,0,0,.28)}
+    background:radial-gradient(120% 150% at 85% -20%, #21A385 0%, var(--teal) 38%, var(--teal-ink) 78%, var(--teal-deep) 100%);
+    box-shadow:0 36px 70px -28px rgba(4,68,58,.6),0 10px 24px -10px rgba(4,68,58,.45),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -18px 40px -20px rgba(0,0,0,.28)}
   .greet{font-family:var(--round);font-size:15px;opacity:.92;display:flex;align-items:center;gap:9px;margin:0 0 4px}
   .gsub{font-size:13px;opacity:.78;margin:0 0 18px}
   .big{font-family:var(--round);font-size:clamp(46px,7.5vw,70px);line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 3px 14px rgba(0,0,0,.18)}
   .big .cur{opacity:.65;font-size:.44em;vertical-align:.28em;margin-inline-end:.08em}
   .big-k{font-size:14px;opacity:.85;margin-top:8px}
   .cycle-track{height:10px;border-radius:999px;background:rgba(0,0,0,.22);margin-top:16px;max-width:460px;overflow:hidden}
-  .cycle-track i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--gold),#FFD97A);box-shadow:0 0 12px rgba(244,180,60,.55);transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+  .cycle-track i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--gold),#FFD97A);box-shadow:0 0 12px rgba(247,200,67,.55);transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
   .cycle-days{font-family:var(--round);font-size:12.5px;opacity:.85;margin-top:8px}
   .hero-chips{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
   .chip{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.1));backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:12px 17px;min-width:126px;box-shadow:0 8px 18px -8px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.3)}
@@ -367,6 +367,28 @@
 
   /* sparkline empty note */
   .spark-note{font-size:12px;opacity:.75;text-align:center;padding:8px 0;font-family:var(--round)}
+
+  /* PIGGY what-if game (duonero-b5): user-initiated play; facts, not advice */
+  .pg-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
+  @media(max-width:700px){.pg-grid{grid-template-columns:1fr}}
+  .pg-controls label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink-soft);margin:16px 0 7px}
+  .pg-controls label b{font-family:var(--round);color:var(--ink);font-size:15px}
+  .pg-controls input[type=range]{width:100%;accent-color:var(--teal)}
+  .pg-cats{display:flex;gap:8px;flex-wrap:wrap}
+  .pg-chip{font-family:var(--round);font-size:12.5px;border:1.5px solid var(--line);background:var(--paper-2);color:var(--ink-soft);border-radius:999px;padding:7px 13px;cursor:pointer;transition:.18s}
+  .pg-chip.on{background:color-mix(in srgb,var(--teal) 16%,transparent);border-color:var(--teal);color:var(--teal-ink)}
+  .pg-note{font-size:11.5px;color:var(--ink-soft);opacity:.8;margin-top:16px}
+  .pg-result{text-align:center}
+  .pg-piggy{position:relative;font-size:64px;display:inline-block;animation:pgwiggle 3s ease-in-out infinite}
+  @keyframes pgwiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+  .pcoin{position:absolute;top:-10px;left:44%;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A8,#F7C843 60%,#D9A210);opacity:0;animation:pgdrop var(--cd,1.6s) linear infinite}
+  .pcoin:nth-child(2){animation-delay:calc(var(--cd,1.6s)*.5);left:52%}
+  @keyframes pgdrop{0%{opacity:0;transform:translateY(-8px) scale(.8)}25%{opacity:1}60%{opacity:1;transform:translateY(26px) scale(1)}100%{opacity:0;transform:translateY(34px) scale(.9)}}
+  .pg-monthly{font-size:13px;color:var(--ink-soft);margin-top:10px}
+  .pg-fv{font-family:var(--round);font-size:clamp(30px,4.5vw,42px);color:var(--teal-ink);font-variant-numeric:tabular-nums;margin-top:2px}
+  .pg-fv-k{font-size:12.5px;color:var(--ink-soft)}
+  .goal-tip{font-size:13px;color:var(--ink);background:color-mix(in srgb,var(--gold) 14%,transparent);border-radius:14px;padding:10px 13px;margin:8px 0 4px;line-height:1.5}
+  .goal-row-tappable{cursor:pointer}
 
   /* VAULT — net worth demoted to a dark card at the bottom (duonero-b5), masked by default */
   .vault{background:radial-gradient(130% 160% at 80% -30%, #4A3F31 0%, #332B20 45%, #241E15 100%);color:#F4ECDD;
@@ -605,7 +627,7 @@
 
   <div class="cards">
     <!-- Paycheck: the gross→net story the bank never sees -->
-    <section class="card" style="grid-column:1/-1;order:3;animation-delay:.24s" id="paycheck-card">
+    <section class="card" style="grid-column:1/-1;order:4;animation-delay:.28s" id="paycheck-card">
       <div class="acc-head">
         <div>
           <h3 data-t="paycheck">Your paycheck</h3>
@@ -688,6 +710,27 @@
       <h3 data-t="top_merchants">Top merchants</h3>
       <p class="sub" id="merchants-sub">this period</p>
       <div id="merchants-list"></div>
+    </section>
+<section class="card" style="grid-column:1/-1;order:3;animation-delay:.24s" id="piggy-card">
+      <h3>🐷 <span id="pg-h"></span></h3>
+      <p class="sub" id="pg-sub"></p>
+      <div class="pg-grid">
+        <div class="pg-controls">
+          <label style="margin-top:0"><span id="pg-cat-l"></span></label>
+          <div class="pg-cats" id="pg-cats"></div>
+          <label><span id="pg-cut-l"></span><b id="pg-cut-v"></b></label>
+          <input type="range" id="pg-cut" min="5" max="50" step="5" value="20">
+          <label><span id="pg-yr-l"></span><b id="pg-yr-v"></b></label>
+          <input type="range" id="pg-yr" min="1" max="30" step="1" value="10">
+          <p class="pg-note" id="pg-note"></p>
+        </div>
+        <div class="pg-result">
+          <div class="pg-piggy" id="pg-piggy"><span class="pcoin"></span><span class="pcoin"></span>🐷</div>
+          <div class="pg-monthly" id="pg-monthly"></div>
+          <div class="pg-fv">₪<span id="pg-fv">0</span></div>
+          <div class="pg-fv-k" id="pg-fv-k"></div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -977,6 +1020,22 @@ const T = {
   cycle_day: { en: 'day {d} since your paycheck of {date}', he: 'יום {d} מאז המשכורת של {date}' },
   cp_hero_k: { en: 'together — what you each chose to share', he: 'ביחד — מה שכל אחד בחר לשתף' },
   vault_sub: { en: 'Net worth · the eye hides it', he: 'שווי נקי · לחיצה על העין מסתירה' },
+  /* piggy what-if game + goal tips (duonero-b5 phase 2) */
+  pg_h:      { en: 'The piggy game', he: 'משחק החזרזיר' },
+  pg_sub:    { en: 'what if? play for a second — no strings, no judgement', he: 'מה אם? שחקו רגע — בלי מחויבות ובלי שיפוטיות' },
+  pg_cat:    { en: 'If we trim a little on…', he: 'אם נצמצם קצת ב…' },
+  pg_cut:    { en: 'Trim by', he: 'בכמה לצמצם' },
+  pg_years:  { en: 'For how many years', he: 'לכמה שנים' },
+  pg_yr_u:   { en: 'years', he: 'שנים' },
+  pg_monthly:{ en: '≈ {m} freed up monthly', he: '≈ {m} מתפנים כל חודש' },
+  pg_fv_k:   { en: 'worth in {y} years, if invested', he: 'שווה בעוד {y} שנים, אם מושקע' },
+  pg_note:   { en: 'Assumes a 4% yearly return, compounding. A fact to compare — not advice.', he: 'הנחה: תשואה שנתית 4%, ריבית דריבית. עובדה להשוואה — לא עצה.' },
+  goals_tap: { en: 'tap a goal for a smart tip', he: 'הקישו על יעד לטיפ חכם' },
+  tip_done:    { en: 'Goal reached.', he: 'היעד הושלם.' },
+  tip_ontrack: { en: 'You’re on track: <b>~{need}</b>/month closes the gap — less than your current saving pace ({pace}). Keep going and you’re there by {date}.', he: 'אתם בכיוון: הפער נסגר עם <b>~{need}</b> בחודש — פחות מקצב החיסכון הנוכחי שלכם ({pace}). ממשיכים ככה — מגיעים עד {date}.' },
+  tip_trim:    { en: 'Getting there on time needs <b>~{need}</b>/month. One option: {parts}.', he: 'כדי להגיע בזמן צריך <b>~{need}</b> בחודש. אפשרות אחת: {parts}.' },
+  tip_nodate:  { en: 'At your current pace ({pace}/month) you’ll get there in about <b>{m} months</b>. Want it sooner? Add a target date and we’ll do the math.', he: 'בקצב הנוכחי ({pace} בחודש) תגיעו בעוד כ־<b>{m} חודשים</b>. רוצים מוקדם? הוסיפו תאריך יעד ונחשב יחד.' },
+  tip_hard:    { en: 'This needs <b>~{need}</b>/month — more than the current pace. You could stretch the date, or play the piggy game below.', he: 'הפער דורש <b>~{need}</b> בחודש — יותר מהקצב הנוכחי. אפשר לפרוס את התאריך, או לשחק במשחק החזרזיר למטה.' },
   period_last30:    { en: 'Last 30 days', he: '30 ימים' },
   period_last90:    { en: 'Last 3 months', he: '3 חודשים' },
   period_year:      { en: 'This year', he: 'השנה' },
@@ -1158,10 +1217,11 @@ const T = {
 
 const ALL_CATS = ['groceries','dining','transport','housing','utilities','health','shopping','entertainment','income','transfer','savings','investment','fees','other'];
 
-let lang = 'en';
+let lang = localStorage.getItem('kesefLang') || 'he'; // Hebrew-first (duonero); persisted per device
 let selectedPeriod = 'thisMonth'; // opening view = the month you're living in
 const cl = key => (T.cat[key] || { en: key, he: key })[lang];
 const t = key => (T[key] || { en: key, he: key })[lang];
+const tt = (key, vars) => Object.entries(vars || {}).reduce((str, [k, v]) => str.split('{' + k + '}').join(v), t(key));
 
 // ─── no-data screen (first run: sync from here, no terminal needed) ──────────
 function renderNoData() {
@@ -1313,9 +1373,12 @@ function renderHero(M) {
 
 // ─── count-up animation ───────────────────────────────────────────────────────
 function up(el, to, pre = '', post = '') {
+  const tok = String(performance.now());
+  el.dataset.cuToken = tok; // a newer up() on the same element cancels this one (b5's race fix)
   if (!firstPaint) { el.textContent = pre + NF(to) + post; return; } // animate once; instant thereafter
   const t0 = performance.now(), dur = 1000;
   (function s(t) {
+    if (el.dataset.cuToken !== tok) return;
     const q = Math.min(1, (t - t0) / dur);
     el.textContent = pre + NF(to * (1 - Math.pow(1 - q, 3))) + post;
     if (q < 1) requestAnimationFrame(s);
@@ -1344,6 +1407,8 @@ function renderGoals(goals, generatedAt) {
   }
   const R = 25, C = 2 * Math.PI * R;
   const paired = !!(window.__KESEF__ && window.__KESEF__.couple && window.__KESEF__.couple.paired);
+  const goalsSub = document.querySelector('#goals')?.closest('.card')?.querySelector('.sub');
+  if (goalsSub) goalsSub.textContent = t('goals_sub') + ' · ' + t('goals_tap');
   container.innerHTML = goals.map(g => {
     const cur = g.currentAmount || g.current || 0;
     const tgt = g.targetAmount || g.target || 1;
@@ -1396,6 +1461,25 @@ function renderGoals(goals, generatedAt) {
       const pc = Math.min(1, cur / tgt);
       c.style.strokeDashoffset = (C * (1 - pc)).toFixed(1);
     });
+  });
+
+  // tap a goal → smart tip (arithmetic on your own goal; not advice). Tip values come from our
+  // own formatters/translations, so innerHTML here stays injection-safe.
+  $$('#goals .goal-item').forEach((item, i) => {
+    const row = item.querySelector('.goal');
+    if (!row) return;
+    row.classList.add('goal-row-tappable');
+    row.onclick = (e) => {
+      if (e.target.closest('.goal-del') || e.target.closest('.share-pill')) return;
+      const g = goals[i];
+      if (!g) return;
+      let tip = item.querySelector('.goal-tip');
+      if (tip) { tip.remove(); return; }
+      tip = document.createElement('div');
+      tip.className = 'goal-tip';
+      tip.innerHTML = '💡 ' + goalTip(window.__KESEF__, g);
+      row.insertAdjacentElement('afterend', tip);
+    };
   });
 
   // delete handlers
@@ -2143,6 +2227,64 @@ function setupPayslipForm(M) {
   };
 }
 
+// ─── piggy what-if game (duonero-b5): sliders → compound-growth FACT, never advice ──
+let pgCat = null, pgCut = 20, pgYr = 10;
+function updatePiggy(M) {
+  const card = $('#piggy-card');
+  if (!card) return;
+  const src = M.cycle ?? (M.spending ? M.spending.thisMonth : null);
+  const cats = src ? [...src.byCategory].sort((a, b) => b.amount - a.amount).slice(0, 6) : [];
+  if (!cats.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  if (!cats.find(c => c.category === pgCat)) pgCat = cats[0].category;
+  $('#pg-h').textContent = t('pg_h'); $('#pg-sub').textContent = t('pg_sub');
+  $('#pg-cat-l').textContent = t('pg_cat'); $('#pg-cut-l').textContent = t('pg_cut'); $('#pg-yr-l').textContent = t('pg_years');
+  $('#pg-cats').innerHTML = cats.map(c =>
+    `<button class="pg-chip ${c.category === pgCat ? 'on' : ''}" data-cat="${esc(c.category)}">${catIcon(c.category)} ${cl(c.category)}</button>`).join('');
+  $$('#pg-cats .pg-chip').forEach(b => { b.onclick = () => { pgCat = b.dataset.cat; updatePiggy(M); }; });
+  const base = (src.byCategory.find(c => c.category === pgCat) || { amount: 0 }).amount;
+  const monthly = base * pgCut / 100, r = 0.04 / 12, n = pgYr * 12;
+  const fv = monthly * ((Math.pow(1 + r, n) - 1) / r);
+  $('#pg-cut-v').textContent = pgCut + '%'; $('#pg-yr-v').textContent = pgYr + ' ' + t('pg_yr_u');
+  $('#pg-monthly').textContent = tt('pg_monthly', { m: '₪' + NF(monthly) });
+  $('#pg-fv').textContent = NF(fv);
+  $('#pg-fv-k').textContent = tt('pg_fv_k', { y: pgYr });
+  $('#pg-note').textContent = t('pg_note');
+  $('#pg-piggy').style.setProperty('--cd', Math.max(.55, 2.4 - monthly / 400).toFixed(2) + 's');
+}
+function setupPiggy(M) {
+  const cut = $('#pg-cut'), yr = $('#pg-yr');
+  if (cut) cut.oninput = () => { pgCut = Number(cut.value); updatePiggy(M); };
+  if (yr) yr.oninput = () => { pgYr = Number(yr.value); updatePiggy(M); };
+  updatePiggy(M);
+}
+
+// ─── goal smart tips (duonero-b5): tap a goal → arithmetic on YOUR goal vs YOUR pace ──
+function goalTip(M, g) {
+  const remaining = g.targetAmount - g.currentAmount;
+  if (remaining <= 0) return t('tip_done');
+  const src = M.cycle ?? (M.spending ? M.spending.thisMonth : { income: 0, spent: 0, byCategory: [] });
+  const pace = Math.max(0, src.income - src.spent);
+  if (g.targetDate) {
+    const months = Math.max(1, (new Date(g.targetDate) - new Date(M.generatedAt)) / (30.44 * 864e5));
+    const need = remaining / months;
+    if (need <= pace) return tt('tip_ontrack', { need: '₪' + NF(need), pace: '₪' + NF(pace), date: g.targetDate });
+    const gap = need - pace, flex = ['dining', 'shopping', 'entertainment', 'groceries'];
+    let acc = 0; const parts = [];
+    for (const k of flex) {
+      const amt = (src.byCategory.find(c => c.category === k) || {}).amount || 0;
+      if (amt <= 0) continue;
+      const cut = Math.min(amt * .25, gap - acc);
+      if (cut <= 0) break;
+      parts.push(cl(k) + ' −₪' + NF(cut)); acc += cut;
+      if (acc >= gap) break;
+    }
+    return acc >= gap ? tt('tip_trim', { need: '₪' + NF(need), parts: parts.join(' · ') }) : tt('tip_hard', { need: '₪' + NF(need) });
+  }
+  const m2 = pace > 0 ? Math.ceil(remaining / pace) : null;
+  return m2 ? tt('tip_nodate', { pace: '₪' + NF(pace), m: m2 }) : tt('tip_hard', { need: '₪' + NF(remaining) });
+}
+
 // ─── monthly plan (F6) — quiet sent/not-yet row + edit form ───────────────────
 function renderPlan(M) {
   const textEl = $('#plan-text'), btn = $('#plan-edit-btn');
@@ -2656,6 +2798,7 @@ function render() {
   setupPayslipForm(M);
   renderPlan(M);
   setupPlanForm(M);
+  setupPiggy(M);
   $$('[data-lang-btn]').forEach(b => b.setAttribute('aria-pressed', b.dataset.langBtn === lang));
   setupCoupleButtons(M);
   applyViewVisibility();
@@ -2732,7 +2875,7 @@ if (viewallSearch) {
 }
 
 // ─── language toggle ──────────────────────────────────────────────────────────
-$$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; render(); });
+$$('[data-lang-btn]').forEach(b => b.onclick = () => { lang = b.dataset.langBtn; localStorage.setItem('kesefLang', lang); render(); });
 
 // ─── couple view: pairing, sharing, partner/couple modes ───────────────────────
 let currentView = 'me';        // 'me' | 'partner' | 'couple'

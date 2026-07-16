@@ -1,0 +1,24 @@
+.piggywrap{position:relative;display:inline-flex}
+.piggywrap .dropc{position:absolute;top:-11px;inset-inline-start:4px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A8,#F7C843 60%,#D9A210);opacity:0;animation:coindrop 4.5s 1.8s ease-in infinite}
+.pg-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:28px;align-items:center}
+@media(max-width:720px){.pg-grid{grid-template-columns:1fr}}
+.pg-cats{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.pg-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--round);font-size:12.5px;border:1.5px solid var(--line);background:#fff;color:var(--soft);border-radius:999px;padding:6px 13px;cursor:pointer;transition:.18s}
+.pg-chip:hover{border-color:var(--teal)}
+.pg-chip.on{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 6px 14px -6px rgba(12,122,102,.5)}
+.pg-controls label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--soft);margin:12px 0 6px}
+.pg-controls label b{font-family:var(--round);color:var(--teal-ink);font-size:14px}
+.pg-controls input[type=range]{width:100%;accent-color:var(--teal)}
+.pg-note{font-size:11.5px;color:var(--soft);margin:16px 0 0;opacity:.85}
+.pg-result{text-align:center}
+.pg-piggy{position:relative;width:126px;height:106px;margin:0 auto 4px}
+.pg-piggy svg{width:126px;height:106px;transform-origin:50% 88%;animation:pgwob 3.2s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.pg-piggy svg,.pcoin,.piggywrap .dropc{animation:none}}
+.pcoin{position:absolute;top:-10px;left:44%;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A8,#F7C843 60%,#D9A210);opacity:0;animation:pgdrop var(--cd,1.6s) ease-in infinite}
+.pcoin.c2{animation-delay:calc(var(--cd,1.6s)*.33)}.pcoin.c3{animation-delay:calc(var(--cd,1.6s)*.66)}
+@keyframes pgdrop{0%{opacity:0;transform:translateY(-12px)}12%{opacity:1}55%{transform:translateY(10px) scaleY(1);opacity:1}70%{transform:translateY(18px) scaleY(.3);opacity:0}100%{opacity:0}}
+.pg-monthly{font-size:12.5px;color:var(--soft)}
+.pg-fv{font-family:var(--round);font-size:clamp(30px,4vw,40px);color:var(--teal-ink);font-variant-numeric:tabular-nums;margin-top:2px}
+.pg-fv .cur{font-size:.5em;opacity:.6;vertical-align:.3em}
+.pg-fv-k{font-size:12.5px;color:var(--soft)}
+.pg-grid{gap:18px}

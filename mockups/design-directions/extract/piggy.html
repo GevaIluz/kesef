@@ -1,0 +1,39 @@
+<section class="card full" style="animation-delay:.7s" id="piggy-card">
+      <h3 style="--hc:var(--berry)"><span class="hic" data-ic="piggy"></span><span id="pg-h"></span></h3><p class="sub" id="pg-sub"></p>
+      <div class="pg-grid">
+        <div class="pg-controls">
+          <label style="margin-top:0"><span id="pg-cat-l"></span></label>
+          <div class="pg-cats" id="pg-cats"></div>
+          <label><span id="pg-cut-l"></span><b id="pg-cut-v"></b></label>
+          <input type="range" id="pg-cut" min="5" max="50" step="5" value="20">
+          <label><span id="pg-yr-l"></span><b id="pg-yr-v"></b></label>
+          <input type="range" id="pg-yr" min="1" max="30" step="1" value="10">
+          <p class="pg-note" id="pg-note"></p>
+        </div>
+        <div class="pg-result">
+          <div class="pg-piggy" id="pg-piggy">
+            <span class="pcoin"></span><span class="pcoin c2"></span><span class="pcoin c3"></span>
+            <svg viewBox="0 0 120 100">
+              <defs><radialGradient id="pgBody" cx="0.38" cy="0.3" r="1"><stop offset="0" stop-color="#FBC4D3"/><stop offset=".65" stop-color="#F4A7BB"/><stop offset="1" stop-color="#E98BA6"/></radialGradient></defs>
+              <ellipse cx="58" cy="90" rx="34" ry="5" fill="#C76699" opacity=".14"></ellipse>
+              <rect x="34" y="76" width="12" height="14" rx="5.5" fill="#E98BA6" stroke="#C76699" stroke-width="2.6"></rect>
+              <rect x="70" y="76" width="12" height="14" rx="5.5" fill="#E98BA6" stroke="#C76699" stroke-width="2.6"></rect>
+              <path d="M20 52 q-10 -2 -7.5 7 q1.8 6.4 8.5 3.2" fill="none" stroke="#C76699" stroke-width="3" stroke-linecap="round"></path>
+              <ellipse cx="58" cy="55" rx="38" ry="31" fill="url(#pgBody)" stroke="#C76699" stroke-width="3"></ellipse>
+              <path d="M36 33 q-4 -12 3 -14 q7 -1.6 8 8" fill="#F7BCCB" stroke="#C76699" stroke-width="2.8" stroke-linejoin="round"></path>
+              <path d="M74 27 q1 -11 8 -10 q7 1.2 4 11" fill="#F7BCCB" stroke="#C76699" stroke-width="2.8" stroke-linejoin="round"></path>
+              <rect x="50" y="24.5" width="20" height="5" rx="2.5" fill="#7A4258"></rect>
+              <ellipse cx="42" cy="42" rx="12" ry="8" fill="#fff" opacity=".35"></ellipse>
+              <ellipse cx="96" cy="56" rx="11.5" ry="10" fill="#F7BCCB" stroke="#C76699" stroke-width="3"></ellipse>
+              <ellipse cx="92.5" cy="55.5" rx="1.9" ry="2.6" fill="#A34E75"></ellipse><ellipse cx="99.5" cy="55.5" rx="1.9" ry="2.6" fill="#A34E75"></ellipse>
+              <circle cx="76" cy="44" r="3.4" fill="#4A2E3A"></circle><circle cx="77.2" cy="42.8" r="1.1" fill="#fff"></circle>
+              <path d="M74 66 q6 5 12 1" fill="none" stroke="#C76699" stroke-width="2.4" stroke-linecap="round"></path>
+              <ellipse cx="68" cy="60" rx="5" ry="3.2" fill="#F58FB0" opacity=".55"></ellipse>
+            </svg>
+          </div>
+          <div class="pg-monthly" id="pg-monthly"></div>
+          <div class="pg-fv"><span class="cur">₪</span><span id="pg-fv">0</span></div>
+          <div class="pg-fv-k" id="pg-fv-k"></div>
+        </div>
+      </div>
+    </section>
