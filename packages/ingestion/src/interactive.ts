@@ -1,6 +1,23 @@
 import { createScraper, CompanyTypes } from 'israeli-bank-scrapers';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { Account } from '@kesef/core';
 import { mapScrapeResult, type ScrapeResult } from './map.js';
+
+/** Prefer the user's already-installed, signed Chrome over puppeteer's bundled "Chrome for Testing".
+ *  Some Macs (e.g. with endpoint security) quarantine or strip the unsigned test build, so it fails to
+ *  launch ("Framework … no such file"). The real Chrome sidesteps that. Override with KESEF_CHROME. */
+function systemChromePath(): string | undefined {
+  const candidates = [
+    process.env.KESEF_CHROME,
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    join(homedir(), 'Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),
+    '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium',
+  ].filter((p): p is string => !!p);
+  return candidates.find(p => { try { return existsSync(p); } catch { return false; } });
+}
 
 /**
  * Interactive (manual) login: the scraper opens the bank's real login page in a visible browser and
@@ -63,6 +80,7 @@ export async function scrapeInteractive(target: InteractiveTarget, deps: Interac
   const historyDays = Number(process.env.KESEF_HISTORY_DAYS) || 365;
   const startDate = deps.startDate ?? new Date(Date.now() - 1000 * 60 * 60 * 24 * historyDays);
   const timeout = deps.timeoutMs ?? 180000; // 3 minutes for the human to log in
+  const chrome = systemChromePath();
   const scraper = factory({
     companyId: target.companyId,
     startDate,
@@ -72,6 +90,7 @@ export async function scrapeInteractive(target: InteractiveTarget, deps: Interac
     showBrowser: true, // must be visible — the user logs in here
     verbose: deps.verbose ?? false,
     storeFailureScreenShotPath: deps.failureScreenshotPath,
+    ...(chrome ? { executablePath: chrome } : {}), // use the real signed Chrome when present
   });
   patchForManualLogin(scraper as unknown as PatchableScraper, deps.loginUrl);
   // credentials must be a truthy object (login() guards on it) but are never used — fields is [].
