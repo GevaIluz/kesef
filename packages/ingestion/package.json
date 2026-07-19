@@ -5,6 +5,7 @@
   "main": "src/index.ts",
   "dependencies": {
     "@kesef/core": "*",
-    "israeli-bank-scrapers": "^6.7.5"
+    "israeli-bank-scrapers": "^6.7.5",
+    "pdfjs-dist": "^4.10.38"
   }
 }

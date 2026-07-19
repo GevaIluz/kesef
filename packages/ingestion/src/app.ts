@@ -9,6 +9,7 @@ import { manualAccountFor, type BalanceKind } from './manualAccounts.js';
 import { runSync, type SyncEvent, type SyncSource } from './syncRun.js';
 import { pairGenerate, pairJoin, unpair, syncWithPartner, buildMySummary, localCoupleModel } from './coupleSync.js';
 import { loginUrlFor, setLoginUrl, type LoginSource } from './loginConfig.js';
+import { parsePayslipPdf } from './payslipParse.js';
 
 const BALANCE_KINDS = new Set<BalanceKind>(['pension', 'gemel', 'keren', 'ibi', 'savings', 'other']);
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -79,6 +80,16 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
     let body = ''; let size = 0;
     req.on('data', (c: Buffer) => { size += c.length; if (size > 1_000_000) { req.destroy(); reject(new Error('body too large')); } else body += c; });
     req.on('end', () => { try { resolve(body ? JSON.parse(body) : {}); } catch { reject(new Error('invalid json')); } });
+    req.on('error', reject);
+  });
+}
+
+/** Read a raw binary body (a payslip PDF upload), capped so a bad client can't OOM us. */
+function readRawBody(req: IncomingMessage, maxBytes = 12_000_000): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []; let size = 0;
+    req.on('data', (c: Buffer) => { size += c.length; if (size > maxBytes) { req.destroy(); reject(new Error('file too large')); } else chunks.push(c); });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -280,6 +291,19 @@ const server = createServer(async (req, res) => {
       };
       await withStoreRW(s => s.upsertPayslip(p));
       return sendJson(res, 200, { ok: true, payslip: p });
+    }
+    // Read a payslip PDF locally and return best-effort fields (never saved here — the UI shows a
+    // confirm-form and the user saves via POST /api/payslip). The file stays on this machine.
+    if (path === '/api/payslip/parse' && method === 'POST') {
+      try {
+        const buf = await readRawBody(req);
+        if (!buf.length) return sendJson(res, 400, { error: 'empty upload' });
+        if (buf.subarray(0, 5).toString('latin1') !== '%PDF-') return sendJson(res, 415, { error: 'expected a PDF' });
+        const fields = await parsePayslipPdf(new Uint8Array(buf));
+        return sendJson(res, 200, { ok: true, fields });
+      } catch (e) {
+        return sendJson(res, 400, { error: e instanceof Error ? e.message : 'could not read PDF' });
+      }
     }
     if (path === '/api/payslip' && method === 'DELETE') {
       const month = url.searchParams.get('month');

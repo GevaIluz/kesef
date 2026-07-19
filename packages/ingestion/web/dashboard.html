@@ -137,12 +137,8 @@ body.dusk .sub{color:#BDD2BD}
 body.dusk input[type=range]{accent-color:#AEDDBA}
 body.dusk .goal .gn+div,body.dusk .gp{color:#BDD2BD}
 body.dusk .card :is(label,.pg-lab){color:#C9DECB}
-body.dusk .pond{opacity:.95;filter:none}
-body.dusk .pond::before{opacity:.55}
-body.dusk .pring{border-color:rgba(210,240,244,.45)}
 body.dusk footer::before,body.dusk .card::before{background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)}
 body.dusk .pg-piggy{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -8px 16px rgba(0,0,0,.2);filter:saturate(.9) brightness(.94)}
-body.dusk .pond{opacity:.9;filter:saturate(.75) brightness(.8)}
 body.dusk footer{color:#8FA08A}
 body.dusk footer::before,body.dusk .card::before{background:linear-gradient(90deg,transparent,rgba(247,200,67,.25),transparent)}
 body.dusk .bubskin svg{filter:drop-shadow(0 5px 9px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(191,232,200,.3))}
@@ -212,19 +208,7 @@ html[dir=ltr] .legend .row:hover{transform:translateX(2px)}
 @keyframes shimm{0%,100%{opacity:.15;transform:translateX(0)}50%{opacity:.85;transform:translateX(2px)}}
 .lily{animation:lilydrift 9s ease-in-out infinite alternate}
 @keyframes lilydrift{from{transform:translateX(-2.5px)}to{transform:translateX(3px)}}
-.pond{position:relative;height:150px;max-width:760px;margin:58px auto -4px;border-radius:50%;overflow:visible;transform:perspective(700px) rotateX(38deg);transform-style:preserve-3d;
-  background:radial-gradient(100% 120% at 50% 0%, #A8F0E8 0%, #55D6CC 30%, #26ABA4 62%, #157A78 88%, #0E5A59 100%);
-  box-shadow:inset 0 14px 30px rgba(255,255,255,.5),inset 0 -20px 40px rgba(6,52,51,.65),0 30px 50px -24px rgba(6,52,51,.6)}
-.pond::after{content:"";position:absolute;inset:-14px -18px;border-radius:50%;z-index:-1;
-  background:radial-gradient(100% 100% at 50% 40%, transparent 58%, rgba(56,88,48,.55) 68%, rgba(38,64,34,.75) 78%, transparent 92%)}
-.pond .glint{position:absolute;left:22%;top:16%;width:34%;height:26%;border-radius:50%;
-  background:radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.55), transparent 75%);filter:blur(3px);animation:glint 7s ease-in-out infinite alternate}
-@keyframes glint{from{transform:translateX(-14px) scale(1)}to{transform:translateX(18px) scale(1.12)}}
-.pond::before{content:"";position:absolute;inset:0;background:radial-gradient(20% 26% at 30% 55%,rgba(255,255,255,.45),transparent 70%),radial-gradient(16% 20% at 66% 70%,rgba(255,255,255,.3),transparent 70%),radial-gradient(26% 16% at 48% 88%,rgba(255,255,255,.2),transparent 70%);animation:caustic 11s ease-in-out infinite alternate}
-@keyframes caustic{from{transform:translateX(-18px) scaleY(1)}to{transform:translateX(20px) scaleY(1.06)}}
-.pring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);animation:pring 6s ease-out infinite}
-@keyframes pring{0%{transform:scale(.15);opacity:.9}75%{opacity:0}100%{transform:scale(1);opacity:0}}
-@media(prefers-reduced-motion:reduce){.shimm,.lily,.pond::before,.pond .glint,.pring,.ripl{animation:none}}
+@media(prefers-reduced-motion:reduce){.shimm,.lily,.ripl{animation:none}}
 @keyframes ripl{0%{opacity:.9;transform:scale(.2)}70%{opacity:0;transform:scale(1.5)}100%{opacity:0}}
 .ring{width:56px;height:56px;flex:0 0 auto;transform:rotate(-90deg);filter:drop-shadow(0 4px 6px rgba(70,45,15,.15))}
 .ring .bg{fill:none;stroke:color-mix(in srgb,var(--ink) 14%,transparent);stroke-width:7}
@@ -398,6 +382,35 @@ body.dusk .cat-pop{background:rgba(14,40,28,.96);backdrop-filter:blur(16px);bord
 body.dusk .cat-pop .cp-item{color:#EAF7EC}
 .cat-pop .cp-dot{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;color:#fff;flex:0 0 auto}
 .cat-pop .cp-scope{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--soft);padding:8px 11px;border-top:1px solid var(--line);margin-top:4px}
+/* goal row actions + add button */
+.goal .g-acts{display:inline-flex;gap:4px;margin-inline-start:10px;opacity:0;transition:opacity .15s;flex:0 0 auto}
+.goal:hover .g-acts,.goal:focus-within .g-acts{opacity:1}
+@media(hover:none){.goal .g-acts{opacity:.6}}
+.g-edit,.g-del{width:28px;height:28px;border-radius:9px;border:0;cursor:pointer;display:grid;place-items:center;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--soft);font-size:14px;line-height:1}
+.g-edit:hover{color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 15%,transparent)}
+.g-del:hover{color:#fff;background:var(--coral)}
+body.dusk .g-edit,body.dusk .g-del{background:rgba(255,255,255,.09);color:#BDD2BD}
+.add-goal{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-family:var(--round);font-size:13.5px;color:var(--teal-ink);cursor:pointer;
+  background:color-mix(in srgb,var(--teal) 12%,transparent);border:1.5px solid color-mix(in srgb,var(--teal) 28%,transparent);border-radius:999px;padding:9px 18px;transition:.18s}
+.add-goal:hover{background:color-mix(in srgb,var(--teal) 22%,transparent)}
+body.dusk .add-goal{background:rgba(214,243,220,.14);color:#D6F3DC;border-color:rgba(214,243,220,.38)}
+/* forms (goal + payslip) */
+.kf{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.kf label{font-size:12px;color:var(--soft);margin:10px 0 4px}
+.kf input{font-family:var(--body);font-size:15px;color:var(--ink);background:var(--paper,#FBF3E7);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.kf input:focus{outline:0;border-color:var(--teal)}
+body.dusk .kf input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#EFF7EF}
+.kf-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:520px){.kf-grid{grid-template-columns:1fr}}
+.kf-save{margin-top:18px;font-family:var(--round);font-size:15px;color:#fff;background:linear-gradient(160deg,var(--teal),var(--teal-ink));border:0;border-radius:14px;padding:12px;cursor:pointer;box-shadow:0 12px 22px -10px rgba(8,94,78,.55)}
+.kf-save:hover{filter:brightness(1.05)}
+.kf-file{display:flex;align-items:center;justify-content:center;gap:9px;text-align:center;border:1.6px dashed color-mix(in srgb,var(--teal) 40%,var(--line));border-radius:16px;padding:20px;cursor:pointer;color:var(--teal-ink);font-size:14px;margin:6px 0 4px;transition:.18s}
+.kf-file:hover,.kf-file.drag{background:color-mix(in srgb,var(--teal) 8%,transparent);border-color:var(--teal)}
+body.dusk .kf-file{color:#D6F3DC;border-color:rgba(214,243,220,.35)}
+.kf-file.busy{opacity:.6;pointer-events:none}
+/* an edit affordance on the paycheck card header */
+.pay-edit{margin-inline-start:auto;font-family:var(--round);font-size:12.5px;cursor:pointer;color:var(--teal-ink);background:none;border:0;display:inline-flex;align-items:center;gap:6px}
+body.dusk .pay-edit{color:#D6F3DC}
 </style>
 </head>
 <body class="dusk">
@@ -499,7 +512,7 @@ body.dusk .cat-pop .cp-item{color:#EAF7EC}
     </section>
 
     <section class="card full" data-tab="pay" style="animation-delay:.75s">
-      <h3 style="--hc:var(--gold)"><span class="hic" data-ic="doc"></span><span id="pay-h"></span></h3><p class="sub" id="pay-sub"></p>
+      <h3 style="--hc:var(--gold)"><span class="hic" data-ic="doc"></span><span id="pay-h"></span><button class="pay-edit" id="pay-add"></button></h3><p class="sub" id="pay-sub"></p>
       <div class="pay-flow" id="pay-flow"></div>
       <div class="pay-legend" id="pay-legend"></div>
       <div class="gift"><span class="gic" data-ic="gift"></span><span id="gift-text" style="padding-top:4px"></span></div>
@@ -546,7 +559,40 @@ body.dusk .cat-pop .cp-item{color:#EAF7EC}
       <div id="cm-list"></div>
     </div>
   </div>
-  <div class="pond" aria-hidden="true"><span class="glint"></span><span class="pring" style="left:30%;top:52%;width:200px;height:44px;margin:-22px 0 0 -100px"></span><span class="pring" style="left:66%;top:66%;width:160px;height:36px;margin:-18px 0 0 -80px;animation-delay:2.8s"></span></div>
+  <div class="modal-ov hidden" id="goal-modal">
+    <div class="modal-c">
+      <div class="mhead"><span class="mic" style="--c:var(--berry)" id="gm-ic"></span><h4 id="gm-title"></h4><button class="mclose" id="gm-close">✕</button></div>
+      <form id="goal-form" class="kf">
+        <label id="gf-l-name"></label><input id="gf-name" type="text" required>
+        <label id="gf-l-target"></label><input id="gf-target" type="number" min="1" step="1" required>
+        <label id="gf-l-current"></label><input id="gf-current" type="number" min="0" step="1" value="0">
+        <label id="gf-l-date"></label><input id="gf-date" type="date">
+        <button type="submit" class="kf-save" id="gf-save"></button>
+      </form>
+    </div>
+  </div>
+  <div class="modal-ov hidden" id="pay-modal">
+    <div class="modal-c">
+      <div class="mhead"><span class="mic" style="--c:var(--gold)" id="pm-ic"></span><h4 id="pm-title"></h4><button class="mclose" id="pm-close">✕</button></div>
+      <p class="mtotal" id="pm-hint"></p>
+      <label class="kf-file" id="pm-drop"><input type="file" id="pm-file" accept="application/pdf,.pdf" hidden><span id="pm-drop-t"></span></label>
+      <form id="pay-form" class="kf">
+        <label id="pf-l-month"></label><input id="pf-month" type="month" required>
+        <div class="kf-grid">
+          <div><label id="pf-l-gross"></label><input id="pf-gross" type="number" min="0" step="1" required></div>
+          <div><label id="pf-l-net"></label><input id="pf-net" type="number" min="0" step="1" required></div>
+          <div><label id="pf-l-tax"></label><input id="pf-tax" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-pension"></label><input id="pf-pension" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-keren"></label><input id="pf-keren" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-espp"></label><input id="pf-espp" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-emp-pension"></label><input id="pf-emp-pension" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-emp-sev"></label><input id="pf-emp-sev" type="number" min="0" step="1"></div>
+          <div><label id="pf-l-emp-keren"></label><input id="pf-emp-keren" type="number" min="0" step="1"></div>
+        </div>
+        <button type="submit" class="kf-save" id="pf-save"></button>
+      </form>
+    </div>
+  </div>
   <footer>Duonero · local-first · He/En</footer>
 </div>
 
@@ -779,8 +825,12 @@ function render(){
   $('#goals-h').textContent=t('goals_h');$('#goals-sub').textContent=t('goals_s');
   const C2=2*Math.PI*24;
   $('#goals').innerHTML=M.goals.map((g,gi)=>{const pr=Math.min(1,g.currentAmount/g.targetAmount);
-    return `<div class="goal" data-gi="${gi}"><svg class="ring" viewBox="0 0 56 56"><circle class="bg" cx="28" cy="28" r="24"></circle><circle class="fg" cx="28" cy="28" r="24" style="--c:${C2}" stroke-dasharray="${C2}"></circle></svg><svg class="gtree" viewBox="0 0 40 48">${treeSVG(pr)}</svg><div><div class="gn">${esc(g.name.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/gu,'').trim())}</div><div class="gp">${Math.round(pr*100)}%</div></div><div class="ga">${wealth(g.currentAmount)}<small>/ ${wealth(g.targetAmount)}</small></div></div><div class="goal-tip" id="gt-${gi}">${goalTip(g)}</div>`}).join('');
-  $$('#goals .goal').forEach(r=>r.onclick=()=>$('#gt-'+r.dataset.gi).classList.toggle('open'));
+    return `<div class="goal" data-gi="${gi}"><svg class="ring" viewBox="0 0 56 56"><circle class="bg" cx="28" cy="28" r="24"></circle><circle class="fg" cx="28" cy="28" r="24" style="--c:${C2}" stroke-dasharray="${C2}"></circle></svg><svg class="gtree" viewBox="0 0 40 48">${treeSVG(pr)}</svg><div><div class="gn">${esc(g.name.replace(/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/gu,'').trim())}</div><div class="gp">${Math.round(pr*100)}%</div></div><div class="ga">${wealth(g.currentAmount)}<small>/ ${wealth(g.targetAmount)}</small></div><span class="g-acts"><button class="g-edit" data-gi="${gi}" title="${t('goal_edit')}">${ic('doc',14)}</button><button class="g-del" data-gi="${gi}" title="${t('goal_del')}">✕</button></span></div><div class="goal-tip" id="gt-${gi}">${goalTip(g)}</div>`}).join('')
+    +`<button class="add-goal" id="add-goal">${ic('flag',15)} ${t('goal_add')}</button>`;
+  $$('#goals .goal').forEach(r=>r.onclick=e=>{if(e.target.closest('.g-acts'))return;$('#gt-'+r.dataset.gi).classList.toggle('open')});
+  $$('#goals .g-edit').forEach(b=>b.onclick=e=>{e.stopPropagation();openGoalModal(M.goals[+b.dataset.gi])});
+  $$('#goals .g-del').forEach(b=>b.onclick=async e=>{e.stopPropagation();const g=M.goals[+b.dataset.gi];if(confirm(t('goal_del_c',{n:g.name}))){await api('/api/goals?id='+encodeURIComponent(g.id),'DELETE');refresh()}});
+  $('#add-goal').onclick=()=>openGoalModal(null);
   requestAnimationFrame(()=>requestAnimationFrame(()=>$$('.ring .fg').forEach((r,i)=>{const g=M.goals[i],pr=Math.min(1,g.currentAmount/g.targetAmount);r.style.strokeDashoffset=C2*(1-pr)})));
   const p=M.payslips[M.payslips.length-1],mine=p.pensionEmp+p.kerenEmp;
   $('#pay-h').textContent=t('pay_h');$('#pay-sub').textContent=t('pay_s',{m:p.month});
@@ -980,6 +1030,23 @@ Object.assign(T,{
   n_tx:{he:'תנועות',en:'transactions'},sync_lost:{he:'החיבור נותק',en:'connection lost'},
   cat_all:{he:'החל על כל {n}',en:'apply to all {n}'},
   nodata:{he:'עדיין אין נתונים — סנכרנו כדי להתחיל',en:'No data yet — sync to get started'},
+  goal_add:{he:'יעד חדש',en:'New goal'},goal_edit:{he:'עריכה',en:'Edit'},goal_del:{he:'מחיקה',en:'Delete'},
+  goal_del_c:{he:'למחוק את "{n}"?',en:'Delete "{n}"?'},
+  gm_new:{he:'יעד חדש',en:'New goal'},gm_edit:{he:'עריכת יעד',en:'Edit goal'},
+  gf_name:{he:'שם היעד',en:'Goal name'},gf_target:{he:'סכום יעד (₪)',en:'Target amount (₪)'},
+  gf_current:{he:'נצבר עד כה (₪)',en:'Saved so far (₪)'},gf_date:{he:'תאריך יעד (לא חובה)',en:'Target date (optional)'},
+  save:{he:'שמירה',en:'Save'},
+  pay_edit:{he:'+ תלוש',en:'+ Payslip'},pm_title:{he:'הוספת תלוש',en:'Add a payslip'},
+  pm_drop:{he:'גררו קובץ תלוש (PDF) או לחצו לבחירה — נקרא אותו עבורכם',en:'Drop a payslip PDF or click to choose — we’ll read it for you'},
+  pm_reading:{he:'קורא את התלוש…',en:'Reading the payslip…'},
+  pm_read_ok:{he:'זוהו הנתונים — בדקו ותקנו לפני שמירה',en:'Fields detected — review & fix before saving'},
+  pm_read_part:{he:'זיהינו חלק מהנתונים — השלימו את השאר',en:'Read some fields — fill in the rest'},
+  pm_read_fail:{he:'לא הצלחנו לקרוא את הקובץ — מלאו ידנית',en:'Couldn’t read the file — enter manually'},
+  pf_month:{he:'חודש',en:'Month'},pf_gross:{he:'ברוטו',en:'Gross'},pf_net:{he:'נטו לבנק',en:'Net to bank'},
+  pf_tax:{he:'מס + ביטוחים',en:'Tax + insurance'},pf_pension:{he:'פנסיה (עובד)',en:'Pension (you)'},
+  pf_keren:{he:'קרן השתלמות (עובד)',en:'Study fund (you)'},pf_espp:{he:'ESPP',en:'ESPP'},
+  pf_emp_pension:{he:'פנסיה (מעסיק)',en:'Pension (employer)'},pf_emp_sev:{he:'פיצויים (מעסיק)',en:'Severance (employer)'},
+  pf_emp_keren:{he:'קרן השתלמות (מעסיק)',en:'Study fund (employer)'},
 });
 // real bank data flows through innerHTML → escape it (the prototype used fake data and didn't)
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -1025,6 +1092,77 @@ function startSync(){
 function stopSync(keepOpen){if(_es){_es.close();_es=null}$('#sync').classList.remove('spin');$('#sync-close').style.display='';if(!keepOpen)$('#sync-ov').classList.add('hidden')}
 $('#sync').onclick=startSync;$('#sync').innerHTML=ic('sync');
 $('#sync-close').onclick=()=>$('#sync-ov').classList.add('hidden');
+// ── goal add/edit/delete ──
+function openGoalModal(g){
+  $('#gm-ic').innerHTML=ic('target',15);
+  $('#gm-title').textContent=g?t('gm_edit'):t('gm_new');
+  $('#gf-l-name').textContent=t('gf_name');$('#gf-l-target').textContent=t('gf_target');
+  $('#gf-l-current').textContent=t('gf_current');$('#gf-l-date').textContent=t('gf_date');
+  $('#gf-save').textContent=t('save');
+  $('#goal-form').dataset.id=g?g.id:'';
+  $('#gf-name').value=g?g.name:'';$('#gf-target').value=g?g.targetAmount:'';
+  $('#gf-current').value=g?(g.currentAmount||0):0;$('#gf-date').value=g&&g.targetDate?g.targetDate:'';
+  $('#goal-modal').classList.remove('hidden');setTimeout(()=>$('#gf-name').focus(),50);
+}
+$('#goal-form').onsubmit=async e=>{
+  e.preventDefault();
+  const id=$('#goal-form').dataset.id;
+  const body={name:$('#gf-name').value.trim(),targetAmount:+$('#gf-target').value,currentAmount:+($('#gf-current').value||0)};
+  if(id)body.id=id;
+  const dt=$('#gf-date').value;if(dt)body.targetDate=dt;
+  if(!body.name||!(body.targetAmount>0))return;
+  const r=await api('/api/goals','POST',body);
+  if(r.ok){$('#goal-modal').classList.add('hidden');refresh()}
+};
+$('#gm-close').onclick=()=>$('#goal-modal').classList.add('hidden');
+$('#goal-modal').onclick=e=>{if(e.target.id==='goal-modal')$('#goal-modal').classList.add('hidden')};
+// ── payslip add/edit + file read ──
+function fillPay(p){
+  const set=(sel,v)=>{$(sel).value=(v!=null&&v!==0)?v:(sel==='#pf-month'?($(sel).value||''):'')};
+  if(p&&p.month)$('#pf-month').value=p.month;
+  set('#pf-gross',p&&p.gross);set('#pf-net',p&&p.net);set('#pf-tax',p&&p.tax);
+  set('#pf-pension',p&&p.pensionEmp);set('#pf-keren',p&&p.kerenEmp);set('#pf-espp',p&&p.espp);
+  set('#pf-emp-pension',p&&p.employerPension);set('#pf-emp-sev',p&&p.employerSeverance);set('#pf-emp-keren',p&&p.employerKeren);
+}
+function openPayModal(p){
+  $('#pm-ic').innerHTML=ic('doc',15);$('#pm-title').textContent=t('pm_title');
+  $('#pm-hint').textContent='';$('#pm-drop-t').textContent=t('pm_drop');$('#pm-drop').classList.remove('busy','drag');
+  const L={'#pf-l-month':'pf_month','#pf-l-gross':'pf_gross','#pf-l-net':'pf_net','#pf-l-tax':'pf_tax','#pf-l-pension':'pf_pension','#pf-l-keren':'pf_keren','#pf-l-espp':'pf_espp','#pf-l-emp-pension':'pf_emp_pension','#pf-l-emp-sev':'pf_emp_sev','#pf-l-emp-keren':'pf_emp_keren'};
+  for(const[sel,k]of Object.entries(L))$(sel).textContent=t(k);
+  $('#pf-save').textContent=t('save');$('#pm-file').value='';
+  fillPay(p);$('#pay-modal').classList.remove('hidden');
+}
+async function readPayFile(file){
+  if(!file)return;
+  $('#pm-drop').classList.add('busy');$('#pm-hint').textContent=t('pm_reading');
+  try{
+    const buf=await file.arrayBuffer();
+    const r=await fetch('/api/payslip/parse',{method:'POST',headers:{'content-type':'application/pdf'},body:buf});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d&&d.fields){fillPay(d.fields);const got=['gross','net','tax'].filter(k=>d.fields[k]>0).length;$('#pm-hint').textContent=got>=2?t('pm_read_ok'):t('pm_read_part');}
+    else $('#pm-hint').textContent=t('pm_read_fail');
+  }catch(e){$('#pm-hint').textContent=t('pm_read_fail')}
+  $('#pm-drop').classList.remove('busy');
+}
+$('#pm-file').onchange=e=>readPayFile(e.target.files[0]);
+['dragover','dragleave','drop'].forEach(ev=>$('#pm-drop').addEventListener(ev,e=>{e.preventDefault();
+  if(ev==='dragover')$('#pm-drop').classList.add('drag');else $('#pm-drop').classList.remove('drag');
+  if(ev==='drop')readPayFile(e.dataTransfer.files[0]);}));
+$('#pay-form').onsubmit=async e=>{
+  e.preventDefault();
+  const body={month:$('#pf-month').value,gross:+$('#pf-gross').value,net:+$('#pf-net').value,tax:+($('#pf-tax').value||0),
+    pensionEmp:+($('#pf-pension').value||0),kerenEmp:+($('#pf-keren').value||0),espp:+($('#pf-espp').value||0),otherEmp:0,
+    employerPension:+($('#pf-emp-pension').value||0),employerSeverance:+($('#pf-emp-sev').value||0),employerKeren:+($('#pf-emp-keren').value||0)};
+  if(!/^\d{4}-\d{2}$/.test(body.month)||!(body.gross>0)||!(body.net>0)||body.net>body.gross)return;
+  const r=await api('/api/payslip','POST',body);
+  if(r.ok){$('#pay-modal').classList.add('hidden');refresh()}
+};
+$('#pm-close').onclick=()=>$('#pay-modal').classList.add('hidden');
+$('#pay-modal').onclick=e=>{if(e.target.id==='pay-modal')$('#pay-modal').classList.add('hidden')};
+$('#pay-add').onclick=()=>openPayModal(null);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#goal-modal').classList.add('hidden');$('#pay-modal').classList.add('hidden')}});
+// keep the (static) paycheck "+ Payslip" button label fresh across re-renders / lang switches
+const _origRender=render;render=function(){_origRender();const pa=$('#pay-add');if(pa)pa.textContent=t('pay_edit')};
 // init
 applyMood();
 if(!M){
