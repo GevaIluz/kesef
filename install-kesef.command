@@ -84,7 +84,10 @@ fi
 # is missing.
 CHROME_EXE=$(find "$HOME/.cache/puppeteer/chrome" -name "Google Chrome for Testing" -type f 2>/dev/null | head -1)
 HEADLESS_EXE=$(find "$HOME/.cache/puppeteer/chrome-headless-shell" -name "chrome-headless-shell" -type f 2>/dev/null | head -1)
-if [ -z "$CHROME_EXE" ] || [ -z "$HEADLESS_EXE" ]; then
+# The main exe can extract fine while the framework dylib it dlopen()s is missing — that half-extracted
+# state still crashes at launch ("Framework … no such file"). Verify the framework too, not just the exe.
+CHROME_FW=$(find "$HOME/.cache/puppeteer/chrome" -path "*Google Chrome for Testing Framework.framework/Versions/*/Google Chrome for Testing Framework" -type f 2>/dev/null | head -1)
+if [ -z "$CHROME_EXE" ] || [ -z "$HEADLESS_EXE" ] || [ -z "$CHROME_FW" ]; then
   echo "→  Browser binaries incomplete — clearing cache and re-downloading…"
   rm -rf "$HOME/.cache/puppeteer"
   node node_modules/puppeteer/install.mjs || { echo "✗  Browser download failed. Check internet/disk space."; exit 1; }
