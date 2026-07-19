@@ -662,6 +662,31 @@ body.dusk .pay-edit{color:#D6F3DC}
 <script>
 window.__KESEF__ = /*__KESEF_DATA__*/ null;
 let M=window.__KESEF__;
+// A fresh install (empty DB — no bank sync, no data) returns a model with null cycle / empty payslips /
+// empty series. The render pipeline assumed those always exist, so it crashed mid-render and left a blank
+// page. Fill zero-defaults so an empty account still renders (all zeros) and — crucially — the couple
+// view + Connect button work, letting a brand-new partner pair before they have any data.
+function normalizeModel(m){
+  if(!m) return m;
+  m.generatedAt = m.generatedAt || new Date().toISOString().slice(0,10);
+  m.cycle = m.cycle || { start:m.generatedAt, payslipMonth:null, income:0, spent:0, savedInvested:0, byCategory:[] };
+  if(!Array.isArray(m.cycle.byCategory)) m.cycle.byCategory=[];
+  const emptyP=()=>({income:0,spent:0,saved:0,savedInvested:0,byCategory:[]});
+  m.spending = m.spending || {};
+  for(const k of ['thisMonth','last30','last90','year']) if(!m.spending[k]) m.spending[k]=emptyP();
+  m.composition = m.composition || {daily:0,medium:0,long:0};
+  m.payslips = m.payslips || [];
+  m.accounts = m.accounts || [];
+  m.goals = m.goals || [];
+  m.recent = m.recent || [];
+  m.transactions = m.transactions || [];
+  m.netWorthSeries = m.netWorthSeries || [];
+  if(typeof m.netWorth!=='number') m.netWorth=0;
+  if(typeof m.leftThisMonth!=='number') m.leftThisMonth=0;
+  m.couple = m.couple || {paired:false};
+  return m;
+}
+if(M) normalizeModel(M);
 /* densify the monthly net-worth series into a weekly roller coaster: mid-month spend dip, paycheck jump, small market wobble */
 function densify(ser){
   const out=[];
@@ -677,7 +702,7 @@ function densify(ser){
   }
   out.push(ser[ser.length-1]);return out;
 }
-let NWSER=M?densify(M.netWorthSeries):[];
+let NWSER=(M&&M.netWorthSeries&&M.netWorthSeries.length>1)?densify(M.netWorthSeries):[];
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
 let lang=localStorage.getItem('kesefLang')||'he';
 let privacyOn=(localStorage.getItem('kesefPrivacy')??'on')==='on';
@@ -895,25 +920,40 @@ function render(){
   $$('#goals .g-del').forEach(b=>b.onclick=async e=>{e.stopPropagation();const g=M.goals[+b.dataset.gi];if(confirm(t('goal_del_c',{n:g.name}))){await api('/api/goals?id='+encodeURIComponent(g.id),'DELETE');refresh()}});
   $('#add-goal').onclick=()=>openGoalModal(null);
   requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#goals .ring .fg').forEach((r,i)=>{const g=M.goals[i];if(!g)return;const pr=Math.min(1,g.currentAmount/g.targetAmount);r.style.strokeDashoffset=C2*(1-pr)})));
-  const p=M.payslips[M.payslips.length-1],mine=p.pensionEmp+p.kerenEmp;
-  $('#pay-h').textContent=t('pay_h');$('#pay-sub').textContent=t('pay_s',{m:p.month});
-  const segs=[{k:t('tax'),v:p.tax,c:'#8A7E6D'},{k:t('pension'),v:mine,c:'#C76699'},{k:t('espp'),v:p.espp,c:'#DE9C1E'},{k:t('net'),v:p.net,c:'#16A78C'}];
-  {const tot=segs.reduce((a,s)=>a+s.v,0),cx=79,cy=79,RR=70,rr=44;let a0=-Math.PI/2,out='<svg viewBox="0 0 158 158">';
-  segs.forEach((s,ix)=>{const a1=a0+s.v/tot*2*Math.PI,large=(a1-a0)>Math.PI?1:0;
-    const p2=(a,r2)=>`${(cx+r2*Math.cos(a)).toFixed(2)} ${(cy+r2*Math.sin(a)).toFixed(2)}`;
-    out+=`<path class="donut-seg" style="animation-delay:${.4+ix*.09}s" d="M${p2(a0,RR)}A${RR} ${RR} 0 ${large} 1 ${p2(a1,RR)}L${p2(a1,rr)}A${rr} ${rr} 0 ${large} 0 ${p2(a0,rr)}Z" fill="${s.c}"><title>${s.k} · ${sh(s.v)}</title></path>`;a0=a1;});
-  out+=`<text x="79" y="75" text-anchor="middle" style="font-family:var(--round);font-size:16px" fill="var(--ink)">${sh(p.gross)}</text><text x="79" y="92" text-anchor="middle" style="font-size:9.5px" fill="var(--soft)">${t('gross')}</text></svg>`;
-  $('#pay-flow').innerHTML=out;}
-  $('#pay-legend').innerHTML=segs.map(s=>`<span class="pi"><span class="sw" style="background:${s.c}"></span>${s.k} <span class="pv">${sh(s.v)}</span></span>`).join('');
-  $('#gift-text').innerHTML=t('gift',{v:sh(p.employerPension+p.employerSeverance+p.employerKeren)});
+  const p=M.payslips[M.payslips.length-1];
+  $('#pay-h').textContent=t('pay_h');
+  if(p){
+    const mine=p.pensionEmp+p.kerenEmp;
+    $('#pay-sub').textContent=t('pay_s',{m:p.month});
+    const segs=[{k:t('tax'),v:p.tax,c:'#8A7E6D'},{k:t('pension'),v:mine,c:'#C76699'},{k:t('espp'),v:p.espp,c:'#DE9C1E'},{k:t('net'),v:p.net,c:'#16A78C'}];
+    {const tot=segs.reduce((a,s)=>a+s.v,0)||1,cx=79,cy=79,RR=70,rr=44;let a0=-Math.PI/2,out='<svg viewBox="0 0 158 158">';
+    segs.forEach((s,ix)=>{const a1=a0+s.v/tot*2*Math.PI,large=(a1-a0)>Math.PI?1:0;
+      const p2=(a,r2)=>`${(cx+r2*Math.cos(a)).toFixed(2)} ${(cy+r2*Math.sin(a)).toFixed(2)}`;
+      out+=`<path class="donut-seg" style="animation-delay:${.4+ix*.09}s" d="M${p2(a0,RR)}A${RR} ${RR} 0 ${large} 1 ${p2(a1,RR)}L${p2(a1,rr)}A${rr} ${rr} 0 ${large} 0 ${p2(a0,rr)}Z" fill="${s.c}"><title>${s.k} · ${sh(s.v)}</title></path>`;a0=a1;});
+    out+=`<text x="79" y="75" text-anchor="middle" style="font-family:var(--round);font-size:16px" fill="var(--ink)">${sh(p.gross)}</text><text x="79" y="92" text-anchor="middle" style="font-size:9.5px" fill="var(--soft)">${t('gross')}</text></svg>`;
+    $('#pay-flow').innerHTML=out;}
+    $('#pay-legend').innerHTML=segs.map(s=>`<span class="pi"><span class="sw" style="background:${s.c}"></span>${s.k} <span class="pv">${sh(s.v)}</span></span>`).join('');
+    $('#gift-text').innerHTML=t('gift',{v:sh(p.employerPension+p.employerSeverance+p.employerKeren)});
+    $('#gift-text').closest('.gift')&&($('#gift-text').closest('.gift').style.display='');
+  }else{
+    // no payslip yet — invite the upload instead of crashing
+    $('#pay-sub').textContent=t('pay_empty');
+    $('#pay-flow').innerHTML='';$('#pay-legend').innerHTML='';
+    $('#gift-text').innerHTML='';const g=$('#gift-text').closest('.gift');if(g)g.style.display='none';
+  }
   $('#nw-h').textContent=t('nw_h');$('#nw-sub').textContent=t('nw_s');
   $('#nw').textContent=privacyOn?'••••••':NF(M.netWorth);
-  const ser=NWSER,d=ser[ser.length-1].balance-ser[0].balance;
-  $('#nw-hint').innerHTML=privacyOn?ic('eye',14)+' '+t('nw_hint_on'):ic('trend',14)+' '+t('nw_hint_off',{v:sh(d)});
-  const lo=Math.min(...ser.map(s=>s.balance)),hi=Math.max(...ser.map(s=>s.balance));
-  const pts=ser.map((s,i)=>[i/(ser.length-1)*520,52-(s.balance-lo)/(hi-lo)*44]);
-  const dd=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join('');
-  $('#nw-line').setAttribute('d',dd);$('#nw-area').setAttribute('d',dd+'L520 58L0 58Z');
+  const ser=NWSER;
+  if(ser.length>1){
+    const d=ser[ser.length-1].balance-ser[0].balance;
+    $('#nw-hint').innerHTML=privacyOn?ic('eye',14)+' '+t('nw_hint_on'):ic('trend',14)+' '+t('nw_hint_off',{v:sh(d)});
+    const lo=Math.min(...ser.map(s=>s.balance)),hi=Math.max(...ser.map(s=>s.balance)),span=(hi-lo)||1;
+    const pts=ser.map((s,i)=>[i/(ser.length-1)*520,52-(s.balance-lo)/span*44]);
+    const dd=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join('');
+    $('#nw-line').setAttribute('d',dd);$('#nw-area').setAttribute('d',dd+'L520 58L0 58Z');
+  }else{
+    $('#nw-hint').innerHTML='';$('#nw-line').setAttribute('d','');$('#nw-area').setAttribute('d','');
+  }
   const C=M.composition;
   $('#hz-tiles').innerHTML=[[t('hz_d'),C.daily,'wallet','var(--coral)'],[t('hz_m'),C.medium,'leaf','var(--gold)'],[t('hz_l'),C.long,'tree','var(--teal)']]
     .map(([k,v,icn,c])=>`<div class="hz" style="--c:${c}"><div class="k"><span class="hzic">${ic(icn,12)}</span>${k}</div><div class="v">${wealth(v)}</div></div>`).join('');
@@ -1003,6 +1043,7 @@ if(!reduced){for(let i=0;i<8;i++)spawnLeaf({delay:i*1.1});setInterval(()=>spawnL
 const nws=$('#nw-spark'),nwsvg=$('#nw-svg');
 nwsvg.addEventListener('pointermove',e=>{
   const ser=NWSER,r=nwsvg.getBoundingClientRect();
+  if(ser.length<2)return; // no trend yet (empty/fresh account)
   const fx=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
   const f=fx*(ser.length-1),i0=Math.floor(f),i1=Math.min(ser.length-1,i0+1),tt=f-i0;
   const bal=ser[i0].balance+(ser[i1].balance-ser[i0].balance)*tt;
@@ -1021,8 +1062,10 @@ nwsvg.addEventListener('pointerleave',()=>{nws.classList.remove('hovering');$('#
 let pgCat='dining',pgCut=20,pgYr=10;
 function updatePiggy(){
   const cats=[...M.cycle.byCategory].sort((a,b)=>b.amount-a.amount).slice(0,6);
+  $('#pg-h').textContent=t('pg_h');
+  if(!cats.length){ $('#pg-sub').textContent=t('pg_empty'); $('#pg-cats').innerHTML=''; return; }
   if(!cats.find(c=>c.category===pgCat))pgCat=cats[0].category;
-  $('#pg-h').textContent=t('pg_h');$('#pg-sub').textContent=t('pg_sub');
+  $('#pg-sub').textContent=t('pg_sub');
   $('#pg-cat-l').textContent=t('pg_cat');$('#pg-cut-l').textContent=t('pg_cut');$('#pg-yr-l').textContent=t('pg_years');
   $('#pg-cats').innerHTML=cats.map(c=>`<button class="pg-chip ${c.category===pgCat?'on':''}" data-cat="${c.category}">${ic(c.category,13)} ${tc(c.category)}</button>`).join('');
   $$('#pg-cats .pg-chip').forEach(b=>b.onclick=()=>{pgCat=b.dataset.cat;updatePiggy()});
@@ -1125,6 +1168,8 @@ Object.assign(T,{
   n_tx:{he:'תנועות',en:'transactions'},sync_lost:{he:'החיבור נותק',en:'connection lost'},
   cat_all:{he:'החל על כל {n}',en:'apply to all {n}'},
   nodata:{he:'עדיין אין נתונים — סנכרנו כדי להתחיל',en:'No data yet — sync to get started'},
+  pay_empty:{he:'עדיין אין תלוש — הוסיפו אחד עם הכפתור למעלה',en:'No payslip yet — add one with the button above'},
+  pg_empty:{he:'עדיין אין הוצאות לשחק איתן — נתראה אחרי סנכרון',en:'No spending to play with yet — check back after a sync'},
   sync_all:{he:'כל החשבונות',en:'All accounts'},login_phone:{he:'📱 התחברות בטלפון…',en:'📱 Log in by phone…'},
   login_pick:{he:'לאיזה בנק? 1 = הבינלאומי · 2 = Cal',en:'Which bank? 1 = Beinleumi · 2 = Cal'},
   login_prompt:{he:'הדביקו את כתובת דף ההתחברות (QR/אפליקציה) של הבנק:',en:'Paste the bank’s phone/QR login page URL:'},
@@ -1161,7 +1206,7 @@ Object.assign(T,{
 // real bank data flows through innerHTML → escape it (the prototype used fake data and didn't)
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function api(path,method,body){try{const r=await fetch(path,{method:method||'GET',headers:body?{'content-type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});let d={};try{d=await r.json()}catch{}return{ok:r.ok,status:r.status,data:d}}catch(e){return{ok:false,status:0,data:{error:String(e)}}}}
-async function refresh(){const r=await api('/api/model');if(r.ok&&r.data){M=r.data;window.__KESEF__=M;NWSER=densify(M.netWorthSeries);render()}}
+async function refresh(){const r=await api('/api/model');if(r.ok&&r.data){M=normalizeModel(r.data);window.__KESEF__=M;NWSER=(M.netWorthSeries&&M.netWorthSeries.length>1)?densify(M.netWorthSeries):[];render()}}
 // recategorize: tap the category word in a Recent row → pick a new one (optionally learns the merchant)
 const ALL_CATS=Object.keys(T.cat);
 let _catPop=null;
