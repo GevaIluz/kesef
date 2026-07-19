@@ -1,0 +1,18 @@
+.shimm{animation:shimm 3.8s ease-in-out infinite}
+.shimm.s2{animation-delay:1.6s}
+@keyframes shimm{0%,100%{opacity:.15;transform:translateX(0)}50%{opacity:.85;transform:translateX(2px)}}
+.lily{animation:lilydrift 9s ease-in-out infinite alternate}
+@keyframes lilydrift{from{transform:translateX(-2.5px)}to{transform:translateX(3px)}}
+.pond{position:relative;height:150px;max-width:760px;margin:58px auto -4px;border-radius:50%;overflow:visible;transform:perspective(700px) rotateX(38deg);transform-style:preserve-3d;
+  background:radial-gradient(100% 120% at 50% 0%, #A8F0E8 0%, #55D6CC 30%, #26ABA4 62%, #157A78 88%, #0E5A59 100%);
+  box-shadow:inset 0 14px 30px rgba(255,255,255,.5),inset 0 -20px 40px rgba(6,52,51,.65),0 30px 50px -24px rgba(6,52,51,.6)}
+.pond::after{content:"";position:absolute;inset:-14px -18px;border-radius:50%;z-index:-1;
+  background:radial-gradient(100% 100% at 50% 40%, transparent 58%, rgba(56,88,48,.55) 68%, rgba(38,64,34,.75) 78%, transparent 92%)}
+.pond .glint{position:absolute;left:22%;top:16%;width:34%;height:26%;border-radius:50%;
+  background:radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.55), transparent 75%);filter:blur(3px);animation:glint 7s ease-in-out infinite alternate}
+@keyframes glint{from{transform:translateX(-14px) scale(1)}to{transform:translateX(18px) scale(1.12)}}
+.pond::before{content:"";position:absolute;inset:0;background:radial-gradient(20% 26% at 30% 55%,rgba(255,255,255,.45),transparent 70%),radial-gradient(16% 20% at 66% 70%,rgba(255,255,255,.3),transparent 70%),radial-gradient(26% 16% at 48% 88%,rgba(255,255,255,.2),transparent 70%);animation:caustic 11s ease-in-out infinite alternate}
+@keyframes caustic{from{transform:translateX(-18px) scaleY(1)}to{transform:translateX(20px) scaleY(1.06)}}
+.pring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);animation:pring 6s ease-out infinite}
+@keyframes pring{0%{transform:scale(.15);opacity:.9}75%{opacity:0}100%{transform:scale(1);opacity:0}}
+@media(prefers-reduced-motion:reduce){.shimm,.lily,.pond::before,.pond .glint,.pring,.ripl{animation:none}}

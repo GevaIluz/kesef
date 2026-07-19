@@ -1,0 +1,26 @@
+@keyframes tumble{0%{transform:rotateZ(-28deg) rotateX(0deg)}50%{transform:rotateZ(24deg) rotateX(180deg)}100%{transform:rotateZ(-28deg) rotateX(360deg)}}
+@keyframes spinfl{0%{transform:rotate(-60deg)}100%{transform:rotate(140deg)}}
+.scene{position:fixed;inset:0;z-index:0}
+.scene .scrim{position:absolute;inset:0;pointer-events:none;background:radial-gradient(70% 50% at 50% -10%,rgba(255,255,255,.35),transparent 70%);transition:background 1.2s}
+.flies{position:absolute;inset:0;display:none;pointer-events:none}
+.flies i{position:absolute;width:5px;height:5px;border-radius:50%;background:radial-gradient(circle,#FFF3C4 0%,#F7C843 55%,transparent 75%);box-shadow:0 0 12px 4px rgba(247,200,67,.5);animation:fly var(--fd,17s) ease-in-out infinite alternate,flick 3.1s ease-in-out infinite}
+.flies i:nth-child(1){left:8%;top:64%;--fd:15s}.flies i:nth-child(2){left:22%;top:80%;--fd:19s;animation-delay:1.2s,0.6s}
+.flies i:nth-child(3){left:41%;top:71%;--fd:14s;animation-delay:2.5s,1.4s}.flies i:nth-child(4){left:60%;top:84%;--fd:21s;animation-delay:.7s,2s}
+.flies i:nth-child(5){left:76%;top:66%;--fd:16s;animation-delay:3.2s,.9s}.flies i:nth-child(6){left:90%;top:78%;--fd:18s;animation-delay:1.8s,2.6s}
+.flies i:nth-child(7){left:50%;top:56%;--fd:23s;animation-delay:4s,.3s}
+@keyframes fly{0%{transform:translate(0,0)}25%{transform:translate(34px,-48px)}50%{transform:translate(-22px,-90px)}75%{transform:translate(40px,-130px)}100%{transform:translate(-14px,-170px)}}
+.shimm{animation:shimm 3.8s ease-in-out infinite}
+.shimm.s2{animation-delay:1.6s}
+@keyframes shimm{0%,100%{opacity:.15;transform:translateX(0)}50%{opacity:.85;transform:translateX(2px)}}
+.lily{animation:lilydrift 9s ease-in-out infinite alternate}
+@keyframes lilydrift{from{transform:translateX(-2.5px)}to{transform:translateX(3px)}}
+.pond{position:relative;height:150px;max-width:760px;margin:58px auto -4px;border-radius:50%;overflow:visible;transform:perspective(700px) rotateX(38deg);transform-style:preserve-3d;
+  background:radial-gradient(100% 120% at 50% 0%, #A8F0E8 0%, #55D6CC 30%, #26ABA4 62%, #157A78 88%, #0E5A59 100%);
+  box-shadow:inset 0 14px 30px rgba(255,255,255,.5),inset 0 -20px 40px rgba(6,52,51,.65),0 30px 50px -24px rgba(6,52,51,.6)}
+.pond::after{content:"";position:absolute;inset:-14px -18px;border-radius:50%;z-index:-1;
+  background:radial-gradient(100% 100% at 50% 40%, transparent 58%, rgba(56,88,48,.55) 68%, rgba(38,64,34,.75) 78%, transparent 92%)}
+.pond .glint{position:absolute;left:22%;top:16%;width:34%;height:26%;border-radius:50%;
+  background:radial-gradient(60% 60% at 50% 50%, rgba(255,255,255,.55), transparent 75%);filter:blur(3px);animation:glint 7s ease-in-out infinite alternate}
+@keyframes glint{from{transform:translateX(-14px) scale(1)}to{transform:translateX(18px) scale(1.12)}}
+.pond::before{content:"";position:absolute;inset:0;background:radial-gradient(20% 26% at 30% 55%,rgba(255,255,255,.45),transparent 70%),radial-gradient(16% 20% at 66% 70%,rgba(255,255,255,.3),transparent 70%),radial-gradient(26% 16% at 48% 88%,rgba(255,255,255,.2),transparent 70%);animation:caustic 11s ease-in-out infinite alternate}
+.pring{position:absolute;border-radius:50%;border:1.5px solid rgba(255,255,255,.4);animation:pring 6s ease-out infinite}
