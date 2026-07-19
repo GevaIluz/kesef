@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="kesef">
-<title>kesef · money, made friendly</title>
+<title>Duonero · money, made friendly</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -110,10 +110,11 @@
   @keyframes coindrop{0%{opacity:0;transform:translateY(-8px)}6%{opacity:1}22%{transform:translateY(4px) scaleY(1);opacity:1}30%{transform:translateY(8px) scaleY(.35);opacity:0}100%{opacity:0}}
 
   header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px}
-  .brand{display:flex;align-items:baseline;gap:10px;margin-inline-end:auto}
-  .brand .mark{font-family:var(--round);font-size:30px;color:var(--teal-ink);letter-spacing:.01em}
-  .brand .mark b{color:var(--coral)}
-  .brand .tag{font-size:12.5px;color:var(--ink-soft)}
+  .brand{display:flex;align-items:center;gap:10px;margin-inline-end:auto}
+  .brand .mark{font-family:var(--round);font-size:26px;display:flex;align-items:center;gap:10px}
+  .brand .mark .duo{color:var(--teal-ink)}
+  .brand .mark .nero{color:#E9AE14;background:linear-gradient(180deg,#FFD86B,var(--gold) 55%,#DE9C1E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .brand .logo{width:34px;height:34px;fill:none;stroke-width:2.2;stroke-linecap:round;flex:0 0 auto;filter:drop-shadow(0 3px 5px rgba(70,45,15,.2))}
   .seg{display:inline-flex;flex-wrap:wrap;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:4px;gap:2px;box-shadow:inset 0 1px 3px rgba(70,45,15,.08)}
   .seg button{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.2s;white-space:nowrap}
   .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#FFFFFF,#FFF7EA);color:var(--teal-ink);box-shadow:0 2px 6px rgba(70,45,15,.14),inset 0 1px 0 #fff}
@@ -399,7 +400,9 @@
   .no-data{display:flex;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px}
   .no-data .inner{max-width:36ch}
   .no-data .logo{font-family:var(--round);font-size:36px;color:var(--teal-ink);margin-bottom:18px}
-  .no-data .logo b{color:var(--coral)}
+  .no-data .logo .duo{color:var(--teal-ink)}
+  .no-data .logo .nero{color:#E9AE14;background:linear-gradient(180deg,#FFD86B,var(--gold) 55%,#DE9C1E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  body.dusk .no-data .logo .duo{color:#EAF7EC}
   .no-data .msg{font-size:17px;color:var(--ink-soft);line-height:1.6}
   .no-data code{font-family:monospace;background:color-mix(in srgb,var(--ink) 8%,transparent);padding:2px 7px;border-radius:6px;font-size:15px;color:var(--ink)}
 
@@ -479,8 +482,8 @@ body.dusk .seg button{color:#C6D2BD}
 body.dusk .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#D6F3DC,#AEDDBA);color:#123B24;box-shadow:0 2px 12px rgba(174,221,186,.4)}
 body.dusk .icon-btn{background:rgba(255,255,255,.1);color:#D6F3DC;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 body.dusk .mark .duo{color:#EAF7EC;letter-spacing:.04em}
-body.dusk .brand .mark{color:#EAF7EC;letter-spacing:.04em}
-body.dusk .brand .tag{color:#BDD2BD}
+body.dusk .brand .mark .duo{color:#EAF7EC;letter-spacing:.04em}
+body.dusk .brand .logo .lg-ring,body.dusk .brand .logo .lg-slot{stroke:#FFFDF5}
 body.dusk .logo .lg-ring,body.dusk .logo .lg-slot{stroke:#FFFDF5}
 body.dusk .navtrail button{background:transparent;color:#C9DECB;box-shadow:none;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;border:1px solid transparent}
 body.dusk .navtrail button[aria-pressed="true"]{background:rgba(214,243,220,.92);color:#123B24;border-color:transparent;box-shadow:0 10px 24px -10px rgba(174,221,186,.5)}
@@ -702,7 +705,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   <div class="bubbles" id="bubbles" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:6"></div>
   <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD86B"/><stop offset="1" stop-color="#D9A210"/></linearGradient></defs></svg>
   <header>
-    <div class="brand"><span class="mark">ke<b>$</b>ef</span><span class="tag" data-t="tagline">your money</span></div>
+    <div class="brand"><div class="mark"><svg class="logo" viewBox="0 0 32 32"><circle class="lg-ring" cx="12" cy="17" r="8.5" stroke="#085E4E"></circle><circle cx="20" cy="17" r="8.5" stroke="#F7C843"></circle><path class="lg-slot" d="M13.5 6.5h5" stroke="#085E4E" stroke-width="2.8"></path></svg><span><span class="duo">duo</span><span class="nero">nero</span></span></div></div>
     <div class="sync-wrap">
       <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic" data-ic="sync"></span> <span data-t="sync">Sync</span></button>
       <button class="sync-caret" id="sync-caret" aria-label="sync options" aria-haspopup="true">▾</button>
@@ -1453,7 +1456,7 @@ function renderNoData() {
   document.body.innerHTML = `
     <div class="no-data">
       <div class="inner">
-        <div class="logo">ke<b>$</b>ef</div>
+        <div class="logo"><span class="duo">duo</span><span class="nero">nero</span></div>
         <div class="msg">${T.no_data[lang]}</div>
         <button class="sync-btn" id="nodata-sync" style="margin-top:22px"><span class="sync-ic">${ic('sync')}</span> ${t('sync')}</button>
         <div class="msg" id="nodata-status" style="font-size:13.5px;margin-top:14px"></div>
@@ -3591,54 +3594,6 @@ function spawnLeaf(o){
       setTimeout(()=>el.remove(),2100);
     }else{el.remove()}
   });
-  return el;
-}
-function heartLeafSVG(ci){const[c1,c2,c3]=LEAFC[ci],id='lg'+(lgid++);
-  return `<svg viewBox="0 0 100 96"><defs><radialGradient id="${id}" cx=".34" cy=".28" r="1"><stop offset="0" stop-color="${c1}"/><stop offset=".55" stop-color="${c2}"/><stop offset="1" stop-color="${c3}"/></radialGradient></defs><path d="M50 88 C22 66 4 48 4 28 C4 12 16 3 29 3 C38 3 46 8 50 16 C54 8 62 3 71 3 C84 3 96 12 96 28 C96 48 78 66 50 88 Z" fill="url(#${id})"/><path d="M50 20 L50 80 M50 38 L38 48 M50 38 L62 48 M50 56 L40 64 M50 56 L60 64" stroke="${c3}" stroke-width="1.8" fill="none" opacity=".5" stroke-linecap="round"/><path d="M50 14 Q54 6 60 4" stroke="${c3}" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`}
-function spawnLeaf(o){
-  if(bubCount>=BUB_MAX||reduced)return;
-  o=o||{};const s=o.size||30+Math.random()*42;
-  const el=document.createElement('div');el.className='bub';
-  const g=document.createElement('div');g.className='gust';
-  const skin=document.createElement('div');skin.className='bubskin';
-  const ci=o.ci!=null?o.ci:Math.floor(Math.random()*LEAFC.length);
-  skin.dataset.ci=ci;
-  if(currentView==='couple'){skin.classList.add('heart');skin.innerHTML=heartLeafSVG(ci)}else skin.innerHTML=leafSVG(ci);
-  skin.style.setProperty('--bdur',(3.5+Math.random()*3).toFixed(1)+'s');
-  g.appendChild(skin);el.appendChild(g);
-  el.style.width=el.style.height=s.toFixed(0)+'px';
-  const hw=hero.clientWidth,hh=hero.clientHeight;
-  el.style.left=(Math.random()*(hw-s)).toFixed(0)+'px';
-  el.style.top=(-s-10)+'px';
-  el.style.setProperty('--dur',(16+Math.random()*14).toFixed(1)+'s');
-  el.style.setProperty('--delay',(o.delay||0)+'s');
-  el.style.setProperty('--fall',(hh+s+40)+'px');
-  el.style.setProperty('--dx',((Math.random()-.5)*140).toFixed(0)+'px');
-  bubbles.appendChild(el);bubCount++;
-  el.addEventListener('animationend',()=>{el.remove();bubCount--});
-  return el;
-}
-function spawnLeaf(o){
-  if(bubCount>=BUB_MAX||reduced)return;
-  o=o||{};const s=o.size||30+Math.random()*42;
-  const el=document.createElement('div');el.className='bub';
-  const g=document.createElement('div');g.className='gust';
-  const skin=document.createElement('div');skin.className='bubskin';
-  const ci=o.ci!=null?o.ci:Math.floor(Math.random()*LEAFC.length);
-  skin.dataset.ci=ci;
-  if(currentView==='couple'){skin.classList.add('heart');skin.innerHTML=heartLeafSVG(ci)}else skin.innerHTML=leafSVG(ci);
-  skin.style.setProperty('--bdur',(3.5+Math.random()*3).toFixed(1)+'s');
-  g.appendChild(skin);el.appendChild(g);
-  el.style.width=el.style.height=s.toFixed(0)+'px';
-  const hw=hero.clientWidth,hh=hero.clientHeight;
-  el.style.left=(Math.random()*(hw-s)).toFixed(0)+'px';
-  el.style.top=(-s-10)+'px';
-  el.style.setProperty('--dur',(16+Math.random()*14).toFixed(1)+'s');
-  el.style.setProperty('--delay',(o.delay||0)+'s');
-  el.style.setProperty('--fall',(hh+s+40)+'px');
-  el.style.setProperty('--dx',((Math.random()-.5)*140).toFixed(0)+'px');
-  bubbles.appendChild(el);bubCount++;
-  el.addEventListener('animationend',()=>{el.remove();bubCount--});
   return el;
 }
 function breeze(e){
