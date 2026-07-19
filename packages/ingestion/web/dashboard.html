@@ -408,6 +408,35 @@ body.dusk .kf input{background:rgba(255,255,255,.08);border-color:rgba(255,255,2
 .kf-file:hover,.kf-file.drag{background:color-mix(in srgb,var(--teal) 8%,transparent);border-color:var(--teal)}
 body.dusk .kf-file{color:#D6F3DC;border-color:rgba(214,243,220,.35)}
 .kf-file.busy{opacity:.6;pointer-events:none}
+/* sync dropdown menu */
+.sync-wrap{position:relative;display:inline-flex}
+.sync-menu{position:absolute;z-index:200;top:calc(100% + 8px);inset-inline-end:0;min-width:190px;background:var(--card);border-radius:16px;box-shadow:var(--sh-2);padding:6px;overflow:hidden}
+body.dusk .sync-menu{background:rgba(14,40,28,.96);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.16)}
+.sync-menu.hidden{display:none}
+.sm-item{font-family:var(--body);font-size:13.5px;color:var(--ink);padding:9px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.sm-item:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+body.dusk .sm-item{color:#EAF7EC}body.dusk .sm-item:hover{background:rgba(255,255,255,.08)}
+.sm-login{border-top:1px solid var(--line);margin-top:4px;padding-top:11px;color:var(--teal-ink)}
+body.dusk .sm-login{color:#D6F3DC;border-color:rgba(255,255,255,.14)}
+/* couple: connect / sync / share controls */
+.cp-actions{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 16px}
+.cp-btn{font-family:var(--round);font-size:13px;cursor:pointer;border-radius:999px;padding:9px 16px;border:0;display:inline-flex;align-items:center;gap:7px}
+.cp-btn.primary{background:linear-gradient(160deg,var(--teal),var(--teal-ink));color:#fff;box-shadow:0 10px 20px -10px rgba(8,94,78,.5)}
+.cp-btn.ghost{background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink)}
+body.dusk .cp-btn.ghost{background:rgba(255,255,255,.1);color:#D6F3DC}
+.cp-connect{text-align:center;padding:26px 8px}
+.cp-connect .big-emoji{font-size:34px}
+.share-list{display:flex;flex-direction:column;gap:2px}
+.share-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.share-row:first-child{border-top:0}
+.share-row .sr-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-row .sr-bal{color:var(--soft);font-variant-numeric:tabular-nums}
+.switch{position:relative;width:40px;height:23px;flex:0 0 auto;cursor:pointer}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .sl{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 18%,transparent);border-radius:999px;transition:.2s}
+.switch .sl::before{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:3px;inset-inline-start:3px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch input:checked+.sl{background:var(--teal)}
+.switch input:checked+.sl::before{inset-inline-start:20px}
 /* an edit affordance on the paycheck card header */
 .pay-edit{margin-inline-start:auto;font-family:var(--round);font-size:12.5px;cursor:pointer;color:var(--teal-ink);background:none;border:0;display:inline-flex;align-items:center;gap:6px}
 body.dusk .pay-edit{color:#D6F3DC}
@@ -425,7 +454,17 @@ body.dusk .pay-edit{color:#D6F3DC}
     <div class="mark"><svg class="logo" viewBox="0 0 32 32"><circle class="lg-ring" cx="12" cy="17" r="8.5" stroke="#085E4E"></circle><circle cx="20" cy="17" r="8.5" stroke="#F7C843"></circle><path class="lg-slot" d="M13.5 6.5h5" stroke="#085E4E" stroke-width="2.8"></path></svg><span><span class="duo">duo</span><span class="nero">nero</span></span></div>
     <div class="seg" id="viewseg"><button data-view="me" aria-pressed="true"></button><button data-view="couple" aria-pressed="false"></button></div>
     <div class="seg"><button data-lang="he" aria-pressed="true">עברית</button><button data-lang="en" aria-pressed="false">EN</button></div>
-    <button class="icon-btn" id="sync" title="sync"></button>
+    <div class="sync-wrap">
+      <button class="icon-btn" id="sync" title="sync"></button>
+      <div class="sync-menu hidden" id="sync-menu" role="menu">
+        <div class="sm-item" data-only="" role="menuitem"></div>
+        <div class="sm-item" data-only="beinleumi" role="menuitem">Beinleumi</div>
+        <div class="sm-item" data-only="cal" role="menuitem">Cal</div>
+        <div class="sm-item" data-only="ibi" role="menuitem">IBI</div>
+        <div class="sm-item" data-only="mvs" role="menuitem">Mivtach Simon</div>
+        <div class="sm-item sm-login" data-login="1" role="menuitem"></div>
+      </div>
+    </div>
     <button class="icon-btn" id="eye" title="show/hide"></button>
     <button class="icon-btn" id="theme" title="theme"></button>
   </header>
@@ -550,6 +589,10 @@ body.dusk .pay-edit{color:#D6F3DC}
         <h3 style="--hc:var(--berry)"><span class="hic" data-ic="target"></span><span id="cp-goal-h"></span></h3>
         <p class="sub" id="cp-goal-s"></p><div id="cv-goal"></div>
       </section>
+      <section class="card full" id="cv-share-card" style="animation-delay:.8s">
+        <h3 style="--hc:var(--gold)"><span class="hic" data-ic="safe"></span><span id="cp-share-h"></span></h3>
+        <p class="sub" id="cp-share-s"></p><div class="share-list" id="cv-share"></div>
+      </section>
     </div>
   </section>
   <div class="modal-ov hidden" id="cat-modal">
@@ -591,6 +634,26 @@ body.dusk .pay-edit{color:#D6F3DC}
         </div>
         <button type="submit" class="kf-save" id="pf-save"></button>
       </form>
+    </div>
+  </div>
+  <div class="modal-ov hidden" id="pair-modal">
+    <div class="modal-c">
+      <div class="mhead"><span class="mic" style="--c:var(--teal)" id="pr-ic"></span><h4 id="pr-title"></h4><button class="mclose" id="pr-close">✕</button></div>
+      <div class="kf">
+        <label id="pr-l-relay"></label><input id="pr-relay" type="text" placeholder="https://…" autocomplete="off" spellcheck="false">
+        <label id="pr-l-label"></label><input id="pr-label" type="text" autocomplete="off">
+        <button class="kf-save" id="pr-create"></button>
+        <div style="text-align:center;color:var(--soft);font-size:12px;margin:14px 0 4px" id="pr-or"></div>
+        <label id="pr-l-code"></label><input id="pr-code" type="text" placeholder="kesef-pair:v1:…" autocomplete="off" spellcheck="false">
+        <button class="cp-btn ghost" id="pr-join" style="margin-top:10px;justify-content:center"></button>
+      </div>
+      <div id="pr-invite" hidden style="margin-top:16px">
+        <p class="sub" id="pr-invite-h"></p>
+        <div id="pr-invite-code" style="font-family:monospace;font-size:12px;word-break:break-all;background:color-mix(in srgb,var(--ink) 7%,transparent);padding:12px;border-radius:12px;margin:6px 0"></div>
+        <button class="cp-btn primary" id="pr-copy" style="justify-content:center;width:100%"></button>
+      </div>
+      <div id="pr-err" style="color:var(--coral);font-size:13px;margin-top:10px"></div>
+      <button class="cp-btn ghost" id="pr-unpair" hidden style="margin-top:14px;justify-content:center;width:100%;color:var(--coral)"></button>
     </div>
   </div>
   <footer>Duonero · local-first · He/En</footer>
@@ -801,7 +864,7 @@ function render(){
   $('#greet').innerHTML=ic('leaf',17)+' '+t(hr<12?'greet_m':hr<18?'greet_a':'greet_e');
   $('#gsub').textContent=t('gsub');
   const days=Math.round((new Date(M.generatedAt)-new Date(M.cycle.start))/864e5)+1;
-  if(isC){const together=MY_SHARED+PARTNER.total;
+  if(isC){const together=(CV&&CV.model)?CV.model.netWorth.total:0;
     $('#hero-left').textContent=privacyOn?'••••••':NF(together);$('#hero-left').dataset.shown=together;$('#hero-left').dataset.cuToken='direct';
     $('#hero-left-k').textContent=t('cp_hero_k');renderCouple();}
   else{countUp($('#hero-left'),M.leftThisMonth);
@@ -831,7 +894,7 @@ function render(){
   $$('#goals .g-edit').forEach(b=>b.onclick=e=>{e.stopPropagation();openGoalModal(M.goals[+b.dataset.gi])});
   $$('#goals .g-del').forEach(b=>b.onclick=async e=>{e.stopPropagation();const g=M.goals[+b.dataset.gi];if(confirm(t('goal_del_c',{n:g.name}))){await api('/api/goals?id='+encodeURIComponent(g.id),'DELETE');refresh()}});
   $('#add-goal').onclick=()=>openGoalModal(null);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('.ring .fg').forEach((r,i)=>{const g=M.goals[i],pr=Math.min(1,g.currentAmount/g.targetAmount);r.style.strokeDashoffset=C2*(1-pr)})));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#goals .ring .fg').forEach((r,i)=>{const g=M.goals[i];if(!g)return;const pr=Math.min(1,g.currentAmount/g.targetAmount);r.style.strokeDashoffset=C2*(1-pr)})));
   const p=M.payslips[M.payslips.length-1],mine=p.pensionEmp+p.kerenEmp;
   $('#pay-h').textContent=t('pay_h');$('#pay-sub').textContent=t('pay_s',{m:p.month});
   const segs=[{k:t('tax'),v:p.tax,c:'#8A7E6D'},{k:t('pension'),v:mine,c:'#C76699'},{k:t('espp'),v:p.espp,c:'#DE9C1E'},{k:t('net'),v:p.net,c:'#16A78C'}];
@@ -870,7 +933,7 @@ $('#theme').onclick=()=>{dusk=!dusk;localStorage.setItem('kesefMood',dusk?'dusk'
 $$('#periods button').forEach(b=>b.onclick=()=>{period=b.dataset.p;render()});
 $$('[data-lang]').forEach(b=>b.onclick=()=>{lang=b.dataset.lang;localStorage.setItem('kesefLang',lang);render()});
 $('#eye').onclick=()=>{privacyOn=!privacyOn;localStorage.setItem('kesefPrivacy',privacyOn?'on':'off');render()};
-$$('#viewseg button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render();reskinBubs()});
+$$('#viewseg button').forEach(b=>b.onclick=()=>{view=b.dataset.view;render();reskinBubs();if(view==='couple')loadCouple(false)});
 /* ── autumn leaves: top-down drift; click = breeze ── */
 const hero=$('#hero'),bubbles=$('#bubbles');
 const LEAFC=[['#FFE9A8','#F7C843','#D9A210'],['#DFF3E0','#9CCFA6','#5E9468'],['#FFFFFF','#F4EEDD','#CFC5A6'],['#B6D9BC','#6FAE7C','#3F7A4E']];
@@ -995,34 +1058,66 @@ function openCat(cat){
 $('#cat-modal').addEventListener('click',e=>{if(e.target.id==='cat-modal'||e.target.closest('.mclose'))$('#cat-modal').classList.add('hidden')});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#cat-modal').classList.add('hidden')});
 /* ── couple view (demo partner data — simulated) ── */
-const PARTNER={total:96400,accounts:[{n:{he:'עו״ש לאומי',en:'Leumi checking'},v:12400},{n:{he:'קרן השתלמות',en:'Study fund'},v:34000},{n:{he:'קופת גמל',en:'Provident fund'},v:50000}],
-  spend:{groceries:640,dining:380,housing:1240},goal:{target:24000,mine:9800,partner:6400}};
-const MY_SHARED=M.composition.daily+M.composition.medium;
-const cvRow=(who,n,v,mx,c)=>`<div class="cv-row"><span class="who">${who}</span><span class="nm">${n}</span><span class="track"><span class="fill" style="width:${(v/mx*100).toFixed(1)}%;background:${c}"></span></span><span class="amt">${wealth(v)}</span></div>`;
+// Couple view driven by REAL data: CV = last {model, netWorthSeries, paired, partnerError, partnerAsOf}
+// from /api/couple/view (my side, partner empty) or /api/couple/sync (partner merged in). Each item is
+// owner-tagged ('me'|'partner'); private items are never sent — only what each side ticks to share.
+let CV = null;
+const partnerName = () => (M.couple && M.couple.partnerLabel) || t('cp_partner');
+const cvRow = (who, n, v, mx, c) => `<div class="cv-row"><span class="who">${who}</span><span class="nm">${esc(n)}</span><span class="track"><span class="fill" style="width:${mx > 0 ? (v / mx * 100).toFixed(1) : 0}%;background:${c}"></span></span><span class="amt">${wealth(v)}</span></div>`;
 function renderCouple(){
-  $('#cp-h').textContent=t('cp_together');$('#cp-s').textContent=t('cp_s');
-  $('#cp-note').innerHTML=ic('eye',14)+' '+t('cp_demo');
-  const together=MY_SHARED+PARTNER.total;
-  $('#cv-tiles').innerHTML=[[t('cp_you'),MY_SHARED,''],[t('cp_partner'),PARTNER.total,''],[t('cp_together'),together,'hl']]
-    .map(([k,v,cls])=>`<div class="cv-tile ${cls}"><div class="k">${k}</div><div class="v">${wealth(v)}</div></div>`).join('');
-  $('#cp-holds-h').textContent=t('cp_holds');
-  const mx=Math.max(MY_SHARED,...PARTNER.accounts.map(a=>a.v));
-  $('#cv-holds').innerHTML=cvRow(t('cp_you'),lang==='he'?'עו״ש + השקעות':'Checking + investments',MY_SHARED,mx,'var(--teal)')
-    +PARTNER.accounts.map(a=>cvRow(t('cp_partner'),a.n[lang],a.v,mx,'var(--gold)')).join('');
-  $('#cv-leg').innerHTML=`<span><span class="sw" style="background:var(--teal)"></span>${t('cp_you')}</span><span><span class="sw" style="background:var(--gold)"></span>${t('cp_partner')}</span>`;
-  $('#cp-spend-h').textContent=t('cp_spend_h');$('#cp-spend-s').textContent=t('cp_spend_s');
-  const cats=['housing','groceries','dining'];
-  const mine=k=>(M.cycle.byCategory.find(c=>c.category===k)||{amount:0}).amount;
-  const mxs=Math.max(...cats.map(k=>mine(k)+PARTNER.spend[k]));
-  $('#cv-spend').innerHTML=cats.map(k=>{const a=mine(k),b=PARTNER.spend[k];
-    return `<div class="cv-row"><span class="nm" style="flex-basis:86px">${tc(k)}</span><span class="track"><span class="fill" style="width:${(a/mxs*100).toFixed(1)}%;background:linear-gradient(180deg,#FFD86B,#D9A210)"></span><span class="fill" style="width:${(b/mxs*100).toFixed(1)}%;background:var(--gold);border-start-start-radius:0;border-end-start-radius:0"></span></span><span class="amt">${sh(a+b)}</span></div>`}).join('');
-  const g=PARTNER.goal,cur=g.mine+g.partner,pr=Math.min(1,cur/g.target),C3=2*Math.PI*24;
-  $('#cp-goal-h').textContent=t('cp_goal_h');$('#cp-goal-s').textContent=t('cp_goal_s')+' · '+t('cp_goal_hint');
-  const rem=g.target-cur,mC=6,each=rem/2/mC;
-  $('#cv-goal').innerHTML=`<div class="goal" id="cp-goal-row" style="border-top:0"><svg class="ring" viewBox="0 0 56 56"><circle class="bg" cx="28" cy="28" r="24"></circle><circle class="fg" cx="28" cy="28" r="24" stroke-dasharray="${C3}" style="stroke-dashoffset:${C3*(1-pr)}"></circle></svg><svg class="gtree" viewBox="0 0 40 48">${treeSVG(pr)}</svg><div><div class="gn">${t('cp_goal_name')}</div><div class="gp">${Math.round(pr*100)}%</div></div><div class="ga">${sh(cur)}<small>/ ${sh(g.target)}</small></div></div>
-  <div class="goal-tip" id="cp-goal-tip">${t('cp_tip',{a:sh(each),b:sh(each),m:mC})}</div>
-  <div class="cv-leg"><span><span class="sw" style="background:var(--teal)"></span>${t('cp_you')} ${sh(g.mine)}</span><span><span class="sw" style="background:var(--gold)"></span>${t('cp_partner')} ${sh(g.partner)}</span></div>`;
-  $('#cp-goal-row').onclick=()=>$('#cp-goal-tip').classList.toggle('open');
+  const paired = !!(M.couple && M.couple.paired);
+  const cm = CV && CV.model;
+  $('#cp-h').textContent = t('cp_together');
+  $('#cp-s').textContent = CV && CV.partnerError ? CV.partnerError : (paired ? t('cp_s') : t('cp_connect_hint'));
+  // action bar: connect/manage + (when paired) sync-with-partner
+  $('#cp-note').className = 'cp-actions';
+  $('#cp-note').innerHTML = `<button class="cp-btn primary" id="cp-connect">${ic(paired ? 'safe' : 'heart', 14)} ${paired ? t('cp_manage') : t('cp_connect')}</button>`
+    + (paired ? `<button class="cp-btn ghost" id="cp-syncp">${ic('sync', 14)} ${t('cp_sync')}</button>` : '');
+  $('#cp-connect').onclick = openPairing;
+  const sp = $('#cp-syncp'); if (sp) sp.onclick = syncCouple;
+  const me = cm ? cm.netWorth.me : 0, pa = cm ? cm.netWorth.partner : 0, tog = cm ? cm.netWorth.total : 0;
+  $('#cv-tiles').innerHTML = [[t('cp_you'), me, ''], [partnerName(), pa, ''], [t('cp_together'), tog, 'hl']]
+    .map(([k, v, cls]) => `<div class="cv-tile ${cls}"><div class="k">${esc(k)}</div><div class="v">${wealth(v)}</div></div>`).join('');
+  // holdings — owned accounts, bar-scaled
+  $('#cp-holds-h').textContent = t('cp_holds');
+  const accts = ((cm && cm.accounts) || []).filter(a => typeof a.balance === 'number');
+  const mx = Math.max(1, ...accts.map(a => Math.abs(a.balance)));
+  $('#cv-holds').innerHTML = accts.length
+    ? accts.map(a => cvRow(a.owner === 'me' ? t('cp_you') : partnerName(), a.name || a.label || '', a.balance, mx, a.owner === 'me' ? 'var(--teal)' : 'var(--gold)')).join('')
+    : `<p class="sub">${paired ? t('cp_waiting') : t('cp_none_shared')}</p>`;
+  $('#cv-leg').innerHTML = `<span><span class="sw" style="background:var(--teal)"></span>${t('cp_you')}</span><span><span class="sw" style="background:var(--gold)"></span>${esc(partnerName())}</span>`;
+  // shared spending (merged both sides)
+  $('#cp-spend-h').textContent = t('cp_spend_h'); $('#cp-spend-s').textContent = t('cp_spend_s');
+  const cats = ((cm && cm.spending && cm.spending.thisMonth.byCategory) || []).slice(0, 6);
+  const mxs = Math.max(1, ...cats.map(c => c.amount));
+  $('#cv-spend').innerHTML = cats.length
+    ? cats.map(c => `<div class="cv-row"><span class="nm" style="flex-basis:86px">${tc(c.category)}</span><span class="track"><span class="fill" style="width:${(c.amount / mxs * 100).toFixed(1)}%;background:${cc(c.category)}"></span></span><span class="amt">${sh(c.amount)}</span></div>`).join('')
+    : `<p class="sub">—</p>`;
+  // shared goals
+  $('#cp-goal-h').textContent = t('cp_goal_h'); $('#cp-goal-s').textContent = t('cp_goal_s');
+  const goals = (cm && cm.goals) || [], C3 = 2 * Math.PI * 24;
+  $('#cv-goal').innerHTML = goals.length
+    ? goals.map(g => { const pr = Math.min(1, g.currentAmount / g.targetAmount);
+      return `<div class="goal" style="border-top:0"><svg class="ring" viewBox="0 0 56 56"><circle class="bg" cx="28" cy="28" r="24"></circle><circle class="fg" cx="28" cy="28" r="24" stroke-dasharray="${C3}" style="stroke-dashoffset:${C3 * (1 - pr)}"></circle></svg><svg class="gtree" viewBox="0 0 40 48">${treeSVG(pr)}</svg><div><div class="gn">${esc(g.name)}</div><div class="gp">${Math.round(pr * 100)}% · ${g.owner === 'me' ? t('cp_you') : esc(partnerName())}</div></div><div class="ga">${wealth(g.currentAmount)}<small>/ ${wealth(g.targetAmount)}</small></div></div>`; }).join('')
+    : `<p class="sub">—</p>`;
+  renderShareControls(paired);
+}
+// "What to share": my accounts + goals with a switch each → POST /api/couple/share; only ticked items
+// leave the device. Hidden until paired.
+function renderShareControls(paired){
+  const card = $('#cv-share-card'); if (!card) return;
+  card.style.display = paired ? '' : 'none';
+  if (!paired) return;
+  $('#cp-share-h').textContent = t('cp_share_h'); $('#cp-share-s').textContent = t('cp_share_s');
+  const accts = (M.accounts || []).filter(a => typeof a.balance === 'number');
+  const goals = M.goals || [];
+  const row = (kind, id, name, bal, on) => `<label class="share-row"><span class="sr-name">${esc(name)}</span>${bal != null ? `<span class="sr-bal">${wealth(bal)}</span>` : ''}<span class="switch"><input type="checkbox" data-share="${kind}" data-id="${esc(String(id))}" ${on ? 'checked' : ''}><span class="sl"></span></span></label>`;
+  $('#cv-share').innerHTML = accts.map(a => row('account', a.id, a.name || a.id, a.balance, a.shareable)).join('')
+    + goals.map(g => row('goal', g.id, g.name, null, g.shareable)).join('');
+  $$('#cv-share input[data-share]').forEach(cb => cb.onchange = async () => {
+    await api('/api/couple/share', 'POST', { kind: cb.dataset.share, id: cb.dataset.id, shareable: cb.checked });
+    refresh();
+  });
 }
 // ═══ app behavior layer (real data + interactions the static prototype lacked) ═══
 Object.assign(T,{
@@ -1030,6 +1125,21 @@ Object.assign(T,{
   n_tx:{he:'תנועות',en:'transactions'},sync_lost:{he:'החיבור נותק',en:'connection lost'},
   cat_all:{he:'החל על כל {n}',en:'apply to all {n}'},
   nodata:{he:'עדיין אין נתונים — סנכרנו כדי להתחיל',en:'No data yet — sync to get started'},
+  sync_all:{he:'כל החשבונות',en:'All accounts'},login_phone:{he:'📱 התחברות בטלפון…',en:'📱 Log in by phone…'},
+  login_pick:{he:'לאיזה בנק? 1 = הבינלאומי · 2 = Cal',en:'Which bank? 1 = Beinleumi · 2 = Cal'},
+  login_prompt:{he:'הדביקו את כתובת דף ההתחברות (QR/אפליקציה) של הבנק:',en:'Paste the bank’s phone/QR login page URL:'},
+  login_saved:{he:'נשמר. בסנכרון הבא ייפתח הדף הזה.',en:'Saved. Next sync opens that page.'},
+  cp_connect:{he:'חיבור בן/בת זוג',en:'Connect a partner'},cp_manage:{he:'ניהול חיבור',en:'Manage connection'},
+  cp_sync:{he:'סנכרון עם בן/בת הזוג',en:'Sync with partner'},cp_waiting:{he:'ממתינים לסנכרון הראשון של בן/בת הזוג…',en:'Waiting for your partner’s first sync…'},
+  cp_connect_hint:{he:'חברו את שניכם דרך רלֵיי משותף — כל אחד רואה רק מה שהשני בחר לשתף.',en:'Connect through a shared relay — each sees only what the other chose to share.'},
+  cp_share_h:{he:'מה לשתף',en:'What to share'},cp_share_s:{he:'רק מה שתסמנו יגיע לבן/בת הזוג',en:'only what you tick reaches your partner'},
+  cp_as_of:{he:'עודכן',en:'updated'},cp_none_shared:{he:'עדיין לא שיתפתם כלום — סמנו חשבון או יעד',en:'nothing shared yet — tick an account or goal'},
+  pair_title:{he:'חיבור בן/בת זוג',en:'Connect a partner'},pair_relay_l:{he:'כתובת רלֵיי (משותפת לשניכם)',en:'Relay URL (shared by both of you)'},
+  pair_label_l:{he:'כינוי לבן/בת הזוג (לא חובה)',en:'Partner nickname (optional)'},
+  pair_create:{he:'צרו הזמנה',en:'Create an invite'},pair_or:{he:'— או —',en:'— or —'},pair_code_l:{he:'הדביקו קוד הזמנה',en:'Paste an invite code'},
+  pair_join:{he:'הצטרפו עם קוד',en:'Join with a code'},pair_invite_h:{he:'שלחו את הקוד הזה לבן/בת הזוג:',en:'Send this code to your partner:'},
+  pair_copy:{he:'העתקה',en:'Copy'},pair_copied:{he:'הועתק ✓',en:'Copied ✓'},pair_unpair:{he:'ניתוק',en:'Disconnect'},
+  pair_need_relay:{he:'צריך כתובת רלֵיי',en:'relay URL required'},pair_need_code:{he:'צריך קוד הזמנה',en:'invite code required'},
   goal_add:{he:'יעד חדש',en:'New goal'},goal_edit:{he:'עריכה',en:'Edit'},goal_del:{he:'מחיקה',en:'Delete'},
   goal_del_c:{he:'למחוק את "{n}"?',en:'Delete "{n}"?'},
   gm_new:{he:'יעד חדש',en:'New goal'},gm_edit:{he:'עריכת יעד',en:'Edit goal'},
@@ -1077,10 +1187,11 @@ function openCatPop(h){
 // sync: SSE progress overlay, then refresh (per-source menu + phone login return in the next pass)
 let _es=null;
 function setSyncStep(src,mk,msg,err){const box=$('#sync-steps');let el=box.querySelector('[data-s="'+CSS.escape(src)+'"]');if(!el){el=document.createElement('div');el.className='sync-step';el.dataset.s=src;el.innerHTML='<span class="st-ic"></span><span class="st-name"></span><span class="st-msg"></span>';box.appendChild(el)}el.classList.toggle('err',!!err);el.querySelector('.st-ic').textContent=mk;el.querySelector('.st-name').textContent=src;el.querySelector('.st-msg').textContent=msg||''}
-function startSync(){
+function startSync(only){
   if(_es)return;
+  $('#sync-menu').classList.add('hidden');
   $('#sync').classList.add('spin');$('#sync-ov').classList.remove('hidden');$('#sync-steps').innerHTML='';$('#sync-h').textContent=t('syncing');$('#sync-close').style.display='none';
-  _es=new EventSource('/api/sync');
+  _es=new EventSource('/api/sync'+(only?'?only='+encodeURIComponent(only):''));
   _es.onmessage=m=>{let e;try{e=JSON.parse(m.data)}catch{return}
     if(e.type==='source-start')setSyncStep(e.source,'⏳',e.hint||'…');
     else if(e.type==='source-done')setSyncStep(e.source,'✓',e.value!=null?sh(e.value):((e.transactions||0)+' '+t('n_tx')));
@@ -1090,8 +1201,25 @@ function startSync(){
   _es.onerror=()=>{if(_es){setSyncStep('sync','⚠',t('sync_lost'),true);stopSync(true)}};
 }
 function stopSync(keepOpen){if(_es){_es.close();_es=null}$('#sync').classList.remove('spin');$('#sync-close').style.display='';if(!keepOpen)$('#sync-ov').classList.add('hidden')}
-$('#sync').onclick=startSync;$('#sync').innerHTML=ic('sync');
+$('#sync').innerHTML=ic('sync');
+$('#sync').onclick=e=>{e.stopPropagation();$('#sync-menu').classList.toggle('hidden')};
 $('#sync-close').onclick=()=>$('#sync-ov').classList.add('hidden');
+$('#sync-menu .sm-item[data-only=""]').textContent=t('sync_all');
+$('#sync-menu .sm-login').textContent=t('login_phone');
+$$('#sync-menu .sm-item').forEach(it=>it.onclick=e=>{e.stopPropagation();if(it.dataset.login)setupPhoneLogin();else startSync(it.dataset.only||'')});
+document.addEventListener('click',e=>{if(!e.target.closest('.sync-wrap'))$('#sync-menu').classList.add('hidden')});
+// set a bank's phone/QR login page (opens in a browser at sync time instead of user+password)
+async function setupPhoneLogin(){
+  $('#sync-menu').classList.add('hidden');
+  const cur=(await api('/api/login-url')).data||{};
+  const which=(prompt(t('login_pick'),'1')||'').trim();
+  const source=which==='2'?'cal':which==='1'?'beinleumi':'';
+  if(!source)return;
+  const url=prompt(t('login_prompt'),cur[source]||'');
+  if(url===null)return;
+  const r=await api('/api/login-url','POST',{source,url:url.trim()});
+  alert(r.ok?t('login_saved'):(r.data.error||'error'));
+}
 // ── goal add/edit/delete ──
 function openGoalModal(g){
   $('#gm-ic').innerHTML=ic('target',15);
@@ -1163,6 +1291,51 @@ $('#pay-add').onclick=()=>openPayModal(null);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#goal-modal').classList.add('hidden');$('#pay-modal').classList.add('hidden')}});
 // keep the (static) paycheck "+ Payslip" button label fresh across re-renders / lang switches
 const _origRender=render;render=function(){_origRender();const pa=$('#pay-add');if(pa)pa.textContent=t('pay_edit')};
+// ── couple: load my side (+ partner when synced), and the pairing modal ──
+async function loadCouple(doSync){
+  const r=await api(doSync?'/api/couple/sync':'/api/couple/view',doSync?'POST':'GET');
+  if(r.ok&&r.data){CV={model:r.data.model,netWorthSeries:r.data.netWorthSeries||[],paired:r.data.paired,partnerError:r.data.partnerError||r.data.error||null,partnerAsOf:r.data.partnerAsOf||null};}
+  if(view==='couple')render();
+}
+async function syncCouple(){
+  const sp=$('#cp-syncp'); if(sp){sp.disabled=true;const i=sp.querySelector('svg');if(i)i.style.animation='spin 1s linear infinite';}
+  await loadCouple(true);
+}
+function openPairing(){
+  const c=M.couple||{};
+  $('#pr-ic').innerHTML=ic('heart',15);$('#pr-title').textContent=t('pair_title');
+  $('#pr-l-relay').textContent=t('pair_relay_l');$('#pr-l-label').textContent=t('pair_label_l');
+  $('#pr-l-code').textContent=t('pair_code_l');$('#pr-or').textContent=t('pair_or');
+  $('#pr-create').textContent=t('pair_create');$('#pr-join').textContent=t('pair_join');
+  $('#pr-invite-h').textContent=t('pair_invite_h');$('#pr-copy').textContent=t('pair_copy');$('#pr-unpair').textContent=t('pair_unpair');
+  $('#pr-relay').value=c.relayUrl||'';$('#pr-label').value=c.partnerLabel||'';$('#pr-code').value='';
+  $('#pr-err').textContent='';$('#pr-invite').hidden=true;$('#pr-unpair').hidden=!c.paired;
+  $('#pair-modal').classList.remove('hidden');
+}
+{
+  const fail=m=>$('#pr-err').textContent=m;
+  $('#pr-create').onclick=async()=>{
+    const relayUrl=$('#pr-relay').value.trim();if(!relayUrl)return fail(t('pair_need_relay'));
+    $('#pr-create').disabled=true;fail('');
+    const r=await api('/api/couple/pair','POST',{relayUrl,partnerLabel:$('#pr-label').value.trim()||undefined});
+    $('#pr-create').disabled=false;
+    if(!r.ok)return fail(r.data.error||'error');
+    $('#pr-invite-code').textContent=r.data.token;$('#pr-invite').hidden=false;$('#pr-unpair').hidden=false;
+  };
+  $('#pr-join').onclick=async()=>{
+    const relayUrl=$('#pr-relay').value.trim();if(!relayUrl)return fail(t('pair_need_relay'));
+    const token=$('#pr-code').value.trim();if(!token)return fail(t('pair_need_code'));
+    $('#pr-join').disabled=true;fail('');
+    const r=await api('/api/couple/pair','POST',{mode:'join',relayUrl,token,partnerLabel:$('#pr-label').value.trim()||undefined});
+    $('#pr-join').disabled=false;
+    if(!r.ok)return fail(r.data.error||'error');
+    $('#pair-modal').classList.add('hidden');await refresh();loadCouple(true);
+  };
+  $('#pr-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#pr-invite-code').textContent);$('#pr-copy').textContent=t('pair_copied');}catch{}};
+  $('#pr-unpair').onclick=async()=>{$('#pr-unpair').disabled=true;await api('/api/couple/unpair','POST');$('#pair-modal').classList.add('hidden');CV=null;await refresh();loadCouple(false);};
+  $('#pr-close').onclick=()=>{$('#pair-modal').classList.add('hidden');refresh();};
+  $('#pair-modal').onclick=e=>{if(e.target.id==='pair-modal'){$('#pair-modal').classList.add('hidden');refresh();}};
+}
 // init
 applyMood();
 if(!M){
