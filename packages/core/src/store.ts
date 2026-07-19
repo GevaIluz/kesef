@@ -228,8 +228,12 @@ export class Store {
 
   deletePayslip(month: string): void { this.db.prepare('DELETE FROM payslips WHERE month = ?').run(month); }
 
-  /** Save (upsert) the couple pairing metadata. Secret S_pair is NOT stored here. */
+  /** Save (upsert) the couple pairing metadata. Secret S_pair is NOT stored here.
+   *  v1 keeps AT MOST ONE pairing: drop any other pairing rows first, otherwise re-pairing (Create/Join
+   *  without an explicit unpair) leaves stale rows and getPairing()'s "most recent" pick becomes ambiguous
+   *  (all rows share a created_at date) — which silently kept a device on an old pairing. */
   setPairing(p: CouplePairing): void {
+    this.db.prepare('DELETE FROM couple_pairing WHERE pairing_id != @pairingId').run({ pairingId: p.pairingId });
     this.db.prepare(
       `INSERT INTO couple_pairing (pairing_id, role, partner_label, relay_url, created_at, local_seq, partner_seq)
        VALUES (@pairingId, @role, @partnerLabel, @relayUrl, @createdAt, @localSeq, @partnerSeq)
