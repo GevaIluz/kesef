@@ -8,6 +8,13 @@ import { kesefDir } from './paths.js';
 export type LoginSource = 'beinleumi' | 'cal';
 const cfgPath = () => join(kesefDir(), 'logins.json');
 
+// Sensible defaults so phone/QR login works out of the box — no per-machine setup. Beinleumi's
+// private-banking entry offers "sign in with the app" (QR) instead of a typed password. An explicit
+// entry in logins.json always wins (including "" to force the library's default password page).
+const DEFAULT_LOGIN_URL: Partial<Record<LoginSource, string>> = {
+  beinleumi: 'https://www.fibi.co.il/private/',
+};
+
 function readAll(): Record<string, string> {
   try {
     const j = JSON.parse(readFileSync(cfgPath(), 'utf8'));
@@ -15,10 +22,15 @@ function readAll(): Record<string, string> {
   } catch { return {}; }
 }
 
-/** The user-configured login URL for a source, or undefined to use the library default. */
+/** The login URL for a source: explicit config wins; else the built-in QR default; else undefined
+ *  (library default password page). `source in all` lets an explicit "" opt back out of the default. */
 export function loginUrlFor(source: LoginSource): string | undefined {
-  const u = readAll()[source];
-  return typeof u === 'string' && u.trim() ? u.trim() : undefined;
+  const all = readAll();
+  if (source in all) {
+    const u = all[source];
+    return typeof u === 'string' && u.trim() ? u.trim() : undefined;
+  }
+  return DEFAULT_LOGIN_URL[source];
 }
 
 export function setLoginUrl(source: LoginSource, url: string): void {
