@@ -375,6 +375,12 @@
   .cat-chip:hover,.h-chip:hover{background:color-mix(in srgb,var(--chip-color,#888) 24%,transparent);transform:scale(1.04)}
   .cat-chip .cc-icon,.h-chip .cc-icon{font-size:12px}
   .h-chip{padding:3px 7px;flex:0 0 auto} /* icon-only — a "small" picker per account/component row */
+  /* b9 recent row: name+meta stack, plain tappable category text (no pill) */
+  .tx .tx-main{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .cat-text{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;
+    border-bottom:1px dotted color-mix(in srgb,currentColor 40%,transparent);transition:color .15s}
+  .cat-text:hover{color:var(--teal-ink)}
+  body.dusk .cat-text:hover{color:#BFE8C8}
   /* picker overlay */
   .cat-picker-wrap{position:relative;display:inline-block}
   .cat-picker{position:absolute;z-index:500;top:calc(100% + 6px);inset-inline-start:0;min-width:180px;
@@ -566,6 +572,9 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
 
   footer{margin-top:36px;text-align:center;font-size:12px;color:var(--ink-soft)}
   footer b{color:var(--teal-ink);font-family:var(--round)}
+  footer .duo{color:var(--teal-ink)}
+  footer .nero{color:#E9AE14;background:linear-gradient(180deg,#FFD86B,var(--gold) 55%,#DE9C1E);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  body.dusk footer .duo{color:#CFE7D2}
 
   @keyframes rise{to{opacity:1;transform:none}}
   @keyframes fade{to{opacity:1}}
@@ -590,6 +599,10 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   .panel-tabs{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
   .panel-tab{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.2s;background:color-mix(in srgb,var(--ink) 6%,transparent)}
   .panel-tab[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:var(--shadow-sm)}
+  /* dusk: recent card goes borderless like the b9 cards; filter pills become legible */
+  body.dusk .recent{background:transparent;box-shadow:none;border-radius:0;padding:30px 8px 26px}
+  body.dusk .panel-tab{background:rgba(255,255,255,.09);color:#C6D2BD;box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+  body.dusk .panel-tab[aria-pressed="true"]{background:linear-gradient(180deg,#D6F3DC,#AEDDBA);color:#123B24;box-shadow:0 2px 12px rgba(174,221,186,.4)}
 
   /* drawer — appears below the triggering card */
   .drawer{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 24px;margin-top:14px;
@@ -1116,7 +1129,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   </div>
 
   <div class="pond" aria-hidden="true"><span class="glint"></span><span class="pring" style="left:30%;top:52%;width:200px;height:44px;margin:-22px 0 0 -100px"></span><span class="pring" style="left:66%;top:66%;width:160px;height:36px;margin:-18px 0 0 -80px;animation-delay:2.8s"></span></div>
-  <footer><span data-t="footer">kesef · local-first · </span><b>kesef</b> · He/En</footer>
+  <footer><span data-t="footer">Duonero · local-first · </span><b><span class="duo">duo</span><span class="nero">nero</span></b> · He/En</footer>
 </div>
 
 <script>
@@ -1228,7 +1241,7 @@ const T = {
   m_end:     { en: 'now',            he: 'היום' },
   privacy:   { en: 'Couple view adds only what you each chose to share. Personal stuff stays private.',
                he: 'התצוגה הזוגית מוסיפה רק מה שכל אחד בחר לשתף. הפרטי נשאר פרטי.' },
-  footer:    { en: 'kesef · local-first · ', he: 'כסף · מקומי · ' },
+  footer:    { en: 'Duonero · local-first · ', he: 'דואנרו · מקומי · ' },
   no_data:   { en: "No data yet — press Sync and log in to your accounts in the windows that open.",
                he: "אין נתונים עדיין — לחצו סנכרון והתחברו לחשבונות בחלונות שנפתחים." },
   period_thisMonth: { en: 'This month', he: 'החודש' },
@@ -1689,20 +1702,9 @@ function renderGoals(goals, generatedAt) {
     const dueLabel = g.targetDate
       ? `${t('by_date')} ${g.targetDate}`
       : '';
-    // per-goal monthly plan: how much to set aside each month to reach it by its target date
-    let hintHtml = '';
-    if (!done) {
-      if (g.targetDate) {
-        const needed = Math.ceil((tgt - cur) / monthsUntil(g.targetDate, generatedAt));
-        if (needed > 0) hintHtml = `<div class="goal-monthly">${ic('piggy')} ${wealth(needed)}${t('goal_per_month')}</div>`;
-      } else {
-        hintHtml = `<div class="goal-monthly muted">${ic('cal')} ${t('goal_need_date')}</div>`;
-      }
-    }
-    // projection graph: the path from where you are now to the target by the deadline (dashed = plan)
-    const projHtml = (g.targetDate && !done)
-      ? `${miniSparkSvg([{ date: generatedAt || '', balance: cur }, { date: g.targetDate, balance: tgt }], '--teal-ink', true)}<div class="acc-spark-lbl"><span>${t('goal_today')} · ${wealth(cur)}</span><span>${t('by_date')} ${g.targetDate} · ${wealth(tgt)}</span></div>`
-      : '';
+    // b9 goal row is clean: ring · tree · name/% · amount. The monthly-plan hint and the
+    // projection graph live in the tap-to-open smart tip (goalTip) — not inline — so the list
+    // reads like the design instead of a stack of chips and dashed lines.
     return `<div class="goal-item">
       <div class="goal">
         <svg class="ring ${done ? 'done' : ''}" viewBox="0 0 58 58">
@@ -1713,12 +1715,10 @@ function renderGoals(goals, generatedAt) {
         <div style="flex:1;min-width:0">
           <div class="gn">${esc(g.name)}</div>
           <div class="gp">${Math.round(pc * 100)}%${done ? ' · ✓ ' + t('goal_done') : (dueLabel ? ' · ' + dueLabel : '')}</div>
-          ${hintHtml}
         </div>
         <div class="ga">${wealth(cur)}<small>${lang === 'en' ? 'of' : 'מתוך'} ${wealth(tgt)}</small></div>
         <button class="goal-del" data-goal-id="${esc(String(g.id || ''))}" title="${lang === 'en' ? 'Remove goal' : 'מחק יעד'}" aria-label="${lang === 'en' ? 'Remove' : 'מחק'}">×</button>
       </div>
-      ${projHtml}
       ${shareHtml ? `<div style="display:flex;justify-content:flex-end;margin-top:8px">${shareHtml}</div>` : ''}
     </div>`;
   }).join('');
@@ -2068,6 +2068,15 @@ function catChipHtml(tx) {
   </span>`;
 }
 
+// b9 recent row: category shown as plain tappable text (no pill, no icon) — opens the same picker.
+function catTextHtml(tx) {
+  const cat = tx.category || 'other';
+  return `<span class="cat-picker-wrap cat-text-wrap" data-txn-id="${esc(String(tx.id || ''))}" data-cur-cat="${esc(cat)}" data-merchant="${esc(String(tx.merchant || ''))}">
+    <button class="cat-text" title="${t('change_category')}" aria-label="${t('change_category')}: ${cl(cat)}">${cl(cat)}</button>
+    <div class="cat-picker" role="listbox" aria-label="${t('change_category')}"></div>
+  </span>`;
+}
+
 // how many transactions (this period-agnostic full list) share this merchant
 function merchantTxnCount(merchant) {
   if (!merchant) return 0;
@@ -2149,7 +2158,7 @@ document.addEventListener('click', e => {
 
 function attachChipHandlers(root) {
   (root || document).querySelectorAll('.cat-picker-wrap').forEach(wrap => {
-    const btn = wrap.querySelector('.cat-chip');
+    const btn = wrap.querySelector('.cat-chip, .cat-text');
     if (btn) btn.onclick = (e) => {
       e.stopPropagation();
       const picker = wrap.querySelector('.cat-picker');
@@ -2262,13 +2271,15 @@ function renderTxs(recent) {
     const icon = catIcon(cat);
     const sign = tx.amount >= 0 ? 1 : -1;
     const abs = Math.abs(tx.amount);
-    const dateStr = tx.date ? tx.date.slice(0, 10) : '';
-    return `<div class="tx">
-      <span class="ic" style="--c:${catColor(cat)}">${icon}</span>
-      <div style="flex:1;min-width:0">
-        <div class="n">${esc(tx.description || '')}</div>
-        <div class="c">${dateStr ? dateStr + ' · ' : ''}${catChipHtml(tx)}</div>
-      </div>
+    const dateStr = tx.date ? fmtSparkDate(tx.date) : '';
+    // b9 row: one leading icon tile, name + "category · date" as muted text, amount trailing.
+    // Category stays tappable (recategorize) but renders as plain text — no second circle/pill.
+    return `<div class="tx" style="--c:${catColor(cat)}">
+      <span class="ic">${icon}</span>
+      <span class="tx-main">
+        <div class="n">${esc(tx.description || tx.merchant || '')}</div>
+        <div class="c">${catTextHtml(tx)}${dateStr ? ' · ' + dateStr : ''}</div>
+      </span>
       <span class="a ${sign > 0 ? 'pos' : ''}">${sign > 0 ? '+' : '−'}₪${NF(abs)}</span>
     </div>`;
   }).join('');
