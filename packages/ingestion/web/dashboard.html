@@ -28,7 +28,11 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;bac
   radial-gradient(46% 40% at -6% 10%, color-mix(in srgb,var(--coral) 26%,transparent), transparent 70%),
   radial-gradient(42% 38% at 52% 106%, color-mix(in srgb,var(--teal) 22%,transparent), transparent 70%);opacity:.55}
 .wrap{position:relative;z-index:1;max-width:1060px;margin:26px auto 46px;padding:28px clamp(18px,4vw,40px) 60px}
-body.dusk .wrap{background:rgba(255,255,255,.07);backdrop-filter:blur(22px) saturate(1.15);border:1px solid rgba(255,255,255,.16);border-radius:36px;box-shadow:0 60px 120px -50px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.18)}
+/* NOTE: no backdrop-filter here on purpose. A blur() on this full-page scrolling panel makes the GPU
+   re-blur the whole animated forest/fireflies/leaves every frame → severe lag on some Macs. The
+   translucent fill + border + shadow keep the glass look without the per-frame cost. Small transient
+   elements (chips, modals, popovers) keep their blur — cheap because they're tiny. */
+body.dusk .wrap{background:rgba(16,40,30,.35);border:1px solid rgba(255,255,255,.14);border-radius:36px;box-shadow:0 60px 120px -50px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.16)}
 svg.ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-.12em;flex:0 0 auto}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;opacity:0;animation:drop .7s .1s cubic-bezier(.2,.9,.3,1.2) forwards}
 .mark{font-family:var(--round);font-size:26px;margin-inline-end:auto;display:flex;align-items:center;gap:10px}
