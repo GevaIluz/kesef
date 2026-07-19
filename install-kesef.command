@@ -49,7 +49,14 @@ fi
 # ── Download (or update) kesef ───────────────────────────────────────────────
 if [ -d "$DEST/.git" ]; then
   echo "→  Updating kesef in $DEST …"
-  git -C "$DEST" pull --ff-only || { echo "✗  Update failed."; exit 1; }
+  git -C "$DEST" fetch origin --quiet || { echo "✗  Update failed (couldn't reach GitHub)."; exit 1; }
+  # This is a read-only consumer checkout (your money lives in ~/.kesef, never here), so any local
+  # drift — e.g. npm rewriting package-lock.json — is safe to discard. Fast-forward if we can,
+  # otherwise snap to the published version so an update never gets stuck.
+  if ! git -C "$DEST" merge --ff-only origin/main --quiet 2>/dev/null; then
+    echo "→  Local changes detected — snapping to the latest published version…"
+    git -C "$DEST" reset --hard origin/main --quiet || { echo "✗  Update failed."; exit 1; }
+  fi
 else
   echo "→  Downloading kesef to $DEST …"
   git clone "$REPO" "$DEST" || { echo "✗  Download failed."; exit 1; }
