@@ -162,18 +162,24 @@ export async function syncWithPartner(store: Store, vault: SecretVault, now: str
   let partnerAsOf: string | undefined;
 
   if (partnerData) {
-    if (partnerData.seq <= pairing.partnerSeq) {
+    // Always OPEN the partner's current blob when the relay has one — the relay only ever holds the
+    // latest per slot, so it's never really "stale". Skip only a genuine regression (a strictly older
+    // seq than we've already accepted). The old `<=` treated an UNCHANGED partner (seq == what we last
+    // saw) as stale and dropped them to ₪0 on every repeat sync — that was the "resets to 0" bug.
+    if (partnerData.seq < pairing.partnerSeq) {
       partnerError = 'partner data is stale (already have a newer version)';
     } else {
       try {
         partner = openCoupleBlob(partnerData.blob, keys.dataKey, { pairingId: pairing.pairingId, slot: partnerSlot, seq: partnerData.seq });
         partnerAsOf = partner.generatedAt;
-        next = { ...next, partnerSeq: partnerData.seq };
-        store.setPairing(next);
-        // F2 — a couple net-worth point ONLY on a successful partner open; last sync of the day wins
-        // (date PK). `mine` is MY FULL total (private items included) so the trend matches the couple
-        // hero it sits under (my full side + partner's shared side). Local-only — nothing extra leaves.
-        store.upsertCoupleSnapshot({ date: now, mine: myFull.netWorth.total, partner: partner.netWorth.total });
+        // Advance the accepted seq + record a couple net-worth point only when this is genuinely NEWER,
+        // not on a re-show of the same version.
+        if (partnerData.seq > pairing.partnerSeq) {
+          next = { ...next, partnerSeq: partnerData.seq };
+          store.setPairing(next);
+          // F2 — couple net-worth point; `mine` is MY FULL total so the trend matches the couple hero.
+          store.upsertCoupleSnapshot({ date: now, mine: myFull.netWorth.total, partner: partner.netWorth.total });
+        }
       } catch {
         partnerError = "couldn't read your partner's data (corrupted or from a different pairing)";
       }
