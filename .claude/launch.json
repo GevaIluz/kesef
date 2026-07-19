@@ -4,14 +4,19 @@
     {
       "name": "kesef",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "app"],
+      "runtimeArgs": [
+        "run",
+        "app"
+      ],
       "autoPort": true,
-      "port": 8750
+      "port": 8751
     },
     {
       "name": "kesef-mockup",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["mockups/serve.mjs"],
+      "runtimeArgs": [
+        "mockups/serve.mjs"
+      ],
       "autoPort": true,
       "port": 8742
     }

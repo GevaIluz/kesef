@@ -94,17 +94,32 @@
       radial-gradient(34% 26% at 90% -5%, rgba(247,200,67,.16), transparent 70%),
       radial-gradient(28% 22% at 4% -3%, rgba(110,165,140,.13), transparent 70%)}
 
-  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin-inline:auto;padding:26px clamp(16px,4vw,34px) 80px}
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:26px auto 46px;padding:26px clamp(16px,4vw,34px) 80px}
+  /* b9: the whole page floats in one frosted-glass panel on the dusk forest */
+  body.dusk .wrap{background:rgba(255,255,255,.07);backdrop-filter:blur(22px) saturate(1.15);-webkit-backdrop-filter:blur(22px) saturate(1.15);border:1px solid rgba(255,255,255,.16);border-radius:36px;box-shadow:0 60px 120px -50px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.18)}
+  @media(max-width:560px){.wrap{margin:0 auto}body.dusk .wrap{border-radius:0;border-inline:0;border-top:0}}
+  /* b9: geometric line icons */
+  svg.ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-.12em;flex:0 0 auto}
+  .hic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;font-size:15px;color:#fff;flex:0 0 auto;background:linear-gradient(160deg,var(--hc,#16A78C),color-mix(in srgb,var(--hc,#0C7A66) 70%,#000 12%));box-shadow:0 5px 10px -4px color-mix(in srgb,var(--hc,#0C7A66) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.4)}
+  .gic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:#fff;background:linear-gradient(160deg,#FFC855,#DE9C1E);box-shadow:0 4px 9px -3px rgba(190,130,20,.6),inset 0 1px 0 rgba(255,255,255,.5);flex:0 0 auto;font-size:14px}
+  .gift{margin-top:14px;font-size:13.5px;background:linear-gradient(180deg,color-mix(in srgb,var(--gold) 22%,#fff),color-mix(in srgb,var(--gold) 14%,#fff));border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);border-radius:18px;padding:13px 16px;display:flex;gap:11px;align-items:flex-start;box-shadow:0 8px 18px -10px color-mix(in srgb,var(--gold) 55%,transparent),inset 0 1px 0 rgba(255,255,255,.7)}
+  .gift b{font-family:var(--round);color:var(--teal-ink)}
+  .horizon-tile .hzic{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;color:#fff;font-size:12px;background:linear-gradient(160deg,var(--hz),color-mix(in srgb,var(--hz) 70%,#000 20%));box-shadow:inset 0 1px 0 rgba(255,255,255,.3);flex:0 0 auto}
+  .piggywrap{position:relative;display:inline-flex}
+  .piggywrap .dropc{position:absolute;top:-11px;inset-inline-start:4px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFE9A8,#F7C843 60%,#D9A210);opacity:0;animation:coindrop 4.5s 1.8s ease-in infinite}
+  @keyframes coindrop{0%{opacity:0;transform:translateY(-8px)}6%{opacity:1}22%{transform:translateY(4px) scaleY(1);opacity:1}30%{transform:translateY(8px) scaleY(.35);opacity:0}100%{opacity:0}}
 
   header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px}
   .brand{display:flex;align-items:baseline;gap:10px;margin-inline-end:auto}
   .brand .mark{font-family:var(--round);font-size:30px;color:var(--teal-ink);letter-spacing:.01em}
   .brand .mark b{color:var(--coral)}
   .brand .tag{font-size:12.5px;color:var(--ink-soft)}
-  .seg{display:inline-flex;flex-wrap:wrap;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:4px;gap:2px}
-  .seg button{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:8px 15px;border-radius:999px;cursor:pointer;transition:.25s;white-space:nowrap}
-  .seg button[aria-pressed="true"]{background:var(--card);color:var(--teal-ink);box-shadow:var(--shadow-sm)}
-  .icon-btn{width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:0;background:var(--card);color:var(--ink);cursor:pointer;font-size:17px;box-shadow:var(--shadow-sm);transition:.25s}
+  .seg{display:inline-flex;flex-wrap:wrap;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:999px;padding:4px;gap:2px;box-shadow:inset 0 1px 3px rgba(70,45,15,.08)}
+  .seg button{font-family:var(--round);font-size:13px;color:var(--ink-soft);background:none;border:0;padding:7px 14px;border-radius:999px;cursor:pointer;transition:.2s;white-space:nowrap}
+  .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#FFFFFF,#FFF7EA);color:var(--teal-ink);box-shadow:0 2px 6px rgba(70,45,15,.14),inset 0 1px 0 #fff}
+  .icon-btn{width:42px;height:42px;display:grid;place-items:center;border-radius:999px;border:0;background:linear-gradient(180deg,#FFFFFF,#FFF6E8);color:var(--teal-ink);cursor:pointer;font-size:18px;box-shadow:var(--shadow-sm),inset 0 1px 0 #fff;transition:transform .25s cubic-bezier(.2,.9,.3,1.4),box-shadow .25s}
+  .icon-btn:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift),inset 0 1px 0 #fff}
+  .icon-btn:active{transform:translateY(0) scale(.95)}
   .icon-btn:hover{transform:translateY(-2px) rotate(-8deg);box-shadow:var(--shadow-lift)}
 
   /* SYNC button + progress overlay */
@@ -206,23 +221,29 @@
   .card{background:transparent;border-radius:0;padding:30px 10px 26px;box-shadow:none;opacity:0;transform:translateY(14px);animation:rise .6s forwards}
   .card::before{content:"";display:block;height:1px;max-width:560px;margin:0 auto 28px;background:linear-gradient(90deg,transparent,rgba(120,100,60,.22),transparent)}
   .card:hover{box-shadow:none}
-  .card h3{font-family:var(--round);font-size:19px;margin:0 0 3px}
+  .card h3{font-family:var(--round);font-size:18px;margin:0 0 3px;display:flex;align-items:center;gap:9px}
   .card .sub{font-size:13px;color:var(--ink-soft);margin:0 0 18px}
   /* headlines in Title Case (each word capitalised); Hebrew is unaffected by text-transform */
   .card h3, .recent h3, .drawer-head h4, .sync-card h3, .stat .k, .acc-group-h{text-transform:capitalize}
 
   /* ── SVG DONUT ─────────────────────────────────────────────────────────── */
   .donut-row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
-  .donut-wrap{width:160px;height:160px;flex:0 0 auto;position:relative;opacity:0;transform:scale(.6) rotate(-14deg);animation:donut .8s .2s forwards cubic-bezier(.2,.85,.25,1)}
-  .donut-wrap svg{width:160px;height:160px;overflow:visible;display:block}
-  .donut-seg{cursor:pointer;transition:transform .18s,opacity .18s;transform-origin:50% 50%;transform-box:fill-box}
-  .donut-seg:hover,.donut-seg.seg-hover{transform:scale(1.04);opacity:1 !important}
+  .donut-wrap{width:216px;height:216px;flex:0 0 auto;position:relative;filter:drop-shadow(0 10px 16px rgba(70,45,15,.18))}
+  .donut-wrap svg{width:216px;height:216px;overflow:visible;display:block}
+  #spend-card .donut-row{gap:34px}
+  @media(max-width:560px){.donut-wrap,.donut-wrap svg{width:180px;height:180px}.donut-row{flex-direction:column;gap:18px}}
+  .donut-seg{cursor:pointer;transition:transform .18s cubic-bezier(.2,.9,.3,1.4),opacity .18s;transform-origin:50% 50%;transform-box:fill-box}
+  @keyframes segIn{from{opacity:0;transform:scale(.75)}to{opacity:1;transform:none}}
+  .donut-seg:hover,.donut-seg.seg-hover{transform:scale(1.05);opacity:1 !important}
   .donut-seg.seg-dim{opacity:.35}
   .donut-center-label{pointer-events:none;font-family:var(--round);font-variant-numeric:tabular-nums}
-  .legend{display:grid;gap:11px;flex:1 1 150px;min-width:150px}
-  .legend .row{display:flex;align-items:center;gap:10px;font-size:14px}
+  .legend{display:grid;gap:8px;flex:1 1 170px;min-width:170px}
+  #spend-card .legend{grid-template-columns:1fr 1fr;gap:8px 26px}
+  @media(max-width:640px){#spend-card .legend{grid-template-columns:1fr}}
+  .legend .row{display:flex;align-items:center;gap:10px;font-size:13.5px}
+  .legend .lic{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:13px;color:#fff;flex:0 0 auto;background:linear-gradient(160deg,var(--c),color-mix(in srgb,var(--c) 72%,#000 12%));box-shadow:0 4px 8px -3px color-mix(in srgb,var(--c) 65%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}
   .legend .sw{width:13px;height:13px;border-radius:5px;flex:0 0 auto}
-  .legend .lv{margin-inline-start:auto;font-family:var(--round);color:var(--ink-soft)}
+  .legend .lv{margin-inline-start:auto;font-family:var(--round);color:var(--ink-soft);font-variant-numeric:tabular-nums}
   .legend .more{font-size:12.5px;color:var(--ink-soft)}
   .legend .more[role="button"]{cursor:pointer;border-radius:8px;padding:3px 6px;margin:-3px -6px;transition:.15s}
   .legend .more[role="button"]:hover{color:var(--teal-ink);background:color-mix(in srgb,var(--teal) 10%,transparent)}
@@ -266,6 +287,8 @@
     background:color-mix(in srgb,var(--teal) 14%,transparent);color:var(--teal-ink);border:1.5px solid color-mix(in srgb,var(--teal) 30%,transparent);
     border-radius:999px;padding:7px 15px;cursor:pointer;transition:.18s}
   .add-goal-btn:hover{background:color-mix(in srgb,var(--teal) 24%,transparent)}
+  body.dusk .add-goal-btn{background:rgba(214,243,220,.14);color:#D6F3DC;border-color:rgba(214,243,220,.4)}
+  body.dusk .add-goal-btn:hover{background:rgba(214,243,220,.26)}
   .goal-form{margin-top:14px;background:color-mix(in srgb,var(--teal) 6%,transparent);
     border:1.5px solid color-mix(in srgb,var(--teal) 20%,transparent);border-radius:18px;padding:16px;display:none}
   .goal-form.open{display:block}
@@ -286,6 +309,8 @@
   .plan-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     background:var(--card);border-radius:var(--r);padding:14px 20px;box-shadow:var(--shadow-sm);margin-bottom:18px}
   .plan-row .plan-text{font-size:14px;color:var(--ink-soft)}
+  body.dusk .plan-row{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:none}
+  body.dusk .plan-row .plan-text{color:#C9DECB}
 
   /* ── ACCOUNTS & BALANCES (all your money) ──────────────────────────────── */
   .accounts-card .acc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
@@ -309,7 +334,7 @@
   .comp-liabilities{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
   .acc-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
   .acc-row:first-of-type{border-top:0}
-  .acc-row .acc-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:15px;flex:0 0 auto;background:color-mix(in srgb,var(--teal) 14%,transparent)}
+  .acc-row .acc-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:15px;flex:0 0 auto;color:#FBF3E7;background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.12)}
   .acc-row .acc-main{flex:1;min-width:0}
   .acc-row .acc-name{font-family:var(--round);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .acc-row .acc-meta{font-size:11.5px;color:var(--ink-soft)}
@@ -335,7 +360,7 @@
   .recent h3{font-family:var(--round);font-size:19px;margin:0}
   .recent .all{font-size:12.5px;color:var(--teal-ink);font-family:var(--round)}
   .tx{display:flex;align-items:center;gap:13px;padding:11px 0;border-top:1px solid var(--line);transition:background .15s;border-radius:12px;margin:-2px -6px;padding-inline:8px;cursor:default}
-  .tx .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:16px;background:color-mix(in srgb,var(--coral) 16%,transparent);flex:0 0 auto}
+  .tx .ic{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:16px;color:#fff;background:linear-gradient(160deg,var(--c,#9E8A70),color-mix(in srgb,var(--c,#9E8A70) 72%,#000 12%));box-shadow:0 5px 10px -4px color-mix(in srgb,var(--c,#9E8A70) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.35);flex:0 0 auto}
   .tx .n{font-family:var(--round);font-size:14.5px} .tx .c{font-size:11.5px;color:var(--ink-soft)}
   .tx .a{margin-inline-start:auto;font-family:var(--round);font-variant-numeric:tabular-nums;white-space:nowrap}
   .tx .a.pos{color:var(--pos)}
@@ -454,6 +479,8 @@ body.dusk .seg button{color:#C6D2BD}
 body.dusk .seg button[aria-pressed="true"]{background:linear-gradient(180deg,#D6F3DC,#AEDDBA);color:#123B24;box-shadow:0 2px 12px rgba(174,221,186,.4)}
 body.dusk .icon-btn{background:rgba(255,255,255,.1);color:#D6F3DC;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 body.dusk .mark .duo{color:#EAF7EC;letter-spacing:.04em}
+body.dusk .brand .mark{color:#EAF7EC;letter-spacing:.04em}
+body.dusk .brand .tag{color:#BDD2BD}
 body.dusk .logo .lg-ring,body.dusk .logo .lg-slot{stroke:#FFFDF5}
 body.dusk .navtrail button{background:transparent;color:#C9DECB;box-shadow:none;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border-radius:999px;border:1px solid transparent}
 body.dusk .navtrail button[aria-pressed="true"]{background:rgba(214,243,220,.92);color:#123B24;border-color:transparent;box-shadow:0 10px 24px -10px rgba(174,221,186,.5)}
@@ -589,7 +616,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   /* tx list inside drawer */
   .drawer-tx{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
   .drawer-tx:first-of-type{border-top:0;padding-top:0}
-  .drawer-tx .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:13px;background:color-mix(in srgb,var(--coral) 16%,transparent);flex:0 0 auto}
+  .drawer-tx .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:13px;color:#fff;background:linear-gradient(160deg,var(--c,#9E8A70),color-mix(in srgb,var(--c,#9E8A70) 72%,#000 12%));box-shadow:inset 0 1px 0 rgba(255,255,255,.35);flex:0 0 auto}
   .drawer-tx .dtx-main{flex:1;min-width:0}
   .drawer-tx .dtx-n{font-family:var(--round);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .drawer-tx .dtx-c{font-size:11.5px;color:var(--ink-soft)}
@@ -677,7 +704,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   <header>
     <div class="brand"><span class="mark">ke<b>$</b>ef</span><span class="tag" data-t="tagline">your money</span></div>
     <div class="sync-wrap">
-      <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic">🔄</span> <span data-t="sync">Sync</span></button>
+      <button class="sync-btn" id="sync-btn" title="Sync all accounts"><span class="sync-ic" data-ic="sync"></span> <span data-t="sync">Sync</span></button>
       <button class="sync-caret" id="sync-caret" aria-label="sync options" aria-haspopup="true">▾</button>
       <div class="sync-menu" id="sync-menu" role="menu">
         <div class="sync-menu-item" data-only="" role="menuitem" data-t="sync_all">All accounts</div>
@@ -697,7 +724,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
       <button data-lang-btn="en" aria-pressed="true">EN</button>
       <button data-lang-btn="he" aria-pressed="false">עברית</button>
     </div>
-    <button class="icon-btn" id="privacy-eye" aria-label="show or hide amounts" title="show/hide amounts">🙈</button>
+    <button class="icon-btn" id="privacy-eye" aria-label="show or hide amounts" title="show/hide amounts"></button>
     <button class="icon-btn" id="theme" aria-label="toggle theme">◐</button>
   </header>
 
@@ -712,16 +739,16 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
       <div class="cycle-track" id="cycle-track"><i id="cycle-fill"></i></div>
       <div class="cycle-days" id="cycle-days"></div>
       <div class="hero-chips" id="hero-chips"></div>
-      <div class="privacy" id="privacy" hidden>🔒 <span data-t="privacy">Couple view adds only what you each chose to share. Personal stuff stays private.</span></div>
+      <div class="privacy" id="privacy" hidden><span data-ic="safe"></span> <span data-t="privacy">Couple view adds only what you each chose to share. Personal stuff stays private.</span></div>
     </div>
   </section>
 
   <div id="me-view">
   <nav class="navtrail" id="navtrail">
-    <button data-nav="home" aria-pressed="true">🏠 <span data-t="nav_home">Home</span></button>
-    <button data-nav="garden" aria-pressed="false">🌳 <span data-t="nav_garden">Goals</span></button>
-    <button data-nav="pay" aria-pressed="false">💌 <span data-t="nav_pay">Salary</span></button>
-    <button data-nav="wealth" aria-pressed="false">🔒 <span data-t="nav_wealth">Wealth</span></button>
+    <button data-nav="home" aria-pressed="true"><span data-ic="home"></span> <span data-t="nav_home">Home</span></button>
+    <button data-nav="garden" aria-pressed="false"><span data-ic="target"></span> <span data-t="nav_garden">Goals</span></button>
+    <button data-nav="pay" aria-pressed="false"><span data-ic="doc"></span> <span data-t="nav_pay">Salary</span></button>
+    <button data-nav="wealth" aria-pressed="false"><span data-ic="safe"></span> <span data-t="nav_wealth">Wealth</span></button>
   </nav>
   <div style="margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap" data-tab="home">
     <div class="seg" role="group" aria-label="period" id="period-seg">
@@ -765,7 +792,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
     <section class="card" style="grid-column:1/-1;order:4;animation-delay:.28s" id="paycheck-card" data-tab="pay">
       <div class="acc-head">
         <div>
-          <h3 data-t="paycheck">Your paycheck</h3>
+          <h3 style="--hc:var(--gold)"><span class="hic" data-ic="doc"></span><span data-t="paycheck">Your paycheck</span></h3>
           <p class="sub" id="paycheck-sub" style="margin-bottom:0" data-t="paycheck_sub">where the gross actually goes</p>
         </div>
         <button class="add-goal-btn" id="add-payslip-btn" style="margin-top:0">＋ <span data-t="add_payslip">Add payslip</span></button>
@@ -803,8 +830,8 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
 
     <!-- accounts moved into the vault (bottom) -->
 
-    <section class="card" style="order:0;animation-delay:.06s" data-tab="home">
-      <h3 data-t="spend">Where it goes</h3>
+    <section class="card" style="order:0;animation-delay:.06s" data-tab="home" id="spend-card">
+      <h3 style="--hc:var(--coral)"><span class="hic" data-ic="pie"></span><span data-t="spend">Where it goes</span></h3>
       <p class="sub" id="spend-sub">this month</p>
       <div class="donut-row">
         <!-- SVG donut replaces conic-gradient div -->
@@ -814,12 +841,12 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
         <div class="legend" id="legend"></div>
       </div>
       <div class="zoom-hint" id="zoom-hint" data-t="zoom_hint">👆 tap any slice or row to zoom in</div>
-      <div class="insight" id="insight-box">💡 <span id="insight-text"></span></div>
+      <div class="insight" id="insight-box"><span id="insight-text"></span></div>
     </section>
 
     <section class="card" style="order:1;animation-delay:.12s" data-tab="garden">
-      <h3 data-t="goals">Your goals</h3>
-      <p class="sub" data-t="goals_sub">the fun part 🎉</p>
+      <h3 style="--hc:var(--berry)"><span class="hic" data-ic="target"></span><span data-t="goals">Your goals</span></h3>
+      <p class="sub" data-t="goals_sub">tap a goal for a smart tip</p>
       <div id="goals"></div>
       <button class="add-goal-btn" id="add-goal-btn">＋ <span data-t="add_goal">Add goal</span></button>
       <div class="goal-form" id="goal-form">
@@ -842,12 +869,12 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
 
     <!-- Top Merchants full-width card -->
     <section class="card merchants-card" style="order:2;animation-delay:.18s" id="merchants-card" data-tab="home">
-      <h3 data-t="top_merchants">Top merchants</h3>
+      <h3 style="--hc:var(--bark,#8A5F3C)"><span class="hic" data-ic="bank"></span><span data-t="top_merchants">Top merchants</span></h3>
       <p class="sub" id="merchants-sub">this period</p>
       <div id="merchants-list"></div>
     </section>
 <section class="card" style="grid-column:1/-1;order:3;animation-delay:.24s" id="piggy-card" data-tab="garden">
-      <h3>🐸 <span id="pg-h"></span></h3>
+      <h3 style="--hc:var(--berry)"><span class="hic" data-ic="piggy"></span><span id="pg-h"></span></h3>
       <p class="sub" id="pg-sub"></p>
       <div class="pg-grid">
         <div class="pg-controls">
@@ -897,7 +924,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
 
   <section class="recent" data-tab="home">
     <div class="top">
-      <h3 data-t="recent">Recent</h3>
+      <h3 style="--hc:var(--teal-ink)"><span class="hic" data-ic="list"></span><span data-t="recent">Recent</span></h3>
       <div class="panel-tabs" style="margin-bottom:0">
         <button class="panel-tab" id="tab-all"    aria-pressed="false" data-t="view_all_btn">View all</button>
         <button class="panel-tab" id="tab-transfers" aria-pressed="false" data-t="transfers">Transfers</button>
@@ -913,7 +940,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
   <section class="vault" id="vault">
     <div class="v-sub" data-t="vault_sub">Net worth · the eye hides it</div>
     <div class="v-nw"><span class="cur">₪</span><span id="nw">0</span></div>
-    <div class="delta" id="delta-chip">🌱 <span id="delta"></span></div>
+    <div class="delta" id="delta-chip"><span data-ic="trend"></span> <span id="delta"></span></div>
     <div class="chart" id="chart-area" style="margin-top:14px">
       <svg id="spark" viewBox="0 0 520 170" preserveAspectRatio="none" aria-label="net worth trend">
         <defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".34"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
@@ -929,7 +956,7 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
     <div class="accounts-card">
       <div class="acc-head">
         <div>
-          <h3 data-t="accounts">Your money</h3>
+          <h3 style="--hc:var(--teal)"><span class="hic" data-ic="safe"></span><span data-t="accounts">Your money</span></h3>
           <p class="sub" data-t="accounts_sub" style="margin-bottom:0">everything you own — bank, cards, investments, pension</p>
         </div>
         <button class="add-goal-btn" id="add-balance-btn" style="margin-top:0">＋ <span data-t="add_balance">Add / update balance</span></button>
@@ -971,13 +998,13 @@ body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;back
       <section class="card" style="grid-column:1/-1">
         <div class="acc-head">
           <div>
-            <h3 id="cv-title" data-t="cv_together">Together</h3>
+            <h3 style="--hc:var(--teal)"><span class="hic" data-ic="heart"></span><span id="cv-title" data-t="cv_together">Together</span></h3>
             <p class="sub" id="cv-freshness"></p>
           </div>
           <div class="cv-bar-actions">
             <button class="btn ghost" id="cv-connect-btn">🔗 Connect partner</button>
-            <button class="btn ghost" id="cv-preview-btn" data-t="cv_preview">👁 Preview what you share</button>
-            <button class="sync-btn" id="cv-sync-btn"><span class="sync-ic">🔄</span> <span data-t="cv_sync_partner">Sync with partner</span></button>
+            <button class="btn ghost" id="cv-preview-btn"><span data-ic="eye"></span> <span data-t="cv_preview">Preview what you share</span></button>
+            <button class="sync-btn" id="cv-sync-btn"><span class="sync-ic" data-ic="sync"></span> <span data-t="cv_sync_partner">Sync with partner</span></button>
           </div>
         </div>
         <div id="cv-body">
@@ -1132,13 +1159,48 @@ function catColor(key) {
   return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#9E8A70';
 }
 
-// category → emoji icon
-const CAT_ICONS = {
-  housing:'🏠', groceries:'🛒', dining:'☕', transport:'🚗', health:'💊',
-  entertainment:'🎬', shopping:'🛍', utilities:'💡', income:'💼',
-  transfer:'🔄', savings:'🐷', investment:'📈', fees:'🏦', other:'💳',
+// b9: geometric line-SVG icon set — simple primitives only (static strings, no user data)
+const I = {
+  eye:'<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.6"/>',
+  eyeoff:'<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><path d="M4 4l16 16"/>',
+  down:'<path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M5 20h14"/>',
+  up:'<path d="M12 20V8"/><path d="M7.5 12.5 12 8l4.5 4.5"/><path d="M5 4h14"/>',
+  leaf:'<path d="M12 21v-8"/><path d="M12 13C6 13 5 8 5 5c4 0 7 1.5 7 8Z"/><path d="M12 11c0-4.5 2.5-6 7-6 0 3-1 8-7 8Z"/>',
+  gem:'<path d="M7 4h10l4 5-9 11L3 9l4-5Z"/><path d="M3 9h18"/>',
+  wallet:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M15 12.5h3"/><path d="M3 9.5h18"/>',
+  chart:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12l6 4.5"/>',
+  pie:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5V12H20.5"/><path d="M12 12l-6 6"/>',
+  home:'<path d="M4 11 12 4.5 20 11"/><path d="M6.5 9.5V19h11V9.5"/><path d="M10 19v-5h4v5"/>',
+  heart:'<path d="M12 20C6.5 16 4 12.8 4 9.6 4 7 6 5 8.4 5c1.5 0 2.8.8 3.6 2 .8-1.2 2.1-2 3.6-2C18 5 20 7 20 9.6c0 3.2-2.5 6.4-8 10.4Z"/>',
+  flag:'<path d="M6 21V4"/><path d="M6 5h12l-2.5 3.5L18 12H6"/>',
+  target:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1.4"/>',
+  doc:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+  gift:'<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M12 9v11M4 13h16"/><path d="M12 9c-4 0-5-4-2.5-4.5C11.5 4 12 7 12 9Zm0 0c4 0 5-4 2.5-4.5C12.5 4 12 7 12 9Z"/>',
+  safe:'<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="12" cy="12" r="4"/><path d="M12 8.5V12l2.2 1.6"/>',
+  list:'<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>',
+  bank:'<path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v7M12 10v7M19 10v7"/><path d="M3 20h18"/>',
+  trend:'<path d="M3 17l6-6 4 3.5L21 7"/><path d="M15.5 7H21v5.5"/>',
+  tree:'<path d="M12 21v-6"/><circle cx="12" cy="9" r="6"/>',
+  cal:'<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  sync:'<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 3.5V7h-3.5"/>',
+  housing:'<path d="M4 11 12 4.5 20 11"/><path d="M6.5 9.5V19h11V9.5"/>',
+  groceries:'<path d="M4 6h2l2.2 9.5h9.3L20 8H7"/><circle cx="10" cy="19" r="1.4"/><circle cx="16" cy="19" r="1.4"/>',
+  dining:'<path d="M5 9h11v4a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z"/><path d="M16 10h1.8a2.2 2.2 0 0 1 0 4.4H16"/>',
+  transport:'<path d="M5 15V9.8C5 8 6.5 7 8 7h8c1.5 0 3 1 3 2.8V15"/><path d="M3.5 15h17v3h-17z"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>',
+  health:'<path d="M12 5v14M5 12h14"/>',
+  shopping:'<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>',
+  utilities:'<path d="M13 3 5 13.5h5.5L11 21l8-10.5h-5.5L13 3Z"/>',
+  entertainment:'<circle cx="12" cy="12" r="8.5"/><path d="M10 8.8v6.4l5.4-3.2L10 8.8Z"/>',
+  income:'<path d="M12 4v12"/><path d="M7.5 11.5 12 16l4.5-4.5"/><path d="M5 20h14"/>',
+  investment:'<path d="M3 17l6-6 4 3.5L21 7"/><path d="M15.5 7H21v5.5"/>',
+  transfer:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  piggy:'<ellipse cx="11.5" cy="13.5" rx="7.5" ry="5.8"/><path d="M8.5 8.2h5"/><path d="M8.5 19v1.6M14.5 19v1.6"/><circle cx="19.5" cy="13" r="1.1"/>',
+  other:'<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/>',
 };
-const catIcon = key => CAT_ICONS[key] || '💳';
+I.savings = I.piggy; I.fees = I.bank;
+const ic = (k, sz) => `<svg class="ic" viewBox="0 0 24 24"${sz ? ` style="font-size:${sz}px"` : ''}>${I[k] || I.other}</svg>`;
+const catIcon = key => ic(I[key] ? key : 'other');
+document.querySelectorAll('[data-ic]').forEach(e => { e.innerHTML = ic(e.dataset.ic, e.classList.contains('hic') || e.classList.contains('gic') ? 15 : undefined); });
 
 // ─── translations ─────────────────────────────────────────────────────────────
 const T = {
@@ -1156,7 +1218,7 @@ const T = {
   spend:     { en: 'Where it goes',  he: 'לאן זה הולך' },
   total:     { en: 'total',          he: 'סה״כ' },
   goals:     { en: 'Your goals',     he: 'היעדים שלך' },
-  goals_sub: { en: 'the fun part 🎉', he: 'החלק הכיפי 🎉' },
+  goals_sub: { en: 'tap a goal for a smart tip', he: 'הקישו על יעד לטיפ חכם' },
   recent:    { en: 'Recent',         he: 'אחרונות' },
   recent_sub:{ en: 'auto-sorted',    he: 'מסווג אוטומטית' },
   view_all:  { en: 'view all →',     he: '← הצג הכל' },
@@ -1221,7 +1283,7 @@ const T = {
   cv_sync_partner: { en: 'Sync with partner', he: 'סנכרן עם בן/בת הזוג' },
   cv_syncing:    { en: 'Syncing…',        he: 'מסנכרן…' },
   cv_no_partner: { en: 'No partner data yet — ask them to sync too.', he: 'אין עדיין נתונים — בקשו מבן/בת הזוג לסנכרן.' },
-  cv_preview:    { en: '👁 Preview what you share', he: '👁 תצוגה מקדימה של מה שמשותף' },
+  cv_preview:    { en: 'Preview what you share', he: 'תצוגה מקדימה של מה שמשותף' },
   cv_preview_none:{ en: 'You are not sharing anything yet. Flip a "Share" toggle on an account or goal.', he: 'עדיין לא משתפים כלום. הפעילו "שיתוף" על חשבון או יעד.' },
   cv_connect:    { en: '🔗 Connect partner', he: '🔗 חברו בן/בת זוג' },
   cv_manage:     { en: '⚙ Partner settings', he: '⚙ הגדרות שיתוף' },
@@ -1393,7 +1455,7 @@ function renderNoData() {
       <div class="inner">
         <div class="logo">ke<b>$</b>ef</div>
         <div class="msg">${T.no_data[lang]}</div>
-        <button class="sync-btn" id="nodata-sync" style="margin-top:22px"><span class="sync-ic">🔄</span> ${t('sync')}</button>
+        <button class="sync-btn" id="nodata-sync" style="margin-top:22px"><span class="sync-ic">${ic('sync')}</span> ${t('sync')}</button>
         <div class="msg" id="nodata-status" style="font-size:13.5px;margin-top:14px"></div>
       </div>
     </div>`;
@@ -1522,7 +1584,7 @@ setupTabs();
 // The hero deliberately does NOT show net worth — that lives in the vault at the bottom, masked.
 function renderHero(M) {
   const hr = new Date().getHours();
-  const g = $('#greet-txt'); if (g) g.textContent = '🌿 ' + t(hr < 12 ? 'greet_m' : hr < 18 ? 'greet_a' : 'greet_e');
+  const g = $('#greet-txt'); if (g) g.innerHTML = ic('leaf', 17) + ' ' + t(hr < 12 ? 'greet_m' : hr < 18 ? 'greet_a' : 'greet_e');
   const gs = $('#gsub'); if (gs) gs.textContent = t('gsub');
   const leftEl = $('#hero-left'), kEl = $('#hero-left-k');
   const cyc = M.cycle;
@@ -1545,13 +1607,13 @@ function renderHero(M) {
   const kept = src.income - src.spent;
   const payroll = payrollSavedInPeriod(M.payslips, 'thisMonth', M.generatedAt);
   const chips = [
-    { i: '💸', k: t('income'), v: NF(src.income), s: t('net_to_bank') },
-    { i: '🧾', k: t('spent'), v: NF(src.spent), s: cyc ? t('period_cycle') : t('period_thisMonth') },
-    { i: '🐷', k: t('saved'), v: NF(kept), s: src.income > 0 && Math.abs(kept / src.income) <= 1 ? Math.round(kept / src.income * 100) + t('of_income') : '' },
-    { i: '💎', k: t('saved_invested'), v: NF((src.savedInvested || 0) + payroll), s: payroll > 0 ? t('incl_payroll') : '' },
+    { i: 'down', k: t('income'), v: NF(src.income), s: t('net_to_bank') },
+    { i: 'up', k: t('spent'), v: NF(src.spent), s: cyc ? t('period_cycle') : t('period_thisMonth') },
+    { i: 'piggy', k: t('saved'), v: NF(kept), s: src.income > 0 && Math.abs(kept / src.income) <= 1 ? Math.round(kept / src.income * 100) + t('of_income') : '' },
+    { i: 'gem', k: t('saved_invested'), v: NF((src.savedInvested || 0) + payroll), s: payroll > 0 ? t('incl_payroll') : '' },
   ];
-  chipsEl.innerHTML = chips.map(c =>
-    `<div class="chip"><div class="k">${c.i} ${c.k}</div><div class="v">₪${c.v}</div>${c.s ? `<div class="s">${c.s}</div>` : ''}</div>`).join('');
+  chipsEl.innerHTML = chips.map((c, ix) =>
+    `<div class="chip" style="animation-delay:${(0.55 + ix * 0.1).toFixed(2)}s"><div class="k">${c.i === 'piggy' ? `<span class="piggywrap">${ic('piggy', 15)}<span class="dropc"></span></span>` : ic(c.i, 14)} ${c.k}</div><div class="v">₪${c.v}</div>${c.s ? `<div class="s">${c.s}</div>` : ''}</div>`).join('');
 }
 
 // ─── count-up animation ───────────────────────────────────────────────────────
@@ -1629,9 +1691,9 @@ function renderGoals(goals, generatedAt) {
     if (!done) {
       if (g.targetDate) {
         const needed = Math.ceil((tgt - cur) / monthsUntil(g.targetDate, generatedAt));
-        if (needed > 0) hintHtml = `<div class="goal-monthly">🐷 ${wealth(needed)}${t('goal_per_month')}</div>`;
+        if (needed > 0) hintHtml = `<div class="goal-monthly">${ic('piggy')} ${wealth(needed)}${t('goal_per_month')}</div>`;
       } else {
-        hintHtml = `<div class="goal-monthly muted">📅 ${t('goal_need_date')}</div>`;
+        hintHtml = `<div class="goal-monthly muted">${ic('cal')} ${t('goal_need_date')}</div>`;
       }
     }
     // projection graph: the path from where you are now to the target by the deadline (dashed = plan)
@@ -1684,7 +1746,7 @@ function renderGoals(goals, generatedAt) {
       if (tip) { tip.remove(); return; }
       tip = document.createElement('div');
       tip.className = 'goal-tip';
-      tip.innerHTML = '💡 ' + goalTip(window.__KESEF__, g);
+      tip.innerHTML = goalTip(window.__KESEF__, g);
       row.insertAdjacentElement('afterend', tip);
     };
   });
@@ -1791,16 +1853,16 @@ function clearGoalForm() {
 }
 
 // ─── accounts & balances (all your money) ───────────────────────────────────
-const ACCT_TYPE_ICON = { bank:'🏦', credit_card:'💳', investment:'📈', pension:'🌴' };
+const ACCT_TYPE_ICON = { bank: ic('bank'), credit_card: ic('other'), investment: ic('trend'), pension: ic('tree') };
 // How soon you'll use the money: bank/cards = day-to-day; investments/pension = long-term by
 // default (20–30y). 'medium' (5–10y) is reached only via an explicit tag — mirrors resolveHorizon
 // in @kesef/core, but only at the account level (list placement doesn't split by component).
 const TYPE_HORIZON = { bank: 'daily', credit_card: 'daily', investment: 'long', pension: 'long' };
 const HORIZON_ORDER = ['daily', 'medium', 'long'];
 const HORIZON = {
-  daily:  { icon: '💳', cssVar: '--gold',          lbl: 'horizon_daily',  sub: 'horizon_daily_sub' },
-  medium: { icon: '🏡', cssVar: '--cat-savings',    lbl: 'horizon_medium', sub: 'horizon_medium_sub' },
-  long:   { icon: '🌱', cssVar: '--cat-investment', lbl: 'horizon_long',   sub: 'horizon_long_sub' },
+  daily:  { icon: 'other', cssVar: '--gold',          lbl: 'horizon_daily',  sub: 'horizon_daily_sub' },
+  medium: { icon: 'home', cssVar: '--cat-savings',    lbl: 'horizon_medium', sub: 'horizon_medium_sub' },
+  long:   { icon: 'tree', cssVar: '--cat-investment', lbl: 'horizon_long',   sub: 'horizon_long_sub' },
 };
 // Normalize to a known horizon key so a stray/corrupted value can never crash the render.
 const normHorizon = h => HORIZON[h] ? h : 'daily';
@@ -1825,7 +1887,7 @@ function renderAccounts(M) {
   const tile = (key) => {
     const c = catColorVar(HORIZON[key].cssVar);
     return `<div class="horizon-tile" style="--hz:${c}">
-      <div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div>
+      <div class="hz-k"><span class="hzic">${ic(HORIZON[key].icon, 12)}</span> <span>${t(HORIZON[key].lbl)}</span></div>
       <div class="hz-v">${wealth(comp[key])}</div>
       <div class="hz-sub">${t(HORIZON[key].sub)}</div>
     </div>`;
@@ -1835,7 +1897,7 @@ function renderAccounts(M) {
     (grand > 0 ? `<div class="comp-bar">${HORIZON_ORDER.map(key =>
         `<div class="comp-seg" style="width:${(shown[key] / grand * 100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}" title="${t(HORIZON[key].lbl)}"></div>`
       ).join('')}</div>` : '') +
-    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
+    (liabilities > 0 ? `<div class="comp-liabilities">${ic('other')} ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
   compEl.style.display = '';
 
   if (accounts.length === 0) {
@@ -1848,7 +1910,7 @@ function renderAccounts(M) {
     const bal = (typeof a.balance === 'number') ? a.balance : null;
     const shareHtml = paired ? `<label class="toggle-pill share-pill ${a.shareable ? 'on' : ''}"><input type="checkbox" data-share-acct="${esc(a.id)}" ${a.shareable ? 'checked' : ''}> <span>${a.shareable ? '✓ ' + t('shared_badge') : t('share_pill')}</span></label>` : '';
     const balStr = bal === null ? '—' : wealth(bal);
-    const icon = ACCT_TYPE_ICON[a.type] || '🏦';
+    const icon = ACCT_TYPE_ICON[a.type] || ic('bank');
     let asof = '';
     if (a.asOf) {
       const days = Math.floor((now - new Date(a.asOf)) / 86400000);
@@ -1865,7 +1927,7 @@ function renderAccounts(M) {
     const histHtml = !isLong ? ''
       : hist.length >= 2
         ? `${miniSparkSvg(hist, '--cat-investment')}<div class="acc-spark-lbl"><span>${fmtSparkDate(hist[0].date)}</span><span>${wealth(hist[hist.length - 1].balance)}</span></div>`
-        : `<div class="acc-spark-hint">📈 ${t('graph_builds')}</div>`;
+        : `<div class="acc-spark-hint">${ic('trend')} ${t('graph_builds')}</div>`;
     return `<div class="acc-item">
       <div class="acc-row">
         <span class="acc-ic">${icon}</span>
@@ -1886,7 +1948,7 @@ function renderAccounts(M) {
     // only show accounts that actually have a balance (hide e.g. the empty credit-card rows)
     const accs = accounts.filter(a => acctHorizon(a) === key && a.balance != null);
     if (!accs.length) return '';
-    return `<div class="acc-group"><div class="acc-group-h">${HORIZON[key].icon} ${t(HORIZON[key].lbl)}</div>${accs.map(rowHtml).join('')}</div>`;
+    return `<div class="acc-group"><div class="acc-group-h">${ic(HORIZON[key].icon)} ${t(HORIZON[key].lbl)}</div>${accs.map(rowHtml).join('')}</div>`;
   };
   listEl.innerHTML = HORIZON_ORDER.map(group).join('');
 
@@ -2109,7 +2171,7 @@ function horizonPickerHtml(kind, accountId, resolved, raw, componentName) {
   const label = t(HORIZON[resolved].lbl);
   return `<span class="cat-picker-wrap h-picker-wrap" ${attrs}>
     <button class="h-chip" style="--chip-color:${catColorVar(HORIZON[resolved].cssVar)}" title="${t('change_horizon')}: ${esc(label)}" aria-label="${t('change_horizon')}: ${esc(label)}">
-      <span class="cc-icon">${HORIZON[resolved].icon}</span>
+      <span class="cc-icon">${ic(HORIZON[resolved].icon)}</span>
     </button>
     <div class="cat-picker" role="listbox" aria-label="${t('change_horizon')}"></div>
   </span>`;
@@ -2121,7 +2183,7 @@ function buildHorizonPicker(wrap) {
   const raw = wrap.dataset.hRaw || '';
   picker.innerHTML = HORIZON_PICK_OPTIONS.map(key => {
     const active = key === raw;
-    const icon = key === '' ? '✨' : HORIZON[key].icon;
+    const icon = key === '' ? ic('gem') : ic(HORIZON[key].icon);
     const label = key === '' ? t('horizon_auto') : t(HORIZON[key].lbl);
     const dotColor = key === '' ? 'transparent' : catColorVar(HORIZON[key].cssVar);
     return `<div class="cp-item ${active ? 'cp-active' : ''}" data-horizon="${esc(key)}" role="option" aria-selected="${active}">
@@ -2199,7 +2261,7 @@ function renderTxs(recent) {
     const abs = Math.abs(tx.amount);
     const dateStr = tx.date ? tx.date.slice(0, 10) : '';
     return `<div class="tx">
-      <span class="ic" style="background:color-mix(in srgb,${catColor(cat)} 18%,transparent)">${icon}</span>
+      <span class="ic" style="--c:${catColor(cat)}">${icon}</span>
       <div style="flex:1;min-width:0">
         <div class="n">${esc(tx.description || '')}</div>
         <div class="c">${dateStr ? dateStr + ' · ' : ''}${catChipHtml(tx)}</div>
@@ -2362,7 +2424,7 @@ function monthYearLabel(ym) {
 function esppFlightLine(M) {
   const flight = M.esppInFlight;
   if (!flight) return '';
-  return `<div class="insight" style="margin-top:14px">📈 <span>${t('espp_flight_lbl')}: <b>₪${NF(flight.amount)}</b> ${t('espp_since')} ${monthYearLabel(flight.windowStartMonth)} · ${t('espp_payout')} ${monthYearLabel(flight.payoutMonth)}</span></div>`;
+  return `<div class="insight" style="margin-top:14px">${ic('trend')} <span>${t('espp_flight_lbl')}: <b>₪${NF(flight.amount)}</b> ${t('espp_since')} ${monthYearLabel(flight.windowStartMonth)} · ${t('espp_payout')} ${monthYearLabel(flight.payoutMonth)}</span></div>`;
 }
 
 // b9: the gross→net story as a donut, gross in the center
@@ -2410,7 +2472,7 @@ function renderPaycheck(M) {
     </div>
     ${payDonut(parts, gross)}
     <div class="comp-legend" style="justify-content:center">${parts.map(p => `<div class="comp-item"><span class="sw" style="background:${p.color}"></span><span class="ck">${t(p.key)}</span> <span class="cv">₪${NF(p.amt)}</span></div>`).join('')}</div>
-    ${employer > 0 ? `<div class="insight" style="margin-top:14px">🎁 <span><b>+₪${NF(employer)}</b> ${t('employer_added')}</span></div>` : ''}
+    ${employer > 0 ? `<div class="gift"><span class="gic">${ic('gift', 14)}</span><span style="padding-top:4px"><b>+₪${NF(employer)}</b> ${t('employer_added')}</span></div>` : ''}
     ${esppLine}
     <div style="margin-top:12px">${slips.map(monthChip).join('')}</div>`;
   body.querySelectorAll('.ps-del').forEach(el => {
@@ -2591,8 +2653,8 @@ function renderDonut(byCategory, txns) {
   const tot = sorted.reduce((s, c) => s + c.amount, 0);
   _donutData = sorted;
 
-  // SVG parameters
-  const cx = 80, cy = 80, R = 62, hole = 42;
+  // SVG parameters — b9 proportions: a thick ring with the total living inside it
+  const cx = 80, cy = 80, R = 70, hole = 38;
   const strokeW = R - hole;
   const r = hole + strokeW / 2;  // center of the stroke ring
   const circ = 2 * Math.PI * r;
@@ -2621,7 +2683,9 @@ function renderDonut(byCategory, txns) {
     cumAngle += pct;
     // gap
     const gap = Math.min(2, circ * pct * 0.06);
-    const dashAdj = (Math.max(0, (pct * circ) - gap)).toFixed(3);
+    const dashAdj = Math.max(0, (pct * circ) - gap);
+    // dash pattern period must equal the circumference (dash + remainder), or every arc
+    // lands at a wrapped position — this was the long-standing "horseshoe donut" bug
     svgHtml += `<circle
       class="donut-seg"
       data-cat="${esc(item.category)}"
@@ -2631,9 +2695,9 @@ function renderDonut(byCategory, txns) {
       fill="none"
       stroke="${color}"
       stroke-width="${strokeW}"
-      stroke-dasharray="${dashAdj} ${circ.toFixed(3)}"
+      stroke-dasharray="${dashAdj.toFixed(3)} ${(circ - dashAdj).toFixed(3)}"
       stroke-dashoffset="${(circ - parseFloat(offset)).toFixed(3)}"
-      style="transform-origin:${cx}px ${cy}px"
+      style="animation:${firstPaint ? `segIn .5s ${(i * 0.07).toFixed(2)}s backwards` : 'none'}"
       role="button"
       aria-label="${cl(item.category)}: ₪${NF(item.amount)}"
       tabindex="0"
@@ -2642,21 +2706,12 @@ function renderDonut(byCategory, txns) {
 
   // Center label
   svgHtml += `
-    <text x="${cx}" y="${cy - 7}" text-anchor="middle" class="donut-center-label" font-size="10" fill="var(--ink-soft)">${t('total')}</text>
-    <text x="${cx}" y="${cy + 11}" text-anchor="middle" class="donut-center-label" font-size="15" fill="var(--ink)">${kfmt(tot)}</text>`;
+    <text x="${cx}" y="${cy + 1}" text-anchor="middle" class="donut-center-label" font-size="19" font-weight="600" fill="var(--ink)">${kfmt(tot)}</text>
+    <text x="${cx}" y="${cy + 17}" text-anchor="middle" class="donut-center-label" font-size="10" fill="var(--ink-soft)">${t('total')}</text>`;
 
   svg.innerHTML = svgHtml;
 
-  // animate: draw from 0 (first paint only — refreshes and period switches render instantly)
-  if (firstPaint) svg.querySelectorAll('.donut-seg').forEach((seg, i) => {
-    const dashArr = parseFloat(seg.getAttribute('stroke-dasharray').split(' ')[0]);
-    seg.style.strokeDasharray = `0 ${circ.toFixed(3)}`;
-    seg.style.transition = 'none';
-    requestAnimationFrame(() => {
-      seg.style.transition = `stroke-dasharray .8s ${(0.05 + i * 0.06).toFixed(2)}s cubic-bezier(.2,.85,.25,1)`;
-      seg.style.strokeDasharray = `${dashArr} ${circ.toFixed(3)}`;
-    });
-  });
+  // intro handled by the CSS segIn pop (b9), staggered via per-segment animation-delay
 
   // interaction: hover + click
   svg.querySelectorAll('.donut-seg').forEach(seg => {
@@ -2692,7 +2747,7 @@ function renderDonut(byCategory, txns) {
   const extra = sorted.length - 5;
   $('#legend').innerHTML = sorted.map((item, i) =>
     `<div class="row ${i >= 5 ? 'lg-extra' : ''}" data-cat="${esc(item.category)}" title="${t('transactions')} · ${cl(item.category)}">
-      <span class="sw" style="background:${catColor(item.category)}"></span>
+      <span class="lic" style="--c:${catColor(item.category)}">${catIcon(item.category)}</span>
       ${cl(item.category)}
       <span class="lv">₪${NF(item.amount)}</span>
       <span class="lv-arrow" aria-hidden="true">›</span>
@@ -2821,7 +2876,7 @@ function txRowHtml(tx) {
   const dateStr = tx.date ? tx.date.slice(0, 10) : '';
   const rc = tx.rawCategory && tx.rawCategory !== cat ? tx.rawCategory : '';
   return `<div class="drawer-tx">
-    <span class="ic" style="background:color-mix(in srgb,${catColor(cat)} 18%,transparent)">${icon}</span>
+    <span class="ic" style="--c:${catColor(cat)}">${icon}</span>
     <div class="dtx-main">
       <div class="dtx-n">${esc(tx.merchant || tx.description || '')}</div>
       <div class="dtx-c">${dateStr}${dateStr ? ' · ' : ''}${catChipHtml(tx)}</div>
@@ -3178,7 +3233,7 @@ function applyViewVisibility() {
       spark(M.netWorthSeries || []);
       renderSparkLabels(M.netWorthSeries || []);
     }
-    if (eyebrow) eyebrow.innerHTML = '👋 <span>' + t('hello') + '</span>';
+    if (eyebrow) eyebrow.innerHTML = ic('heart', 15) + ' <span>' + t('hello') + '</span>';
   } else {
     if (eyebrow) eyebrow.innerHTML = (currentView === 'couple' ? '👫 ' : '❤️ ') + '<span>' + t(currentView === 'couple' ? 'cv_combined_nw' : 'cv_partner') + '</span>';
     if (coupleData) renderCoupleView(); else loadCoupleView();
@@ -3279,12 +3334,12 @@ function renderCoupleView() {
   }
   const daily = bb.liquid, medium = bb.medium || 0, longterm = bb.investment + bb.retirement, liabilities = bb.liability < 0 ? -bb.liability : 0;
   const grand = Math.max(0, daily) + Math.max(0, medium) + Math.max(0, longterm);
-  const cvTile = (key, v) => `<div class="horizon-tile" style="--hz:${catColorVar(HORIZON[key].cssVar)}"><div class="hz-k">${HORIZON[key].icon} <span>${t(HORIZON[key].lbl)}</span></div><div class="hz-v">${wealth(v)}</div><div class="hz-sub">${t(HORIZON[key].sub)}</div></div>`;
+  const cvTile = (key, v) => `<div class="horizon-tile" style="--hz:${catColorVar(HORIZON[key].cssVar)}"><div class="hz-k"><span class="hzic">${ic(HORIZON[key].icon, 12)}</span> <span>${t(HORIZON[key].lbl)}</span></div><div class="hz-v">${wealth(v)}</div><div class="hz-sub">${t(HORIZON[key].sub)}</div></div>`;
   const cvSeg = (key, v) => `<div class="comp-seg" style="width:${(Math.max(0,v)/grand*100).toFixed(1)}%;background:${catColorVar(HORIZON[key].cssVar)}"></div>`;
   $('#cv-composition').innerHTML =
     `<div class="horizon-tiles">${cvTile('daily', daily)}${cvTile('medium', medium)}${cvTile('long', longterm)}</div>` +
     (grand > 0 ? `<div class="comp-bar">${cvSeg('daily', daily)}${cvSeg('medium', medium)}${cvSeg('long', longterm)}</div>` : '') +
-    (liabilities > 0 ? `<div class="comp-liabilities">💳 ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
+    (liabilities > 0 ? `<div class="comp-liabilities">${ic('other')} ${t('comp_liabilities')}: ${wealth(-liabilities)}</div>` : '');
 
   // you / partner split
   $('#cv-split').innerHTML = mode === 'couple'
@@ -3297,7 +3352,7 @@ function renderCoupleView() {
   const accs = (model.accounts || []).filter(a => (mode === 'couple' || a.owner === 'partner') && a.balance !== 0); // hide empty cards
   if (accs.length && accEl) {
     accEl.innerHTML = accs.map(a => {
-      const icon = ACCT_TYPE_ICON[a.type] || '🏦';
+      const icon = ACCT_TYPE_ICON[a.type] || ic('bank');
       const bal = (typeof a.balance === 'number') ? a.balance : 0;
       const balStr = wealth(bal);
       const who = a.owner === 'me' ? `<span class="owner-badge me">${t('cv_you')}</span>` : `<span class="owner-badge partner">${esc(partnerName())}</span>`;
@@ -3606,19 +3661,17 @@ if (bubbles && !reduced) {
 }
 
 // ─── theme toggle ─────────────────────────────────────────────────────────────
-// b9: the ◐ button is now the day-garden ↔ dusk-forest mood; default follows the system, persisted.
-const mq = matchMedia('(prefers-color-scheme: dark)');
-let dusk = localStorage.getItem('kesefMood') ? localStorage.getItem('kesefMood') === 'dusk' : mq.matches;
+// b9 handoff: dusk is the shipping default; the ◐ button flips to day, persisted.
+let dusk = localStorage.getItem('kesefMood') ? localStorage.getItem('kesefMood') === 'dusk' : true;
 const applyMood = () => {
   document.body.classList.toggle('dusk', dusk);
   const b = $('#theme');
   if (b) b.title = dusk ? t('mood_day') : t('mood_dusk');
 };
-mq.addEventListener('change', e => { if (!localStorage.getItem('kesefMood')) { dusk = e.matches; applyMood(); } });
 $('#theme').onclick = () => { dusk = !dusk; localStorage.setItem('kesefMood', dusk ? 'dusk' : 'day'); applyMood(); };
 // privacy eye: flip masking, remember, repaint everything with the new state
 const eyeBtn = $('#privacy-eye');
-function applyEye() { if (eyeBtn) eyeBtn.textContent = privacyOn ? '🙈' : '👁'; }
+function applyEye() { if (eyeBtn) eyeBtn.innerHTML = ic(privacyOn ? 'eyeoff' : 'eye', 18); }
 if (eyeBtn) eyeBtn.onclick = () => { privacyOn = !privacyOn; localStorage.setItem('kesefPrivacy', privacyOn ? 'on' : 'off'); applyEye(); render(); };
 applyEye();
 applyMood();
